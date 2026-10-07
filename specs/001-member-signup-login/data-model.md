@@ -2,7 +2,7 @@
 
 **Feature**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md) | **Date**: 2026-10-07
 
-> 명세의 `Key Entities`(회원, 이메일 인증, 로그인 상태)를 **어디에 어떤 모양으로 저장할지** 정리합니다. 모든 내용은 `가안`입니다. 팀 공통 ERD(`users`, `blog`, `category`)와 **맞춰야 하는 부분**은 `⚠`로 표시했고, 선택지는 [research.md](research.md)의 `D-3`, `D-4`에 있습니다.
+> 명세의 `Key Entities`(회원, 이메일 인증, 로그인 상태)를 **어디에 어떤 모양으로 저장할지** 정리합니다. 모든 내용은 `가안`입니다. 팀 공통 ERD(`users`, `blog`, `category`)와 **맞춰야 하는 부분**은 `⚠`로 표시했고, 결정은 [research.md](research.md)의 `D-3`, `D-4`에 있습니다. (2026-10-07에 정했고, **팀 ERD에 반영해 달라고 요청해야 합니다.**)
 > ERD 문법에는 MySQL(`COMMENT`)과 PostgreSQL(`TIMESTAMPTZ`)이 섞여 있습니다. 실제 DDL은 구현할 때 PostgreSQL 기준으로 정리합니다.
 
 ## 한눈에 보기
@@ -25,10 +25,10 @@
 | `intro` | VARCHAR(100), NULL | `002`에서 쓴다. 가입 때는 비워 둔다 | — |
 | `created_at` | TIMESTAMPTZ, NOT NULL | 가입 시각 | (Key Entities) |
 | `deleted_at` | TIMESTAMPTZ, NULL (탈퇴 표시) | `002`에서 쓴다. 로그인과 중복 검사는 `deleted_at`이 비어 있는 회원만 대상으로 한다 | FR-004 |
-| `failed_login_count` | **없음 ⚠** | INT, NOT NULL, 기본 0. **연속 로그인 실패 횟수** (`D-3`의 A안) | FR-027, FR-028 |
-| `locked_until` | **없음 ⚠** | TIMESTAMPTZ, NULL. **잠금이 풀리는 시각** (`D-3`의 A안) | FR-027, FR-028 |
+| `failed_login_count` | **없음 ⚠** | INT, NOT NULL, 기본 0. **연속 로그인 실패 횟수** (`D-3` 결정) | FR-027, FR-028 |
+| `locked_until` | **없음 ⚠** | TIMESTAMPTZ, NULL. **잠금이 풀리는 시각** (`D-3` 결정) | FR-027, FR-028 |
 
-### 중복 불가 규칙 (⚠ `D-4`, 추천안 기준)
+### 중복 불가 규칙 (⚠ `D-4` 결정)
 
 - 이메일: 소문자로 맞춘 값이 같은 **탈퇴하지 않은** 회원은 둘 이상 없다.
 - 닉네임: 소문자로 바꾼 값이 같은 **탈퇴하지 않은** 회원은 둘 이상 없다.
