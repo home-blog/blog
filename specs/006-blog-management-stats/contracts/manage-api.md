@@ -140,10 +140,11 @@
 
 | 항목 | 내용 |
 |---|---|
-| 연결 | FR-018, FR-020 |
-| 성공 | `200` — `{ "items": [ { "categoryId": 1, "name": "미분류", "postCount": 5, "colorIndex": 0, "isDefault": true } ] }` |
+| 연결 | FR-018, FR-020, FR-042 |
+| 성공 | `200` — `{ "items": [ { "categoryId": 1, "name": "미분류", "postCount": 5, "colorIndex": 0, "isDefault": true, "visibility": "public" } ] }` |
 
-- 순서 칸 순서대로. `postCount`는 **비공개 글 포함**(블로그 주인이 보므로).
+- 순서 칸 순서대로. `postCount`는 **비공개 글 포함**(블로그 주인이 보므로). 비공개 분류도 모두 나온다.
+- `visibility`: `public` / `private`. 화면은 `private`인 분류에 "비공개" 표시를 붙인다. (FR-042)
 - `colorIndex`의 저장 방식은 `D-9`. 색 값 자체는 화면이 정한 목록에서 고른다.
 
 ### 4-2. `POST /api/manage/categories` — 분류 추가
@@ -154,13 +155,15 @@
 | 요청 | `{ "name": "여행" }` |
 | 성공 | `201` — 만든 분류 (4-1의 한 줄 모양). 맨 아래에 붙고 색은 정해진 순서로 자동 배정 |
 
-### 4-3. `PATCH /api/manage/categories/{categoryId}` — 이름 바꾸기
+### 4-3. `PATCH /api/manage/categories/{categoryId}` — 이름·공개 여부 바꾸기
 
 | 항목 | 내용 |
 |---|---|
-| 연결 | FR-019, FR-022 |
-| 요청 | `{ "name": "국내 여행" }` |
-| 성공 | `200` — 바뀐 분류 |
+| 연결 | FR-019, FR-022, FR-042 |
+| 요청 | `{ "name": "국내 여행" }` 또는 `{ "visibility": "private" }` 또는 둘 다 (보낸 칸만 바꾼다, 가안) |
+| 성공 | `200` — 바뀐 분류 (4-1의 한 줄 모양) |
+
+- `visibility`는 `public` / `private`만 받는다. `미분류`도 비공개로 할 수 있다. 비공개로 바꾸면 그 분류와 그 분류의 글은 블로그 주인 말고는 아무에게도 보이지 않는다. 규칙은 `003`(CF-08-10, `003` 계약 6)과 같다. (FR-042)
 
 ### 4-4. `POST /api/manage/categories/{categoryId}/move` — 위·아래로 옮기기
 
@@ -191,7 +194,7 @@
 | 409 | `CATEGORY_NAME_DUPLICATE` | ※ 이미 있는 분류입니다 (상세/03 문구) | FR-019 |
 | 409 | `CATEGORY_HAS_POSTS` | ※ 이 분류에 글이 {N}개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요 (상세/03 문구) | FR-019, SC-004 |
 | 409 | `DEFAULT_CATEGORY_UNDELETABLE` | ※ (상세/03 규칙 "미분류는 삭제할 수 없다". 문구는 상세/03에서 정한다) | FR-019 |
-| 400 | `VALIDATION_FAILED` | ※ 잘못된 요청입니다 | FR-019 (`direction`이 정해진 값이 아님) |
+| 400 | `VALIDATION_FAILED` | ※ 잘못된 요청입니다 | FR-019 (`direction`이 정해진 값이 아님), FR-042 (`visibility`가 정해진 값이 아님) |
 | 404 | `NOT_FOUND` | ※ 찾을 수 없습니다 | FR-003 |
 
 ---
@@ -357,3 +360,4 @@
 | FR-038 | 7, 9 (남기지 않음) |
 | FR-039, 040 | 8 |
 | FR-041 | 8 (주소를 만들지 않음) |
+| FR-042 | 4-1 (`visibility`, "비공개" 표시), 4-3 (공개/비공개 바꾸기) |

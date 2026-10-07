@@ -6,7 +6,7 @@
 
 ## 한 줄 요약
 
-요구사항을 지키려면 **표 7곳을 바꾸고, 표 1개를 새로 만들어야** 합니다. 그 밖에 확인을 부탁드리는 질문이 3개 있습니다. 이미 고쳐 주신 것 4가지는 요청에서 뺐습니다.
+요구사항을 지키려면 **표 6곳을 바꾸고, 표 1개를 새로 만들어야** 합니다. 그 밖에 확인을 부탁드리는 질문이 1개 있습니다. 이미 고쳐 주신 것 4가지는 요청에서 뺐습니다. (2026-10-07 수정: 주제는 글마다, 분류 공개 여부는 그대로 쓰기로 해서 R-3과 R-4의 ②를 철회했습니다.)
 
 ## 0. 이미 반영된 것 (요청에서 뺌)
 
@@ -25,8 +25,8 @@
 |---|---|---|---|---|---|
 | R-1 | `users` | 로그인 실패를 기록할 칸이 없음 | `failed_login_count`(INT, 기본 0), `locked_until`(TIMESTAMPTZ, NULL) 추가 | 5회 실패하면 10분 잠금 | `001` FR-027, D-3 |
 | R-2 | `users` | `email`, `nickname`이 그냥 `UNIQUE` | **탈퇴하지 않은 회원에게만**, **소문자로 비교**하는 중복 불가로 바꿈 | 탈퇴한 사람이 같은 이메일로 다시 가입할 수 있어야 함. `Kim`과 `kim`은 같은 닉네임 | `001` FR-003·005, D-4 / `002` CF-15-21 |
-| R-3 | `post` → `blog` | `post.topic_id`가 필수 | `post.topic_id`를 없애고 `blog.topic_id`(NULL 허용) 추가 | 주제는 **블로그 전체를 묶는 분류**라는 용어 정의와 맞추기. 지금은 글쓰기에 주제 입력이 없어 **글을 저장할 수 없음** | `003` D-3 |
-| R-4 | `category` | `UNIQUE(blog_id, name)`, `visibility` 있음, 색 칸 없음 | ① 이름 중복을 **소문자로 비교** ② `visibility` 삭제 ③ `color_index`(SMALLINT) 추가 | ① "여행"과 "여행", "Java"와 "java"는 같은 분류 ② 공개 여부는 **글마다** 정함(분류에 규칙 없음) ③ 분류마다 정해진 색 | `003` FR-036·037, D-5 / `004` D-7 / `006` FR-020, D-9 |
+| ~~R-3~~ | `post` | `post.topic_id` 필수 | **철회 (2026-10-07)** — 주제는 글마다 고르기로 해서 ERD 그대로 쓴다 | 글쓰기에 주제 입력을 더했다 | `003` FR-046, D-3 |
+| R-4 | `category` | `UNIQUE(blog_id, name)`, 색 칸 없음 | ① 이름 중복을 **소문자로 비교** ② ~~`visibility` 삭제~~ **철회 — 분류 비공개에 쓴다** ③ `color_index`(SMALLINT) 추가 | ① "Java"와 "java"는 같은 분류 ③ 분류마다 정해진 색 | `003` FR-036·047, D-5 / `006` FR-020·042, D-9 |
 | R-5 | `post` | 같은 요청을 알아볼 칸이 없음 | `request_key`(VARCHAR(36), NULL, 중복 불가) 추가 | 저장 버튼을 여러 번 눌러도 글이 **한 번만** 저장되게 | `003` FR-018, SC-008, D-6 |
 | R-6 | `post_image` | `post_id` 필수, 올린 사람·시각 없음 | `post_id` NULL 허용, `users_id`(FK), `created_at` 추가 | 글을 **저장하기 전에** 이미지를 올려 본문에서 바로 보이게. 저장하지 않고 나간 이미지를 지우기 위해 | `005` FR-024·026, D-3 |
 | R-7 | **새 표** `post_daily_stat` | 글별·날짜별 조회수가 없음 | `post_id`, `stat_date`, `views` (글·날짜마다 한 줄) | 대시보드의 "**최근 7일** 인기 글" 계산 | `006` FR-008, D-6 |
@@ -53,13 +53,9 @@ ALTER TABLE users ADD COLUMN locked_until TIMESTAMPTZ NULL;
 CREATE UNIQUE INDEX uq_users_email_active    ON users (lower(email))    WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX uq_users_nickname_active ON users (lower(nickname)) WHERE deleted_at IS NULL;
 
--- R-3
-ALTER TABLE post DROP COLUMN topic_id;
-ALTER TABLE blog ADD COLUMN topic_id BIGINT NULL REFERENCES topic (topic_id);
-
 -- R-4 (기존 UNIQUE(blog_id, name)은 지운다)
 CREATE UNIQUE INDEX uq_category_blog_name ON category (blog_id, lower(name));
-ALTER TABLE category DROP COLUMN visibility;
+ALTER TABLE category ADD CONSTRAINT ck_category_visibility CHECK (visibility IN ('public', 'private'));
 ALTER TABLE category ADD COLUMN color_index SMALLINT NOT NULL DEFAULT 0;
 
 -- R-5
@@ -89,6 +85,7 @@ ALTER TABLE blog ADD COLUMN comments_read_at TIMESTAMPTZ NULL;
 |---|---|---|
 | `users` | 탈퇴해도 줄을 지우지 않고 `deleted_at`만 넣는다. 그 사람의 댓글은 "탈퇴한 사용자"로 보인다 | 지금 ERD 그대로 쓸 수 있다 (`002` D-1) |
 | `blog` | `users_id` `UNIQUE`(회원 1명 = 블로그 1개) 그대로 | 이번 범위는 1인 1블로그 (`003` D-4) |
+| `post` | `topic_id`는 그대로 둔다. 주제는 글마다 고른다 | 2026-10-07 결정 (`003` D-3) |
 | `post` | `blog_id` 칸 없이 **분류를 거쳐** 블로그의 글을 찾는다 | 지금은 충분히 빠르다. 느려지면 그때 요청 (`004` D-6) |
 | `comment` | `parent_id`(대댓글), `is_secret`(비밀 댓글)은 두되 이번에는 쓰지 않는다 | 다음에 쓸 수 있게 남김 (`005` D-7) |
 | `comment_report` | 표는 두되 이번에는 쓰지 않는다 (댓글 신고는 추후) | `005` D-8 |
@@ -96,9 +93,11 @@ ALTER TABLE blog ADD COLUMN comments_read_at TIMESTAMPTZ NULL;
 
 ## 4. 팀에 묻고 싶은 것
 
-1. **`category.visibility`는 어떤 뜻으로 넣으셨나요?** 공개 여부를 분류 단위로 정하려는 의도였다면, 요구사항을 먼저 바꿔야 해서 R-4의 ②를 빼겠습니다.
-2. **블로그 주제(`topic`)는 언제 고르나요?** R-3대로 블로그로 옮기면, 가입할 때 고를지 블로그 관리에서 고를지 정해야 합니다. 지금 명세에는 주제를 고르는 화면이 없습니다.
-3. **인기 글 기준**: 대시보드의 인기 글은 "최근 7일 조회수"로 순서를 매기는 것으로 읽었습니다(R-7). 누적 조회수를 생각하셨다면 R-7이 필요 없습니다.
+1. **인기 글 기준**: 대시보드의 인기 글은 "최근 7일 조회수"로 순서를 매기는 것으로 읽었습니다(R-7). 누적 조회수를 생각하셨다면 R-7이 필요 없습니다.
+
+**답을 받은 것 (2026-10-07)**
+- `category.visibility`는 **분류를 비공개로 하기 위한 칸**입니다. → 그대로 쓰고, 비공개 분류의 글은 주인만 봅니다. 값이 두 개만 들어가게 `CHECK`만 더해 주세요.
+- **주제는 글을 쓸 때 고릅니다.** → `post.topic_id`를 그대로 씁니다. (R-3 철회)
 
 ## 5. 이 요청이 받아들여지면
 

@@ -3,19 +3,20 @@
 **Feature**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md) | **Date**: 2026-10-07
 
 > 명세의 `Key Entities`(블로그, 분류, 글)를 **어디에 어떤 모양으로 저장할지** 정리합니다. 모든 내용은 `가안`입니다.
-> 팀 공통 ERD(`blog`, `category`, `post` 등)는 **이 기능이 고칠 수 없는 표**입니다. 명세와 맞지 않거나 칸이 모자란 곳은 `⚠`로 표시했고, 결정은 [research.md](research.md)의 `D-3 ~ D-7`에 있습니다. 정해지면 **팀에 반영을 요청**합니다. (마지막 9번에 요청 목록을 모았습니다)
+> 팀 공통 ERD(`blog`, `category`, `post` 등)는 **이 기능이 고칠 수 없는 표**입니다. 명세와 맞지 않거나 칸이 모자란 곳은 `⚠`로 표시했고, 결정은 [research.md](research.md)의 `D-3 ~ D-7`에 있습니다. (2026-10-07: `D-3`은 주제를 글마다 고르는 것으로, `D-5`는 `category.visibility`를 쓰는 것으로 바뀌어, 이 두 칸은 ERD 그대로 씁니다) 정해지면 **팀에 반영을 요청**합니다. (마지막 9번에 요청 목록을 모았습니다)
 > ERD 문법에는 MySQL(`COMMENT`, 백틱)과 PostgreSQL(`TIMESTAMPTZ`)이 섞여 있습니다. 실제 DDL은 구현할 때 PostgreSQL 기준으로 정리합니다. (`001`과 같음)
 
 ## 한눈에 보기
 
 | 명세의 개념 | 저장 위치 | 종류 |
 |---|---|---|
-| 블로그 | PostgreSQL `blog` | 팀 ERD에 있음 (⚠ 소개 길이, 주제 칸) |
-| 분류 | PostgreSQL `category` | 팀 ERD에 있음 (⚠ 순서 칸 없음, 대소문자, `visibility`) |
-| 글 | PostgreSQL `post` | 팀 ERD에 있음 (⚠ `topic_id` 필수, 연속 저장 방지 칸) |
+| 블로그 | PostgreSQL `blog` | 팀 ERD에 있음 (⚠ 소개 길이) |
+| 분류 | PostgreSQL `category` | 팀 ERD에 있음 (⚠ 대소문자. `sort_order`·`visibility`는 그대로 쓴다) |
+| 글 | PostgreSQL `post` | 팀 ERD에 있음 (`topic_id`는 그대로 쓴다. ⚠ 연속 저장 방지 칸) |
+| 주제 | PostgreSQL `topic` | 팀 ERD에 있음 (여행, 음식, 취미, 운동, 개발). 이 기능은 **읽기만** 한다 |
 | 글에 달린 것 (댓글, 좋아요, 태그 연결, 이미지 기록, 신고) | `comment`, `post_like`, `post_tag`, `post_image`, `post_report`, `comment_report` | 팀 ERD에 있음. 규칙은 `005`. 이 기능은 **글을 지울 때 함께 지우는 것**만 책임진다 |
 
-관계: `users` 1 ─ 1 `blog` 1 ─ N `category` 1 ─ N `post`. **글에는 블로그와 작성자 칸이 없다.** 글의 블로그는 분류를 따라가서 알고, 작성자는 그 블로그의 주인이다. (명세 Key Entities)
+관계: `users` 1 ─ 1 `blog` 1 ─ N `category` 1 ─ N `post`, `topic` 1 ─ N `post`. **글에는 블로그와 작성자 칸이 없다.** 글의 블로그는 분류를 따라가서 알고, 작성자는 그 블로그의 주인이다. (명세 Key Entities)
 
 ## 1. 블로그 — `blog`
 
@@ -25,7 +26,6 @@
 | `users_id` | BIGINT, NOT NULL, `UNIQUE`, `users` 외래 키 | 그대로 쓰면 **DB가 1인 1블로그를 지킨다.** ⚠ `상세/03`의 "1:N 구조 + 서버에서 제한"과 다르다 (`D-4`) | FR-001, SC-001 |
 | `name` | VARCHAR(30), NOT NULL | 앞뒤 공백을 지우고 1~30자. 칸 크기와 같다 | FR-002, FR-004 |
 | `intro` | VARCHAR(500), NULL | 0~200자는 **서버가 검사**한다. ⚠ ERD는 500자다. 서버 검사로 지킬 수는 있지만, 숫자가 두 곳에서 달라 헷갈리므로 **200으로 맞춰 달라고 요청**한다 (헌법 원칙 VI의 취지) | FR-005 |
-| `topic_id` | **없음 ⚠** | `D-3`에서 A를 고르면 여기에 둔다 (비워 둘 수 있게) | (`004`) |
 | 만든 시각 | **없음** | 이 기능에는 필요 없다 | — |
 
 - 블로그를 지우는 기능은 없다 (FR-007). 회원 탈퇴 때 함께 지우는 것은 `002`의 plan에서 다룬다. (`users`는 탈퇴 표시(`deleted_at`)만 하는 방식이라, 블로그를 실제로 지울지 함께 표시할지도 `002`에서 정한다)
@@ -38,9 +38,9 @@
 | `category_id` | BIGINT, 자동 증가, 기본키 | 그대로 | — |
 | `blog_id` | BIGINT, NOT NULL, `blog` 외래 키 | 그대로. 분류 관리 요청은 이 값이 **내 블로그**인지 확인한다 | FR-035 |
 | `name` | VARCHAR(20), NOT NULL, `UNIQUE(blog_id, name)` | 앞뒤 공백을 지우고 1~20자 (칸 크기와 같다). ⚠ 중복 불가가 **대소문자를 구분**한다. 명세는 구분하지 않는다 (`D-5`) | FR-036, SC-006 |
-| `sort_order` | **없음 ⚠** | INTEGER, NOT NULL. 작을수록 위. 새 분류 = 그 블로그의 가장 큰 값 + 1 (`D-5`) | FR-037, FR-039 |
+| `sort_order` | INTEGER, NOT NULL (최신판에 있음) | 그대로. 작을수록 위. 새 분류 = 그 블로그의 가장 큰 값 + 1 (`D-5`) | FR-037, FR-039 |
 | `is_default` | BOOLEAN, NOT NULL | `미분류`만 참. **이름이 아니라 이 칸으로** 기본 분류를 알아본다 (이름은 바꿀 수 있으므로). 참이면 삭제를 거절한다 | FR-003, FR-042 |
-| `visibility` | VARCHAR(10), NOT NULL, 기본 `public` | ⚠ **쓰지 않는다.** 명세는 공개 범위를 글마다 정한다. 삭제를 요청하고, 남으면 항상 `public` (`D-5`) | FR-028 |
+| `visibility` | VARCHAR(10), NOT NULL, 기본 `public` | **쓴다** (2026-10-07). 값은 `public`·`private`. 주인이 바꿀 수 있고 `미분류`도 비공개로 할 수 있다. 주인이 아닌 사람에게는 `public`인 분류와 그 분류의 공개 글만 보인다. `CHECK (visibility IN ('public','private'))`를 함께 요청한다 (제안) (`D-5`) | FR-047, FR-048 |
 | `intro` | VARCHAR(255), NULL | 명세에 없다. 쓰지 않는다 (비워 둔다) | — |
 | `created_at` | TIMESTAMPTZ, NOT NULL | 만든 시각 | — |
 | `updated_at` | TIMESTAMPTZ, NOT NULL | 이름이나 순서를 바꾼 시각. 만들 때는 `created_at`과 같은 값 | — |
@@ -68,7 +68,7 @@
 |---|---|---|---|
 | `post_id` | BIGINT, 자동 증가, 기본키 | 그대로. 글 주소(`/api/posts/{postId}`)에 쓴다 | — |
 | `category_id` | BIGINT, NOT NULL, `category` 외래 키 | 그대로. **글은 정확히 하나의 분류**에 속한다. 외래 키에 연쇄 삭제가 없어서 글이 있는 분류는 DB가 지우지 못하게 막는다 | FR-012, FR-034, FR-040 |
-| `topic_id` | BIGINT, **NOT NULL**, `topic` 외래 키 | ⚠ 명세의 글쓰기 입력에 주제가 없어서 **채울 값이 없다.** 이대로면 글을 저장할 수 없다 (`D-3`) | FR-009 |
+| `topic_id` | BIGINT, **NOT NULL**, `topic` 외래 키 | **그대로 쓴다** (2026-10-07, `D-3`의 C). 글쓰기·수정 요청의 `topicId`로 채운다. 필수이고, `topic` 표에 있는 번호여야 한다 | FR-009, FR-020, FR-046 |
 | `title` | VARCHAR(100), NOT NULL | 앞뒤 공백을 지우고 1~100자 (칸 크기와 같다) | FR-010 |
 | `content` | TEXT, NOT NULL, 기본 `''`, `CHECK` | **마크다운 원문**을 그대로 저장한다 (편집기 확정). 1~10,000자는 서버가 검사한다. ⚠ 기본값 `''`은 "본문 필수"와 어긋난다. `COMMENT 'CHECK'`의 내용이 ERD에 없으므로, **비어 있지 않음을 검사하는 `CHECK`** 로 정해 달라고 요청한다. 글자 수 세는 법은 `D-2` | FR-011 |
 | `visibility` | VARCHAR(10), NOT NULL, 기본 `public`, 값 `public`·`private` | 그대로. 값은 이 두 개만 (`CHECK (visibility IN ('public','private'))`를 함께 요청) | FR-013, FR-028, FR-029 |
@@ -89,10 +89,11 @@
 | 만드는 것 | 값 | FR |
 |---|---|---|
 | `blog` 한 줄 | `users_id` = 새 회원, `name` = `{닉네임}의 블로그`, `intro` 비움 | FR-001, FR-002 |
-| `category` 한 줄 | `name` = `미분류`, `is_default` = 참, `sort_order` = 1 (⚠ 칸이 생긴 뒤), `visibility` = `public`(칸이 남는 경우) | FR-003 |
+| `category` 한 줄 | `name` = `미분류`, `is_default` = 참, `sort_order` = 1, `visibility` = `public` | FR-003, FR-047 |
 
 - 닉네임은 최대 10자이므로 `{닉네임}의 블로그`는 15자 이내로 30자 안이다. (`001` data-model 2)
-- ⚠ `sort_order`가 생기면 **`001`의 data-model 2번 표에도** 한 줄 더한다. (`D-5` 영향)
+- `sort_order` = 1, `visibility` = `public`은 **`001`의 data-model 2번 표에도** 적었다. (`D-5` 영향)
+- 가입 때는 글이 없으므로 주제를 정하지 않는다. (주제는 글마다, FR-046)
 - 나중에 닉네임을 바꿔도(`002`) 블로그 이름은 따라 바뀌지 않는다. 블로그 이름은 별개의 값이다. (명세에 없어서 `가안`으로 해석)
 
 ## 5. 글을 지울 때 함께 지우는 것 (FR-022, SC-007)
@@ -123,9 +124,17 @@
 | 글 제목 | 앞뒤 공백 제거 | 필수, 1~100자. 공백만이면 비어 있음 | FR-010 |
 | 글 본문 | 줄바꿈을 `\n`으로 맞춤. 앞뒤 공백은 **지우지 않음** | 필수, 1~10,000자. 세는 법과 공백만인 본문은 `D-2` | FR-011 |
 | 글 분류 | — | 필수. **내 블로그의 분류**여야 한다 | FR-008, FR-012, FR-034 |
+| 글 주제 | — | 필수. `topic` 표에 있는 번호여야 한다. 없거나 비었으면 "주제를 골라 주세요" | FR-046 |
 | 글 공개 여부 | — | `public` 또는 `private`. 없으면 `public` | FR-013, FR-029 |
 | 분류 이름 | 앞뒤 공백 제거 | 필수, 1~20자. 같은 블로그 안에서 대소문자 무시 중복 불가 | FR-036 |
 | 분류 순서 | — | 내 분류 번호 전체, 빠짐·중복·남의 번호 없음 | FR-039 |
+| 분류 공개 여부 | — | `public` 또는 `private`. 분류 추가 때 없으면 `public` | FR-047 |
+
+### 보이는 글 규칙 (FR-030, FR-031, FR-048, SC-002, SC-013)
+
+- 주인이 아닌 사람(로그인하지 않은 사람 포함)에게 글이 보이는 조건: `post.visibility = 'public'` **그리고** `category.visibility = 'public'`.
+- 블로그 주인은 자기 블로그의 모든 글과 분류를 본다.
+- 이 조건은 글 상세, 이전·다음 글, 분류 목록과 글 개수, `004`의 목록·검색에 모두 같게 쓴다 (research B-3).
 
 - 글자 수는 **사람이 보는 글자 하나를 1자**로 센다 (코드 포인트, 구현 때 DB와 같은지 확인).
 - 작성 시각, 수정 시각, 블로그 번호, 작성자는 **요청에서 받지 않는다.** 보내도 무시한다. (FR-014)
@@ -156,6 +165,18 @@
 - 공개 범위를 바꾸는 것도 **수정**이다. 그래서 `updated_at`이 갱신된다. (FR-020: 공개 여부도 수정 범위)
 - 바꾼 요청이 끝나는 순간부터 모든 화면에 새 범위가 적용된다 (캐시 없음).
 
+### 분류의 공개 범위 (FR-047, FR-048)
+
+```
+ 공개 (기본값) ──비공개로 바꾸기──▶ 비공개: 주인이 아닌 사람에게 분류와 그 분류의 글이 모두 안 보인다
+      ▲                                 │      (글의 visibility는 그대로 둔다)
+      └──────── 공개로 바꾸기 ───────────┘      → 다시 공개하면 그 분류의 공개 글이 다시 보인다
+```
+
+- 분류를 비공개로 바꿔도 **글의 `visibility`는 바꾸지 않는다.** 보이는지는 두 값을 함께 보고 정한다.
+- 비공개 분류의 공개 글을 다른 공개 분류로 옮기면(글 수정) 바로 보인다.
+- 분류 공개 여부를 바꾸면 분류의 `updated_at`이 갱신된다. 글의 `updated_at`은 그대로다.
+
 ### 분류
 
 ```
@@ -170,8 +191,9 @@
 | 표 | 읽기 | 쓰기 | 언제 |
 |---|---|---|---|
 | `blog` | 블로그 화면, 글 상세의 블로그 이름, 주인 확인 | 가입 때 한 줄, 이름·소개 수정 | 거의 모든 요청 |
-| `category` | 분류 목록, 글의 분류 이름, 주인 확인 | 가입 때 `미분류`, 추가·이름·순서·삭제 | 분류 관리, 글쓰기 |
-| `post` | 상세, 이전·다음, 분류별 개수, 기본 분류 | 작성, 수정, 삭제 | 글 관련 요청 |
+| `category` | 분류 목록, 글의 분류 이름·공개 여부, 주인 확인 | 가입 때 `미분류`, 추가·이름·공개 여부·순서·삭제 | 분류 관리, 글쓰기, 글 읽기 |
+| `post` | 상세, 이전·다음, 분류별 개수, 기본 분류·기본 주제 | 작성, 수정, 삭제 | 글 관련 요청 |
+| `topic` | 주제 목록, 고른 주제가 있는지 확인 | — | 글쓰기, 글 수정 |
 | `comment`, `comment_report`, `post_like`, `post_tag`, `post_image`, `post_report` | 삭제할 파일 목록 (`post_image`) | 글 삭제 때 지움 | 글 삭제 |
 | `users` | 세션의 회원 번호로 내 블로그 찾기 | — | 로그인한 요청 |
 
@@ -179,10 +201,10 @@
 
 | # | 표.칸 | 지금 | 요청 (추천안 기준) | 근거 |
 |---|---|---|---|---|
-| 1 | `post.topic_id` | NOT NULL | 삭제하고 `blog.topic_id`(NULL 허용)로 옮김 | `D-3` |
-| 2 | `category.sort_order` | 없음 | INTEGER NOT NULL 추가 | `D-5`, FR-037, FR-039 |
+| 1 | `post.topic_id` | NOT NULL, `topic` 외래 키 | **그대로** (요청 없음. 2026-10-07 `D-3`이 C로 바뀜) | `D-3`, FR-046 |
+| 2 | `category.sort_order` | 있음 (최신판) | **그대로** (요청 없음) | `D-5`, FR-037, FR-039 |
 | 3 | `category`의 중복 불가 | `UNIQUE(blog_id, name)` | `UNIQUE(blog_id, lower(name))` | `D-5`, FR-036, SC-006 |
-| 4 | `category.visibility` | 있음 | 삭제 | `D-5`, FR-028 |
+| 4 | `category.visibility` | 있음, 값 제한 없음 | **그대로 쓴다.** `CHECK (visibility IN ('public','private'))` 추가 (제안) | `D-5`, FR-047, FR-048 |
 | 5 | `post.request_key` | 없음 | VARCHAR NULL, UNIQUE 추가 | `D-6`, FR-018, SC-008 |
 | 6 | `blog.intro` | VARCHAR(500) | VARCHAR(200) | FR-005 |
 | 7 | `post.content` | 기본 `''`, `CHECK` 내용 없음 | 기본값 삭제, 비어 있지 않음 `CHECK` | FR-011 |
