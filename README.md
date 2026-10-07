@@ -39,7 +39,7 @@
 
 | 명세 | 다루는 것 | 원본 |
 |---|---|---|
-| [001 회원 가입과 로그인](specs/001-member-signup-login/spec.md) | 회원가입, 이메일 인증, 로그인·로그아웃, 5회 실패 잠금, 로그인 안내 | 상세/01 |
+| [001 회원 가입과 로그인](specs/001-member-signup-login/spec.md) | 회원가입, 이메일 인증, 로그인·로그아웃, 5회 실패 잠금, 로그인 안내. **기술 계획까지 있음** ([plan](specs/001-member-signup-login/plan.md), [결정할 것](specs/001-member-signup-login/research.md)) | 상세/01 |
 | [002 계정 관리](specs/002-account-management/spec.md) | 마이페이지, 내 정보 수정, 비밀번호 변경, 회원 탈퇴 | 상세/02 |
 | [003 블로그와 글](specs/003-blog-posts/spec.md) | 블로그, 글 작성·수정·삭제, 공개 범위, 분류 | 상세/03 |
 | [004 탐색](specs/004-explore/spec.md) | 글 목록, 글 검색, 방문자의 읽기 | 상세/04 |
