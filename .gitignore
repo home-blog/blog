@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+
+# Spec Kit 로컬 작업 파일 (이 레포에는 올리지 않음)
+.claude/
+.specify/
