@@ -40,11 +40,11 @@
 | 명세 | 다루는 것 | 원본 |
 |---|---|---|
 | [001 회원 가입과 로그인](specs/001-member-signup-login/spec.md) | 회원가입, 이메일 인증, 로그인·로그아웃, 5회 실패 잠금, 로그인 안내. **기술 계획까지 있음** ([plan](specs/001-member-signup-login/plan.md), [결정할 것](specs/001-member-signup-login/research.md)) | 상세/01 |
-| [002 계정 관리](specs/002-account-management/spec.md) | 마이페이지, 내 정보 수정, 비밀번호 변경, 회원 탈퇴 | 상세/02 |
-| [003 블로그와 글](specs/003-blog-posts/spec.md) | 블로그, 글 작성·수정·삭제, 공개 범위, 분류 | 상세/03 |
-| [004 탐색](specs/004-explore/spec.md) | 글 목록, 글 검색, 방문자의 읽기 | 상세/04 |
-| [005 소통과 부가 기능](specs/005-community-extras/spec.md) | 댓글, 좋아요, 태그, 신고, 이미지 업로드 | 상세/05 |
-| [006 블로그 관리와 통계](specs/006-blog-management-stats/spec.md) | 대시보드, 글·분류·댓글 관리, 통계 (원본이 초안) | 상세/06 |
+| [002 계정 관리](specs/002-account-management/spec.md) | 마이페이지, 내 정보 수정, 비밀번호 변경, 회원 탈퇴. **기술 계획까지 있음** ([plan](specs/002-account-management/plan.md), [결정할 것](specs/002-account-management/research.md)) | 상세/02 |
+| [003 블로그와 글](specs/003-blog-posts/spec.md) | 블로그, 글 작성·수정·삭제, 공개 범위, 분류. **기술 계획까지 있음** ([plan](specs/003-blog-posts/plan.md), [결정할 것](specs/003-blog-posts/research.md)) | 상세/03 |
+| [004 탐색](specs/004-explore/spec.md) | 글 목록, 글 검색, 방문자의 읽기. **기술 계획까지 있음** ([plan](specs/004-explore/plan.md), [결정할 것](specs/004-explore/research.md)) | 상세/04 |
+| [005 소통과 부가 기능](specs/005-community-extras/spec.md) | 댓글, 좋아요, 태그, 신고, 이미지 업로드. **기술 계획까지 있음** ([plan](specs/005-community-extras/plan.md), [결정할 것](specs/005-community-extras/research.md)) | 상세/05 |
+| [006 블로그 관리와 통계](specs/006-blog-management-stats/spec.md) | 대시보드, 글·분류·댓글 관리, 통계 (원본이 초안). **기술 계획까지 있음** ([plan](specs/006-blog-management-stats/plan.md), [결정할 것](specs/006-blog-management-stats/research.md)) | 상세/06 |
 
 성공 기준 중 `(제안값)`이 붙은 것은 기존 문서에 없던 값이라 팀 확인이 필요합니다. 상세 문서에서 공통 규칙(07)은 별도 명세 없이 각 명세와 프로젝트 원칙에 반영했습니다.
 
