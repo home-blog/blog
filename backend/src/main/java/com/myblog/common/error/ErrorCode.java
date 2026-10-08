@@ -73,6 +73,14 @@ public enum ErrorCode {
     SEARCH_KEYWORD_TOO_SHORT(HttpStatus.BAD_REQUEST, "검색어를 %d자 이상 입력해 주세요"),
     SEARCH_KEYWORD_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 %d자까지 입력할 수 있습니다"),
 
+    // 댓글·좋아요·신고·태그·이미지 (specs/005 contracts). ※는 상세/05 안내 문구 표에 아직 없는 제안 문구다
+    /** 칸별 문구. 글자 수는 설정값(community.comment.*)에 따라 CommentFieldErrorMessages가 채운다. */
+    COMMENT_EMPTY(HttpStatus.BAD_REQUEST, "※ 댓글 내용을 입력해 주세요"),
+    COMMENT_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 댓글은 500자 이하로 입력해 주세요"),
+    COMMENT_TOO_FREQUENT(HttpStatus.TOO_MANY_REQUESTS, "※ 잠시 뒤에 다시 등록해 주세요"),
+    /** 없는 댓글, 볼 수 없는 글의 댓글, 지울 권한이 없는 남의 댓글이 모두 같은 응답이다 (2026-10-08 결정, 403을 쓰지 않음). */
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 댓글입니다"),
+
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),

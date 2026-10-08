@@ -3,10 +3,12 @@
 // - 본문은 MarkdownView로만 그린다 (D-1). 제목·이름은 React가 글자로 보여 준다
 // - 로그인 상태가 바뀌면 다시 읽는다 (로그아웃한 뒤 비공개 글이 화면에 남지 않게)
 // - 주인에게만 수정·삭제. 삭제는 확인 창을 거치고, 끝나면 내 블로그로 간다 (FR-021, FR-022)
+// - 본문 아래에 댓글 영역 (specs/005 US1)
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import CommentSection from '../comment/CommentSection'
 import ConfirmDialog from '../components/ConfirmDialog'
 import '../pages/auth-layout.css'
 import { deletePost, getPost, type PostDetail } from './postApi'
@@ -139,6 +141,9 @@ export default function PostDetailPage() {
           <span />
         )}
       </nav>
+
+      {/* 댓글 (specs/005 US1). 글이 바뀌면 입력 중이던 내용도 비운다 */}
+      <CommentSection key={post.postId} postId={post.postId} initialCount={post.commentCount} />
 
       {/* 취소하면 요청을 보내지 않는다 (FR-021) */}
       <ConfirmDialog

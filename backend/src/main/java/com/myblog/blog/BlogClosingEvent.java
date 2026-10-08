@@ -5,8 +5,9 @@ package com.myblog.blog;
  * 아래 모듈은 {@code @EventListener}로 같은 트랜잭션 안에서 자기 표를 먼저 지운다. 팀 ERD에 자동 연쇄 삭제가 없어서 자식부터 지운다.
  * 이어 붙일 곳 (002 T035):
  * <ul>
- *   <li>003 post: 이 블로그의 글, 태그 연결, 이미지 기록, 글 신고. 이미지 파일은 트랜잭션이 끝난 뒤 지운다 (002 research R-7)</li>
- *   <li>005 comment: 이 블로그 글의 댓글·좋아요·댓글 신고</li>
+ *   <li>003 post: 이 블로그의 글 (PostBlogClosingCleaner). 글마다 PostDeletingEvent를 내므로
+ *       005의 댓글·좋아요·글 신고·태그 연결·이미지 기록은 그 이벤트로 함께 지워진다 (005는 이 이벤트를 따로 듣지 않는다).
+ *       댓글 신고는 쓰지 않는다 (005 D-8)</li>
  *   <li>006 stats: 이 블로그의 일별 통계</li>
  * </ul>
  */

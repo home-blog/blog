@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}").permitAll()
                         // 공개 글 검색 (004 contracts 2). 누가 검색하든 공개 분류의 공개 글만 찾는다
                         .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                        // 글의 댓글 목록 (005 contracts 1). 볼 수 없는 글이면 서비스가 없는 글과 같은 404로 답한다
+                        .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}/comments").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();
