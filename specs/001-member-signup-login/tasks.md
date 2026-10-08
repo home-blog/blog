@@ -48,7 +48,7 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 사용자 이야기 작업을 시작하지 않는다
 
-- [ ] T006 **팀 ERD 반영 확인**: `users`에 `failed_login_count`, `locked_until`을 더하고 `email`, `nickname`의 중복 불가를 "탈퇴하지 않은 회원에게만 + 소문자 비교"로 바꾸자는 요청(research D-3, D-4)의 결과를 확인한다. 아직이면 이 기능의 표로 진행하고, 팀 ERD와 다른 점을 `specs/001-member-signup-login/data-model.md`에 적어 둔다
+- [ ] T006 **팀 ERD 확인**: 팀 공통 ERD는 그대로 쓰고, 이 기능에 필요한 칸과 인덱스는 **내 확장**으로 더한다 (`docs/ERD-변경-요청.md`의 E-1 실패 횟수·잠금 시각, E-2 탈퇴하지 않은 회원 + 소문자 비교 중복 불가). 팀에 요청한 T-1 ~ T-3의 답도 확인한다. E-1을 Redis로 옮길지는 이때 다시 정하고 research.md D-3에 적는다
 - [ ] T007 DB 표를 만드는 파일 `BE-RES/db/migration/V1__auth_tables.sql`(Flyway, 가안)을 쓴다. `users`: `users_id` BIGINT 자동 증가 기본키, `email` "VARCHAR(255), NOT NULL", `password` "VARCHAR(255), NOT NULL", `nickname` "VARCHAR(20), NOT NULL", `intro` "VARCHAR(100), NULL", `created_at` "TIMESTAMPTZ, NOT NULL", `deleted_at` "TIMESTAMPTZ, NULL", `failed_login_count` "INT, NOT NULL, 기본 0", `locked_until` "TIMESTAMPTZ, NULL". 중복 불가는 "소문자로 맞춘 값이 같은 탈퇴하지 않은 회원은 둘 이상 없다"를 `lower(email)`, `lower(nickname)`과 `WHERE deleted_at IS NULL`인 부분 인덱스로 건다. 가입에 필요한 `blog`, `category`의 최소 칸도 팀 ERD대로 만든다 (칸과 규칙은 `003`이 정함)
 - [ ] T008 세션 표를 Spring Session JDBC가 정한 모양으로 만든다 (`BE-RES/db/migration/V2__spring_session.sql`). 쓰는 버전의 스키마 파일을 그대로 옮긴다 (구현 때 확인)
 - [ ] T009 [P] 설정값 묶음 `BE/user/config/AuthProperties.java`를 만들어 `application.yml`의 `auth.*` 13개 값을 읽는다. 값은 plan.md `설정값 목록`과 같다: 닉네임 2~10, 비밀번호 8~20, 허용 특수문자 `! @ # $ % ^ & * ( ) _ + - =`, 인증번호 6자리, 유효 10분, 다시 받기 1분, 하루 5번, 틀린 횟수 5, 인증됨 30분, 로그인 실패 5, 잠금 10분, 세션 7일, 최대 30일
