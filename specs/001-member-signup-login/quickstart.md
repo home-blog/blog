@@ -161,6 +161,41 @@
 
 ## 구현 뒤에 채울 것
 
-- [ ] 서버 실행 방법과 테스트 실행 명령
+- [x] 서버 실행 방법과 테스트 실행 명령 (아래 `실행 방법`)
 - [ ] 화면에서 확인하는 순서 (스크린샷 위치)
 - [ ] `D-1`(SMTP 계정)이 정해진 뒤 실제 메일로 한 번 확인하는 시나리오
+
+## 실행 방법 (2026-10-08)
+
+```bash
+docker compose up -d --wait                 # PostgreSQL, Redis
+cd backend && mvn verify                     # 테스트 전체
+mvn package -DskipTests
+java -jar target/myblog-server-0.0.1-SNAPSHOT.jar   # dev 설정: 인증번호는 서버 로그의 "[개발용 메일]" 줄
+```
+
+시간을 줄여 확인할 때는 실행 뒤에 설정을 덧붙인다 (이름은 `application.yml`):
+
+```bash
+java -jar target/myblog-server-0.0.1-SNAPSHOT.jar \
+  --auth.email-verification.code-ttl=15s --auth.email-verification.verified-ttl=20s \
+  --auth.email-verification.resend-interval=3s --auth.login.lock-duration=20s \
+  --auth.session.idle-timeout=40s --auth.session.absolute-timeout=90s --server.servlet.session.timeout=40s
+```
+
+메일 발송 실패(S-3-7)는 `--myblog.mail.simulate-failure=true`로 켠다.
+
+## 실행 결과 (2026-10-08, API로 확인)
+
+| 시나리오 | 결과 | 메모 |
+|---|---|---|
+| S-1 가입 | 통과 | 1~4번. 5번(사람이 시간 재기, SC-006)은 T039 |
+| S-2 인증 없이 가입 | 통과 | |
+| S-3 인증번호 규칙 | 통과 | 유효 시간을 1분보다 짧게 줄이면 안내 문구가 "0분 안에"로 나온다 (시험 설정에서만) |
+| S-4 중복 가입 | 통과 | 같은 가입 요청 8개를 동시에 보내도 1건 |
+| S-5 로그인·로그아웃 | 통과 | |
+| S-6 로그인 유지 | 통과 | R-1: 요청마다 세션 쿠키 만료가 다시 내려온다. 서버를 다시 켜도 로그인 유지 |
+| S-7 잠금 | 통과 | 틀린 요청 5개를 동시에 보내도 잠긴다 |
+| S-8 로그인 안내 | 1번 통과 | 2·3번(화면)은 `003` 뒤 |
+| S-9 보안 | 통과 | 쿠키 `HttpOnly; SameSite=Lax` |
+| S-10 Redis 꺼짐 | 통과 (고친 뒤) | 처음에는 Redis가 도중에 꺼지면 시간 초과 오류가 `500`으로 나갔고, Redis 대기 시간이 60초였다. `503 SERVICE_UNAVAILABLE`로 바꾸고 대기 시간을 2초로 줄였다 |

@@ -18,6 +18,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      timeout: 2s           # Redis가 응답하지 않으면 2초 뒤 "잠시 뒤 다시 시도"로 답한다 (기본 60초는 너무 길다)
+      connect-timeout: 2s
   session:
     jdbc:
       initialize-schema: never   # 세션 표는 Flyway(V1__spring_session.sql)로 만든다
