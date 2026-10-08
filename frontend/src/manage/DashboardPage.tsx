@@ -1,10 +1,11 @@
 // 대시보드 /manage (specs/006 US7, T048, FR-006 ~ FR-011)
-// - 오늘·어제·누적 조회수와 방문자, 새 댓글 수(있으면 강조, "댓글 보기"), 최근 30일(그래프는 T058, 그 전에는 표), 인기 글, 최근 글
-import { useEffect, useState } from 'react'
+// - 오늘·어제·누적 조회수와 방문자, 새 댓글 수(있으면 강조, "댓글 보기"), 최근 30일 그래프(T058, 숫자는 접힌 표), 인기 글, 최근 글
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import '../blog/blog.css'
 import { formatDate } from '../explore/rules'
+import DailyLineChart, { type ChartSeries } from './charts/DailyLineChart'
 import DailyTable from './DailyTable'
 import { getDashboard, type Count, type Dashboard } from './manageApi'
 import { useNewCommentCount } from './newCommentCount'
@@ -50,6 +51,15 @@ export default function DashboardPage() {
     return () => controller.abort()
   }, [setCount])
 
+  const chart = useMemo(() => {
+    if (!dashboard) return null
+    const series: ChartSeries[] = [
+      { label: '조회수', values: dashboard.chart.map((d) => d.views), colorToken: '--category-1' },
+      { label: '방문자', values: dashboard.chart.map((d) => d.visitors), colorToken: '--category-2' },
+    ]
+    return { dates: dashboard.chart.map((d) => d.date), series }
+  }, [dashboard])
+
   if (error) {
     return (
       <p className="msg msg-error" role="alert">
@@ -57,7 +67,7 @@ export default function DashboardPage() {
       </p>
     )
   }
-  if (!dashboard) return <p className="hint">불러오는 중</p>
+  if (!dashboard || !chart) return <p className="hint">불러오는 중</p>
 
   const noPosts = dashboard.recentPosts.length === 0
 
@@ -88,14 +98,18 @@ export default function DashboardPage() {
             통계 더 보기
           </Link>
         </div>
-        <DailyTable
-          caption="최근 30일 조회수와 방문자"
-          rows={dashboard.chart}
-          columns={[
-            { label: '조회수', value: (r) => r.views },
-            { label: '방문자', value: (r) => r.visitors },
-          ]}
-        />
+        <DailyLineChart dates={chart.dates} series={chart.series} label="최근 30일 조회수와 방문자 그래프" />
+        <details className="chart-numbers">
+          <summary>숫자로 보기</summary>
+          <DailyTable
+            caption="최근 30일 조회수와 방문자"
+            rows={dashboard.chart}
+            columns={[
+              { label: '조회수', value: (r) => r.views },
+              { label: '방문자', value: (r) => r.visitors },
+            ]}
+          />
+        </details>
       </section>
 
       <div className="dash-lists">
