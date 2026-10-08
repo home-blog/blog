@@ -2,6 +2,7 @@ package com.myblog.comment.repository;
 
 import com.myblog.comment.domain.Comment;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,6 +19,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     long countByPostId(Long postId);
 
+    /** 글마다 댓글 수 (specs/006 T019). 댓글이 없는 글은 결과에 없다. */
+    @Query("select c.postId as postId, count(c) as commentCount from Comment c where c.postId in :postIds group by c.postId")
+    List<PostCount> countByPostIds(@Param("postIds") Collection<Long> postIds);
+
     /** 회원의 마지막 댓글 시각 (5초 간격, D-2). 어느 글에 썼는지는 상관없다. */
     @Query("select max(c.createdAt) from Comment c where c.memberId = :memberId")
     Optional<Instant> findLastCreatedAt(@Param("memberId") Long memberId);
@@ -26,4 +31,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Comment c where c.postId = :postId")
     int deleteByPostId(@Param("postId") Long postId);
+
+    interface PostCount {
+
+        Long getPostId();
+
+        long getCommentCount();
+    }
 }

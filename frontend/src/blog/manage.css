@@ -109,6 +109,6 @@
   margin-top: 0.75rem;
 }
 
-.manage-head a {
+.manage-head .hint a {
   color: var(--accent);
 }

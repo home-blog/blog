@@ -15,3 +15,35 @@ export interface ManageHeader {
 export function getManageHeader(signal?: AbortSignal): Promise<ManageHeader> {
   return api<ManageHeader>('/api/manage/blog', { signal })
 }
+
+export type VisibilityFilter = 'all' | 'public' | 'private'
+
+/** 글 관리 한 줄 (contracts 3-1) */
+export interface ManagePost {
+  postId: number
+  title: string
+  category: { categoryId: number; name: string }
+  createdAt: string
+  visibility: 'public' | 'private'
+  views: number
+  commentCount: number
+}
+
+export interface ManagePostPage {
+  items: ManagePost[]
+  page: number
+  pageSize: number
+  totalCount: number
+  /** 거르기 전 내 글이 하나라도 있는지 */
+  hasAnyPost: boolean
+}
+
+/** 내 글 목록, 비공개 포함 (contracts 3-1). page는 1부터 */
+export function getManagePosts(
+  query: { visibility: VisibilityFilter; categoryId: number | null; page: number },
+  signal?: AbortSignal,
+): Promise<ManagePostPage> {
+  const params = new URLSearchParams({ visibility: query.visibility, page: String(query.page) })
+  if (query.categoryId !== null) params.set('categoryId', String(query.categoryId))
+  return api<ManagePostPage>(`/api/manage/posts?${params}`, { signal })
+}

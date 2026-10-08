@@ -47,8 +47,11 @@ public class ServiceDay {
         return date.atStartOfDay(zone).toInstant();
     }
 
-    /** 오늘을 포함한 n일, 오래된 날부터. */
+    /** 오늘을 포함한 n일, 오래된 날부터. n은 1 이상 (기간은 설정값에서 온다). */
     public List<LocalDate> lastDays(int days) {
+        if (days < 1) {
+            throw new IllegalArgumentException("days는 1 이상이어야 합니다");
+        }
         LocalDate today = today();
         return Stream.iterate(today.minusDays(days - 1L), date -> date.plusDays(1)).limit(days).toList();
     }

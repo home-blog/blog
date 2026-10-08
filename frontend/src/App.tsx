@@ -15,6 +15,7 @@ import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
 import ManageLayout from './manage/ManageLayout'
 import ManagePlaceholder from './manage/ManagePlaceholder'
+import ManagePostsPage from './manage/ManagePostsPage'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -126,7 +127,7 @@ const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <ManagePlaceholder title="대시보드" /> },
-          { path: 'posts', element: <ManagePlaceholder title="글 관리" /> },
+          { path: 'posts', element: <ManagePostsPage /> },
           { path: 'categories', element: <CategoryManagePage /> },
           { path: 'comments', element: <ManagePlaceholder title="댓글 관리" /> },
           { path: 'stats', element: <ManagePlaceholder title="통계" /> },
