@@ -85,6 +85,15 @@ post:
     min-length: 1
     max-length: 10000
 
+# 글 목록·검색 (specs/004 plan.md 설정값 목록). 검색 결과도 같은 페이지 글 수·미리보기 길이를 쓴다 (D-3)
+explore:
+  list:
+    page-size: 10
+    preview-length: 100
+  search:
+    keyword-min-length: 2
+    keyword-max-length: 50
+
 myblog:
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
