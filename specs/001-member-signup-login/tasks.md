@@ -34,11 +34,11 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 **Purpose**: 프로젝트를 만들고 개발 환경을 띄운다
 
-- [ ] T001 서버와 화면 폴더를 만든다: `backend/`(Spring Boot), `frontend/`(React + Vite). **Java와 Spring Boot 버전을 정해** `specs/001-member-signup-login/plan.md`의 `Technical Context` 줄을 고친다 (지금 `미정`)
-- [ ] T002 서버 빌드 파일 `backend/build.gradle`(가안)에 Spring Web, Spring Security, Spring Session JDBC, Spring Data JPA, PostgreSQL 드라이버, Spring Data Redis, Spring Mail, Bean Validation, Flyway(가안)를 넣는다
-- [ ] T003 [P] `frontend/`를 Vite + React로 만들고, 개발 서버 프록시로 `/api` 요청을 서버로 보낸다 (`frontend/vite.config.js`). 화면과 서버를 같은 주소처럼 쓰기 위해서다 (상세/01 `개발 환경`)
-- [ ] T004 [P] 개발용 PostgreSQL과 Redis를 `docker-compose.yml`로 띄운다. 방법은 `docs/가이드/03-로컬환경-도커컴포즈-사용법.md`를 따른다
-- [ ] T005 `BE-RES/application.yml`에 `dev`, `prod` 설정을 나눈다. **DB 비밀번호와 SMTP 계정 정보는 환경 변수로만** 넣고 파일과 저장소에 적지 않는다 (공개 저장소, research D-1)
+- [ ] T001 서버와 화면 폴더를 만든다: `backend/`(Spring Boot), `frontend/`(React + Vite). **Java와 Spring Boot 버전을 정해** `specs/001-member-signup-login/plan.md`의 `Technical Context` 줄을 고친다 (지금 `미정`) — **2026-10-08 작성됨, 서버 컴파일은 CI 확인 대기** (코드 저장소 `feat/001-project-setup`)
+- [ ] T002 서버 빌드 파일 `backend/pom.xml`(Maven, 2026-10-08 결정)에 Spring Web, Spring Security, Spring Session JDBC, Spring Data JPA, PostgreSQL 드라이버, Spring Data Redis, Spring Mail, Bean Validation, Flyway(가안)를 넣는다 — **2026-10-08 작성됨, CI 확인 대기 (Session JDBC·Flyway는 Boot 4 스타터 사용)** (코드 저장소 `feat/001-project-setup`)
+- [x] T003 [P] `frontend/`를 Vite + React로 만들고, 개발 서버 프록시로 `/api` 요청을 서버로 보낸다 (`frontend/vite.config.js`). 화면과 서버를 같은 주소처럼 쓰기 위해서다 (상세/01 `개발 환경`) — **2026-10-08 완료** (린트·빌드 확인)
+- [ ] T004 [P] 개발용 PostgreSQL과 Redis를 `docker-compose.yml`로 띄운다. 방법은 `docs/가이드/03-로컬환경-도커컴포즈-사용법.md`를 따른다 — **2026-10-08 작성됨 (PostgreSQL 18, Redis 8), 실행 확인 대기** (코드 저장소 `feat/001-project-setup`)
+- [ ] T005 `BE-RES/application.yml`에 `dev`, `prod` 설정을 나눈다. **DB 비밀번호와 SMTP 계정 정보는 환경 변수로만** 넣고 파일과 저장소에 적지 않는다 (공개 저장소, research D-1) — **2026-10-08 작성됨, CI 확인 대기** (코드 저장소 `feat/001-project-setup`)
 
 ---
 

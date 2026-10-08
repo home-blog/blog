@@ -33,8 +33,8 @@
 
 | 항목 | 내용 | 상태 |
 |---|---|---|
-| 서버 | Spring Boot (Java), Spring Security. **버전은 정하지 않았다** (팀 환경에 맞춰 정한다) | 가안 (버전 `미정`) |
-| 화면 | React (Vite). 이 기능의 화면(가입, 로그인, 로그인 창)은 지금 HTML 시안에 있고 나중에 옮긴다 | 가안 |
+| 서버 | **Java 21, Spring Boot 4.1.1, Maven** (2026-10-08 결정), Spring Security | 가안 (버전·빌드 도구 결정됨) |
+| 화면 | **React 19, Vite 8, TypeScript** (2026-10-08). 옛 HTML 시안은 지웠다 (코드 저장소 `backup/ui-mock-2026-10-08` 브랜치에 남음) | 가안 |
 | 통신 | REST API (JSON). [contracts/auth-api.md](contracts/auth-api.md) | 가안 |
 | 주요 도구 | Spring Security, Spring Session JDBC, Spring Mail, Spring Data Redis, Bean Validation, JPA | 가안 |
 | 저장소 | PostgreSQL (회원, 블로그, 분류, 세션), Redis (이메일 인증 값) | PostgreSQL 가안 / 세션 저장·Redis(인증번호) 확정 |
