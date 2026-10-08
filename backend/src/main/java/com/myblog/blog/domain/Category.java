@@ -70,15 +70,18 @@ public class Category {
         return category;
     }
 
-    /** 새 분류 (FR-037). 이름은 앞뒤 공백을 지운다. 공개 여부가 없으면 공개. */
-    public static Category create(Long blogId, String name, int sortOrder, String visibility) {
+    /**
+     * 새 분류 (FR-037). 이름은 앞뒤 공백을 지운다. 공개 여부가 없으면 공개.
+     * 색 번호는 서비스가 정한다 (specs/006 T025): 순서를 바꿔도 색은 그대로다.
+     */
+    public static Category create(Long blogId, String name, int sortOrder, String visibility, int colorIndex) {
         Category category = new Category();
         category.blogId = blogId;
         category.name = name.strip();
         category.visibility = visibility == null ? "public" : visibility;
         category.defaultCategory = false;
         category.sortOrder = sortOrder;
-        category.colorIndex = 0;
+        category.colorIndex = (short) colorIndex;
         return category;
     }
 

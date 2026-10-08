@@ -66,6 +66,13 @@
   min-width: 0;
 }
 
+.category-dot {
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
 .category-count {
   grid-area: count;
   color: var(--ink-soft);
@@ -102,6 +109,10 @@
 
 .category-add input {
   flex: 1 1 10rem;
+}
+
+.category-notice {
+  margin: 1rem 0 0;
 }
 
 .category-message {

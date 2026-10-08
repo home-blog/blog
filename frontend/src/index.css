@@ -12,6 +12,14 @@
   --error: #b3261e;
   --focus: #1f5fbf;
 
+  /* 분류 색 목록 (specs/006 T025, D-9): 원고지 초록과 어울리는 먹·물감 색 6개. 개수는 서버 category.color-count와 같다 */
+  --category-1: #2c6a4d; /* 원고지 초록 (미분류) */
+  --category-2: #3d6f99; /* 먹 파랑 */
+  --category-3: #a0522d; /* 적갈 */
+  --category-4: #8a6d1f; /* 황토 */
+  --category-5: #6b4f8a; /* 보라 */
+  --category-6: #9a3b5c; /* 자주 */
+
   --font-ui: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   --font-letter: 'Gowun Batang', 'Nanum Myeongjo', serif;
 

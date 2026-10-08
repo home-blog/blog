@@ -25,6 +25,8 @@ export interface CategorySummary {
   postCount: number
   isDefault: boolean
   visibility: Visibility
+  /** 분류 색 번호 (specs/006). 색 값은 manage/categoryColors.ts */
+  colorIndex: number
 }
 
 export function getBlog(blogId: number, signal?: AbortSignal): Promise<Blog> {

@@ -1,10 +1,12 @@
 // 분류 관리 (specs/003 US6, T046): 추가, 이름 바꾸기, 공개/비공개, 순서(위·아래), 삭제
+// - 분류마다 색 점 (specs/006 T024, 색 번호는 서버가 정함)
 // - 006의 블로그 관리 화면(BM-04)에 그대로 넣을 수 있게 화면 조각(컴포넌트)으로 둔다
 // - 거절 문구는 서버 것 그대로 보여 준다 (글이 있는 분류, 미분류, 이름 중복 등)
 // - 미분류에는 삭제 버튼이 없다 (FR-042). 개수는 주인 기준(비공개 글 포함)
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { categoryColor } from '../manage/categoryColors'
 import {
   createCategory,
   deleteCategory,
@@ -119,6 +121,7 @@ export default function CategoryManager({ categories, onChange }: Props) {
               </form>
             ) : (
               <span className="category-name">
+                <span className="category-dot" style={{ background: categoryColor(category.colorIndex) }} aria-hidden="true" />
                 {category.name}
                 {category.isDefault && <span className="hint"> (기본)</span>}
                 {category.visibility === 'private' && <span className="blog-badge">비공개</span>}

@@ -1,6 +1,7 @@
 package com.myblog.blog.service;
 
 import com.myblog.blog.CategoryPostCounter;
+import com.myblog.blog.config.CategoryProperties;
 import com.myblog.blog.controller.dto.CategoryRequests;
 import com.myblog.blog.domain.Blog;
 import com.myblog.blog.domain.Category;
@@ -42,24 +43,30 @@ public class CategoryService {
     private final CategoryPostCounter postCounter;
     private final Validator validator;
     private final TransactionTemplate transaction;
+    private final int colorCount;
 
     public CategoryService(BlogRepository blogs, CategoryRepository categories, CategoryPostCounter postCounter,
-            Validator validator, PlatformTransactionManager transactionManager) {
+            Validator validator, PlatformTransactionManager transactionManager, CategoryProperties properties) {
         this.blogs = blogs;
         this.categories = categories;
         this.postCounter = postCounter;
         this.validator = validator;
         this.transaction = new TransactionTemplate(transactionManager);
+        this.colorCount = properties.colorCount();
     }
 
-    /** 분류 추가: 목록 맨 아래 (FR-037). */
+    /**
+     * 분류 추가: 목록 맨 아래 (FR-037). 색 번호는 "그 블로그의 분류 수 % 색 개수"로 차례로 돈다 (specs/006 T025, D-9).
+     * 미분류가 0번이라 첫 새 분류는 1번 색이다.
+     */
     public CategoryView create(Long memberId, CategoryRequests.Create request) {
         try {
             return transaction.execute(status -> {
                 Blog blog = myBlog(memberId);
                 checkDuplicate(blog.getId(), request.name(), null);
+                int colorIndex = (int) (categories.countByBlogId(blog.getId()) % colorCount);
                 Category category = categories.saveAndFlush(Category.create(blog.getId(), request.name(),
-                        categories.maxSortOrder(blog.getId()) + 1, request.visibility()));
+                        categories.maxSortOrder(blog.getId()) + 1, request.visibility(), colorIndex));
                 return CategoryView.of(category, 0);
             });
         } catch (DataIntegrityViolationException e) {

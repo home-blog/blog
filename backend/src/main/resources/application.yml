@@ -77,6 +77,7 @@ category:
   name:
     min-length: 1
     max-length: 20
+  color-count: 6   # 분류 색 목록의 색 개수 (specs/006 T025). 색 값은 화면 index.css의 --category-1 ~ 6
 post:
   title:
     min-length: 1

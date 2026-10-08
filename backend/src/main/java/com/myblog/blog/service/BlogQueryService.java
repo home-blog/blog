@@ -71,11 +71,13 @@ public class BlogQueryService {
         }
     }
 
-    public record CategoryView(Long categoryId, String name, long postCount, boolean isDefault, String visibility) {
+    /** colorIndex: 분류 색 번호 (specs/006 T023, category.color_index). 색 값은 화면이 정한다. */
+    public record CategoryView(Long categoryId, String name, long postCount, boolean isDefault, String visibility,
+            int colorIndex) {
 
         static CategoryView of(Category category, long postCount) {
             return new CategoryView(category.getId(), category.getName(), postCount, category.isDefaultCategory(),
-                    category.getVisibility());
+                    category.getVisibility(), category.getColorIndex());
         }
     }
 }
