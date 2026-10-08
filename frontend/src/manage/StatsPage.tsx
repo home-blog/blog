@@ -21,22 +21,25 @@ export default function StatsPage() {
   const [params, setParams] = useSearchParams()
   const days = periodFrom(params.get('days'))
   const [daily, setDaily] = useState<{ days: number; rows: DailyStat[] } | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<{ days: number; message: string } | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
     getStats(days, controller.signal)
       .then((res) => {
         setDaily({ days: res.days, rows: res.daily })
-        setError(null)
+        setFailure(null)
       })
       .catch((err: unknown) => {
-        if (!controller.signal.aborted) setError(err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요')
+        if (controller.signal.aborted) return
+        setFailure({ days, message: err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요' })
       })
     return () => controller.abort()
   }, [days])
 
   const rows = daily?.days === days ? daily.rows : null
+  // 오류도 그 기간의 것만 보인다. 다른 기간으로 바꾸면 지난 오류가 남지 않는다
+  const error = failure?.days === days ? failure.message : null
 
   return (
     <div className="manage">
