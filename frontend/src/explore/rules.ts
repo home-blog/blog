@@ -4,11 +4,15 @@ export const MESSAGES = {
   emptyList: '글이 없습니다',
 } as const
 
-/** 주소의 ?page= 값을 읽는다. 1보다 작거나 숫자가 아니면 1 (서버와 같은 규칙, 004 D-2) */
+/**
+ * 주소의 ?page= 값을 읽는다. 1보다 작거나 숫자가 아니면 1, 아주 큰 숫자는 아주 큰 번호로 보내
+ * 서버가 마지막 페이지로 바꾸게 한다 (서버와 같은 규칙, 004 D-2)
+ */
 export function pageFrom(value: string | null): number {
   if (!value || !/^\d+$/.test(value)) return 1
   const page = Number(value)
-  return Number.isSafeInteger(page) && page >= 1 ? page : 1
+  if (!Number.isSafeInteger(page)) return Number.MAX_SAFE_INTEGER
+  return page >= 1 ? page : 1
 }
 
 const dateFormat = new Intl.DateTimeFormat('ko-KR', {

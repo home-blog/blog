@@ -60,8 +60,12 @@ export default function BlogPostList({ blogId, viewer }: Props) {
   }
 
   const current = result?.key === key ? result : null
-  // 서버가 페이지를 바꿔 준 직후에는 주소보다 결과가 먼저 온다: 같은 블로그·사람의 결과면 그대로 보여 준다
-  const shown = current ?? (result && 'list' in result && result.key.startsWith(`${blogId}:${viewer}:`) ? result : null)
+  // 서버가 페이지를 바꿔 준 직후(99 → 3)에는 주소보다 결과가 먼저 온다: 바뀐 번호가 지금 주소의 번호와 같을 때만 그대로 보여 준다
+  const shown =
+    current ??
+    (result && 'list' in result && result.key.startsWith(`${blogId}:${viewer}:`) && result.list.page === page
+      ? result
+      : null)
 
   return (
     <section className="blog-posts" aria-labelledby="posts-title">
