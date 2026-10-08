@@ -2,7 +2,7 @@
 # 비밀번호는 개발 전용 값이다. 배포에는 쓰지 않는다.
 services:
   postgres:
-    image: postgres:18
+    image: pgvector/pgvector:pg18   # PostgreSQL 18 + pgvector(임베딩 저장·비교용 확장, 나중에 쓸 때 대비)
     environment:
       POSTGRES_DB: myblog
       POSTGRES_USER: myblog
