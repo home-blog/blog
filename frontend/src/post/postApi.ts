@@ -64,3 +64,34 @@ export interface PostDetail {
 export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetail> {
   return api<PostDetail>(`/api/posts/${postId}`, { signal })
 }
+
+export interface PostEdit {
+  postId: number
+  title: string
+  content: string
+  categoryId: number
+  topicId: number
+  visibility: Visibility
+  categories: CategoryOption[]
+  topics: TopicOption[]
+}
+
+export interface PostUpdated {
+  postId: number
+  /** 바뀐 것이 없으면 false이고 아무것도 저장하지 않았다 */
+  changed: boolean
+  updatedAt: string | null
+}
+
+/** 남의 글이면 서버가 404로 답한다 */
+export function getPostEdit(postId: number, signal?: AbortSignal): Promise<PostEdit> {
+  return api<PostEdit>(`/api/posts/${postId}/edit`, { signal })
+}
+
+export function updatePost(postId: number, input: PostInput): Promise<PostUpdated> {
+  return api<PostUpdated>(`/api/posts/${postId}`, { method: 'PUT', body: input })
+}
+
+export function deletePost(postId: number): Promise<void> {
+  return api<void>(`/api/posts/${postId}`, { method: 'DELETE' })
+}

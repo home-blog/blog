@@ -1,0 +1,35 @@
+/* 확인 창(<dialog>)과 위험한 버튼: 회원 탈퇴(002), 글 삭제·공개로 바꾸기(003)가 같이 쓴다 */
+.btn-danger {
+  background: var(--error);
+  color: #fff;
+}
+
+.btn-danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--error) 85%, black);
+}
+
+.confirm-dialog {
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.confirm-dialog::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.confirm-title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}

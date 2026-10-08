@@ -1,15 +1,18 @@
-// 글쓰기 화면 (specs/003 US2, T024): 제목, 마크다운 본문, 분류, 주제, 공개 여부
-// - 화면을 열 때 1회용 요청 번호(requestKey)를 한 번 만든다. 저장을 여러 번 눌러도 글은 하나 (FR-018, D-6)
+// 글쓰기·수정 화면 (specs/003 US2 T024, US4 T037, US5 T039): 제목, 마크다운 본문, 분류, 주제, 공개 여부
+// - /write는 새 글, /write/:postId는 수정. 수정은 바뀐 것이 없으면 저장 버튼을 잠근다 (FR-020)
+// - 새 글은 화면을 열 때 1회용 요청 번호(requestKey)를 한 번 만든다. 저장을 여러 번 눌러도 글은 하나 (FR-018, D-6)
+// - 비공개 글을 공개로 바꿔 저장하면 먼저 묻고, 취소하면 요청을 보내지 않는다 (FR-033)
 // - 저장 중에는 버튼과 칸을 잠그고, 실패해도 입력한 내용은 그대로 둔다 (FR-015)
 // - 저장하지 않고 나가면 묻는다 (FR-017)
 // - 글자 수는 입력한 원문 그대로 센다 (D-2). 최종 판단은 서버가 한다
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router'
+import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
 import { ApiError } from '../api/client'
+import ConfirmDialog from '../components/ConfirmDialog'
 import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
-import { createPost, getPostForm, type PostForm, type PostInput } from './postApi'
+import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import './post-editor.css'
 
@@ -18,8 +21,17 @@ type FieldErrors = Partial<Record<Field, string>>
 
 const EMPTY: PostInput = { title: '', content: '', categoryId: null, topicId: null, visibility: 'public' }
 
+/** 화면을 그리는 데 필요한 목록과 글자 수 제한 */
+interface EditorOptions {
+  categories: { categoryId: number; name: string }[]
+  topics: { topicId: number; name: string }[]
+  limits: { titleMaxLength: number; contentMaxLength: number }
+}
+
 export default function PostEditorPage() {
-  const [form, setForm] = useState<PostForm | null>(null)
+  const { postId: postIdParam } = useParams()
+  const editingId = postIdParam === undefined ? null : Number(postIdParam)
+  const [form, setForm] = useState<EditorOptions | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [initial, setInitial] = useState<PostInput>(EMPTY)
   const [input, setInput] = useState<PostInput>(EMPTY)
@@ -30,18 +42,23 @@ export default function PostEditorPage() {
   const [savedPostId, setSavedPostId] = useState<number | null>(null)
   // 화면이 다시 그려지기 전에 빠르게 여러 번 눌러도 요청은 하나만 보낸다 (busy는 다음 그리기부터 보인다)
   const sending = useRef(false)
+  const [confirmPublic, setConfirmPublic] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
-    getPostForm(controller.signal)
-      .then((loaded) => {
-        const start: PostInput = {
-          ...EMPTY,
-          categoryId: loaded.defaultCategoryId,
-          topicId: loaded.defaultTopicId,
-          visibility: loaded.defaultVisibility,
-        }
-        setForm(loaded)
+    const load =
+      editingId === null
+        ? getPostForm(controller.signal).then((loaded) => ({
+            options: loaded as EditorOptions,
+            start: { ...EMPTY, categoryId: loaded.defaultCategoryId, topicId: loaded.defaultTopicId, visibility: loaded.defaultVisibility },
+          }))
+        : Promise.all([getPostEdit(editingId, controller.signal), getPostForm(controller.signal)]).then(([post, defaults]) => ({
+            options: { categories: post.categories, topics: post.topics, limits: defaults.limits },
+            start: { title: post.title, content: post.content, categoryId: post.categoryId, topicId: post.topicId, visibility: post.visibility },
+          }))
+    load
+      .then(({ options, start }) => {
+        setForm(options)
         setInitial(start)
         setInput(start)
       })
@@ -50,7 +67,7 @@ export default function PostEditorPage() {
         setLoadError(err instanceof ApiError ? err.message : postMessages.failed)
       })
     return () => controller.abort()
-  }, [])
+  }, [editingId])
 
   const dirty =
     savedPostId === null &&
@@ -86,19 +103,33 @@ export default function PostEditorPage() {
     return found
   }
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault()
-    if (sending.current) return
+    if (sending.current || (editingId !== null && !dirty)) return
     setFormError(null)
     const found = check()
     setErrors(found)
     if (Object.keys(found).length > 0) return
+    // 비공개 → 공개는 먼저 묻는다. 취소하면 요청을 보내지 않는다 (FR-033)
+    if (editingId !== null && initial.visibility === 'private' && input.visibility === 'public') {
+      setConfirmPublic(true)
+      return
+    }
+    void save()
+  }
 
+  async function save() {
+    if (sending.current) return
     sending.current = true
     setBusy(true)
     try {
-      const res = await createPost(input, requestKey)
-      setSavedPostId(res.postId)
+      if (editingId === null) {
+        const res = await createPost(input, requestKey)
+        setSavedPostId(res.postId)
+      } else {
+        const res = await updatePost(editingId, input)
+        setSavedPostId(res.postId)
+      }
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
         setErrors({
@@ -125,7 +156,7 @@ export default function PostEditorPage() {
   return (
     <form className="editor" onSubmit={submit} noValidate aria-labelledby="editor-title">
       <h1 id="editor-title" className="visually-hidden">
-        새 글 쓰기
+        {editingId === null ? '새 글 쓰기' : '글 고치기'}
       </h1>
 
       <div className="editor-meta">
@@ -257,10 +288,23 @@ export default function PostEditorPage() {
       )}
 
       <div className="editor-actions">
-        <button type="submit" className="btn btn-primary" disabled={busy}>
+        <button type="submit" className="btn btn-primary" disabled={busy || (editingId !== null && !dirty)}>
           {busy ? '저장하는 중' : '저장'}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmPublic}
+        title="공개로 바꿀까요?"
+        confirmLabel="공개로 저장"
+        onCancel={() => setConfirmPublic(false)}
+        onConfirm={() => {
+          setConfirmPublic(false)
+          void save()
+        }}
+      >
+        <p>공개로 바꾸면 누구나 볼 수 있습니다</p>
+      </ConfirmDialog>
     </form>
   )
 }

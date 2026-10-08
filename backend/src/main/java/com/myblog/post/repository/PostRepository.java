@@ -14,6 +14,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByRequestKey(String requestKey);
 
+    List<Post> findByCategoryIdIn(Collection<Long> categoryIds);
+
     /** 이 분류들 중 가장 늦게 쓴 글 (같은 시각이면 번호가 큰 글). 글쓰기 기본 분류·주제에 쓴다 (research B-6). */
     Optional<Post> findFirstByCategoryIdInOrderByCreatedAtDescIdDesc(Collection<Long> categoryIds);
 
