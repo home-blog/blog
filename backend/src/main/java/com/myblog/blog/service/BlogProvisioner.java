@@ -4,29 +4,28 @@ import com.myblog.blog.domain.Blog;
 import com.myblog.blog.domain.Category;
 import com.myblog.blog.repository.BlogRepository;
 import com.myblog.blog.repository.CategoryRepository;
-import com.myblog.user.domain.User;
-import com.myblog.user.service.MemberCreatedHandler;
-import java.time.Clock;
-import java.time.Instant;
+import com.myblog.user.MemberRegisteredEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-/** 가입하면 내 블로그와 "미분류" 분류가 함께 생긴다 (001 FR-011, 003 FR-002·003). 가입과 같은 트랜잭션에서 돈다. */
+/**
+ * 가입하면 내 블로그와 "미분류" 분류가 함께 생긴다 (001 FR-011, 003 FR-002·003).
+ * 회원 모듈의 가입 이벤트를 받아, 가입과 같은 트랜잭션 안에서 바로 만든다 (실패하면 가입도 취소).
+ */
 @Component
-public class BlogProvisioner implements MemberCreatedHandler {
+public class BlogProvisioner {
 
     private final BlogRepository blogs;
     private final CategoryRepository categories;
-    private final Clock clock;
 
-    public BlogProvisioner(BlogRepository blogs, CategoryRepository categories, Clock clock) {
+    public BlogProvisioner(BlogRepository blogs, CategoryRepository categories) {
         this.blogs = blogs;
         this.categories = categories;
-        this.clock = clock;
     }
 
-    @Override
-    public void onMemberCreated(User member) {
-        Blog blog = blogs.save(Blog.createFor(member.getId(), member.getNickname()));
-        categories.save(Category.defaultFor(blog.getId(), Instant.now(clock)));
+    @EventListener
+    public void on(MemberRegisteredEvent event) {
+        Blog blog = blogs.save(Blog.createFor(event.memberId(), event.nickname()));
+        categories.save(Category.defaultFor(blog.getId()));
     }
 }

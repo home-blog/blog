@@ -39,7 +39,8 @@ public enum ErrorCode {
 
     // 로그인 (specs/001)
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
-    ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 시도가 여러 번 실패해 잠겼습니다. 잠시 뒤에 다시 시도해 주세요");
+    /** 문구의 횟수·분은 설정값에 따라 서비스가 채운다 (LoginService). */
+    ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 시도가 %d회 실패해 잠겼습니다. %d분 뒤에 다시 시도해 주세요");
 
     private final HttpStatus status;
     private final String message;

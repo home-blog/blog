@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -24,8 +25,11 @@ import org.springframework.web.context.WebApplicationContext;
 /**
  * 공통 바탕 확인 (specs/001 Phase 2 Checkpoint):
  * 서버가 뜨고, GET /api/auth/csrf가 토큰을 주며, 로그인·CSRF 규칙이 공통 오류 모양으로 응답한다.
+ * 실제 CSRF 저장소(쿠키)를 확인하므로 따로 설정을 띄운다. 다른 테스트의 csrf() 도구는 같은 설정 안의
+ * CSRF 저장소를 테스트용으로 바꿔 버리기 때문이다.
  */
 @SpringBootTest
+@TestPropertySource(properties = "myblog.test.context=real-csrf")
 class SecurityAndCsrfTest {
 
     @Autowired

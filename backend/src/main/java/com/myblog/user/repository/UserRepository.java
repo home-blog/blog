@@ -1,8 +1,10 @@
 package com.myblog.user.repository;
 
 import com.myblog.user.domain.User;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,4 +23,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select count(u) > 0 from User u where lower(u.nickname) = lower(trim(:nickname)) and u.deletedAt is null")
     boolean existsActiveByNickname(@Param("nickname") String nickname);
+
+    // 로그인 연속 실패 (specs/001 T031, data-model 1 `로그인 잠금의 상태 변화`)
+    // 동시에 여러 번 틀려도 정확히 하나씩 오르도록, 읽고 쓰지 않고 DB에서 바로 +1 한다.
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u set u.failedLoginCount = u.failedLoginCount + 1 where u.id = :id")
+    int incrementFailedLoginCount(@Param("id") Long id);
+
+    @Query("select u.failedLoginCount from User u where u.id = :id")
+    int findFailedLoginCount(@Param("id") Long id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u set u.lockedUntil = :until where u.id = :id")
+    int lockUntil(@Param("id") Long id, @Param("until") Instant until);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u set u.failedLoginCount = 0, u.lockedUntil = null where u.id = :id")
+    int resetLoginFailures(@Param("id") Long id);
 }

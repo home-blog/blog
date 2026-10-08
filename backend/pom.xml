@@ -19,7 +19,21 @@
 
     <properties>
         <java.version>21</java.version>
+        <spring-modulith.version>2.1.1</spring-modulith.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Modulith: 기능별 모듈의 경계와 부르는 방향을 테스트로 검사한다 -->
+            <dependency>
+                <groupId>org.springframework.modulith</groupId>
+                <artifactId>spring-modulith-bom</artifactId>
+                <version>${spring-modulith.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- 웹과 입력 검증 -->
@@ -81,6 +95,11 @@
 
         <!-- 테스트 -->
         <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -93,6 +112,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-docs</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

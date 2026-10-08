@@ -13,12 +13,15 @@ export interface ErrorBody {
   code: string
   message: string
   fieldErrors?: FieldErrorItem[]
+  /** "몇 초 뒤에 다시"가 있을 때만 (예: 로그인 잠금) */
+  retryAfterSeconds?: number
 }
 
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly fieldErrors: FieldErrorItem[]
+  readonly retryAfterSeconds?: number
 
   constructor(status: number, body: ErrorBody) {
     super(body.message)
@@ -26,6 +29,7 @@ export class ApiError extends Error {
     this.status = status
     this.code = body.code
     this.fieldErrors = body.fieldErrors ?? []
+    this.retryAfterSeconds = body.retryAfterSeconds
   }
 
   /** 칸 이름으로 그 칸의 오류 문구를 찾는다 (FR-009: 칸 아래에 이유를 보여 줌). */
@@ -75,7 +79,7 @@ async function readError(res: Response): Promise<ErrorBody> {
   try {
     const body = (await res.json()) as Partial<ErrorBody>
     if (typeof body.code === 'string' && typeof body.message === 'string') {
-      return { code: body.code, message: body.message, fieldErrors: body.fieldErrors }
+      return { code: body.code, message: body.message, fieldErrors: body.fieldErrors, retryAfterSeconds: body.retryAfterSeconds }
     }
   } catch {
     // 본문이 JSON이 아니면 기본 문구를 쓴다
@@ -87,6 +91,8 @@ export interface RequestOptions {
   method?: string
   body?: unknown
   signal?: AbortSignal
+  /** false면 401이어도 "로그인 필요" 신호를 내지 않는다 (예: 로그인했는지 확인만 하는 GET /api/auth/me) */
+  notifyUnauthenticated?: boolean
 }
 
 /**
@@ -112,7 +118,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
 
   if (!res.ok) {
     const error = new ApiError(res.status, await readError(res))
-    if (res.status === 401 && error.code === 'UNAUTHENTICATED') {
+    if (res.status === 401 && error.code === 'UNAUTHENTICATED' && options.notifyUnauthenticated !== false) {
       unauthenticatedListeners.forEach((listener) => listener())
     }
     if (res.status === 403 && error.code === 'CSRF_TOKEN_INVALID') {

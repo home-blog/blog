@@ -1,26 +1,35 @@
-// 화면 전환: 지금은 가입 화면과 가입 완료만 있다. 로그인 화면은 001 US2에서 더한다.
-import { useState } from 'react'
-import ManuscriptSheet from './pages/ManuscriptSheet'
+// 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router'
+import { AuthProvider } from './auth/AuthContext'
+import { LoginModalProvider } from './auth/LoginModal'
+import SiteHeader from './components/SiteHeader'
+import HomePage from './pages/HomePage'
+import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
-type View = 'signup' | 'signed-up'
+function SignupRoute() {
+  const navigate = useNavigate()
+  // 가입 뒤 자동 로그인은 하지 않고 로그인 화면으로 보낸다 (CF-01-9)
+  return <SignupPage onSignedUp={() => navigate('/login', { replace: true, state: { signedUp: true } })} />
+}
 
 export default function App() {
-  const [view, setView] = useState<View>('signup')
-
-  if (view === 'signed-up') {
-    return (
-      <main className="done">
-        <ManuscriptSheet lines={['가입 완료']} rows={1} />
-        <h1>가입이 완료되었습니다</h1>
-        <p>로그인해 주세요. 로그인 화면은 다음 단계에서 열립니다.</p>
-      </main>
-    )
-  }
-
   return (
-    <main>
-      <SignupPage onSignedUp={() => setView('signed-up')} />
-    </main>
+    <BrowserRouter>
+      <AuthProvider>
+        <LoginModalProvider>
+          <SiteHeader />
+          <main>
+            {/* 회원 전용 화면은 <RequireLogin>으로 감싼다 (예: 글쓰기, 블로그 관리 — 003, 006) */}
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupRoute />} />
+              <Route path="*" element={<HomePage />} />
+            </Routes>
+          </main>
+        </LoginModalProvider>
+      </AuthProvider>
+    </BrowserRouter>
   )
 }

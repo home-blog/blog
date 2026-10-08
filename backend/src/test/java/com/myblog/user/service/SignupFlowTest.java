@@ -83,10 +83,10 @@ class SignupFlowTest {
     private CategoryRepository categories;
 
     @Autowired
-    private EmailVerificationStore store;
+    private StringRedisTemplate redis;
 
     @Autowired
-    private StringRedisTemplate redis;
+    private EmailVerificationStore store;
 
     private MockMvc mvc;
     private String email;
@@ -172,9 +172,13 @@ class SignupFlowTest {
     void 예전_증표로는_새_인증을_취소할_수_없다() throws Exception {
         String oldToken = sendAndGetToken(nickname, email);
         confirm(email, mail.lastCode.get(email), oldToken).andExpect(status().isOk());
-        store.releaseCooldown(email); // 1분 기다린 셈 치고 다시 받는다
+        store.releaseCooldown(email, oldToken); // 1분 기다린 셈 치고 다시 받는다
         String newToken = sendAndGetToken(nickname, email);
 
+        store.releaseCooldown(email, oldToken); // 예전 요청은 새 요청의 1분 막기를 풀 수 없다
+        sendCode(nickname, email)
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("RESEND_TOO_SOON"));
         cancel(email, oldToken).andExpect(status().isNoContent()); // 아무것도 지우지 않는다
         confirm(email, mail.lastCode.get(email), newToken).andExpect(status().isOk());
         // 새로 받으면 예전 인증은 무효: 예전 증표로는 가입할 수 없다
@@ -215,7 +219,7 @@ class SignupFlowTest {
         sendCode(nickname, "bad").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_EMAIL"));
         sendCode("철!", email).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_NICKNAME"));
 
-        users.saveAndFlush(User.create(email, "hash", nickname, java.time.Instant.now()));
+        users.saveAndFlush(User.create(email, "hash", nickname));
         sendCode("other" + nickname.substring(1, 5), email.toUpperCase())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"));

@@ -13,6 +13,11 @@ on:
     branches: [main]
     paths-ignore: ["docs/**", "specs/**", ".specify/**", "**/*.md"]
 
+
+# 코드를 읽기만 한다 (최소 권한)
+permissions:
+  contents: read
+
 jobs:
   sonar:
     name: 품질 분석

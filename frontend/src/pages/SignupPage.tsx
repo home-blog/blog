@@ -1,5 +1,6 @@
 // 가입 화면 (specs/001 US1, T025): 인증번호 받기 → 확인 → 이메일 잠금 → 비밀번호 → 가입하기
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import { api, ApiError } from '../api/client'
 import {
   checkPassword,
@@ -9,7 +10,7 @@ import {
   messages,
 } from '../auth/rules'
 import ManuscriptSheet from './ManuscriptSheet'
-import './signup.css'
+import './auth-layout.css'
 
 type Field = 'nickname' | 'email' | 'code' | 'password' | 'passwordConfirm'
 type Phase = 'idle' | 'sent' | 'verified'
@@ -238,19 +239,19 @@ export default function SignupPage({ onSignedUp }: Props) {
       : null
 
   return (
-    <div className="signup">
-      <section className="signup-sheet">
+    <div className="auth-layout">
+      <section className="auth-sheet">
         <ManuscriptSheet lines={['', '내 블로그를', '시작합니다.', '', blogName]} rows={7} liveLine={4} />
         <p className="sheet-caption">
           가입하면 <strong>{blogName}</strong>와 기본 분류 ‘미분류’가 바로 만들어집니다.
         </p>
       </section>
 
-      <section className="signup-form-wrap" aria-labelledby="signup-title">
-        <h1 id="signup-title" className="signup-title">회원 가입</h1>
-        <p className="signup-lead">이메일 인증을 마치면 바로 가입할 수 있습니다.</p>
+      <section className="auth-form-wrap" aria-labelledby="signup-title">
+        <h1 id="signup-title" className="auth-title">회원 가입</h1>
+        <p className="auth-lead">이메일 인증을 마치면 바로 가입할 수 있습니다.</p>
 
-        <form className="signup-form" onSubmit={submit} noValidate aria-live="polite">
+        <form className="auth-form" onSubmit={submit} noValidate aria-live="polite">
           <div className="field">
             <label htmlFor="nickname">닉네임</label>
             <input
@@ -380,6 +381,9 @@ export default function SignupPage({ onSignedUp }: Props) {
           <button type="submit" className="btn btn-primary btn-wide" disabled={busy !== null}>
             {busy === 'signup' ? '가입하는 중' : '가입하기'}
           </button>
+          <p className="auth-switch">
+            이미 회원이라면 <Link to="/login">로그인</Link>
+          </p>
         </form>
       </section>
     </div>

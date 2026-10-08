@@ -5,6 +5,7 @@ import com.myblog.user.validation.PasswordConfirmed;
 import com.myblog.user.validation.ValidEmail;
 import com.myblog.user.validation.ValidNickname;
 import com.myblog.user.validation.ValidPassword;
+import jakarta.validation.constraints.NotBlank;
 
 /** 회원 가입·로그인 요청 본문 (specs/001 contracts 2 ~ 5). */
 public final class AuthRequests {
@@ -21,6 +22,10 @@ public final class AuthRequests {
     }
 
     public record CancelVerification(String email, String verificationToken) {
+    }
+
+    /** 로그인. 이메일과 비밀번호는 둘 다 있어야 한다 (FR-024). 형식이 틀린 것은 "틀림"과 같게 답한다. */
+    public record Login(@NotBlank(message = "REQUIRED") String email, @NotBlank(message = "REQUIRED") String password) {
     }
 
     /** 가입하기. 어긴 칸마다 VALIDATION_FAILED의 fieldErrors로 알린다 (FR-009). */
