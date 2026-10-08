@@ -37,7 +37,7 @@ description: "001 회원 가입과 로그인 작업 목록"
 - [ ] T001 서버와 화면 폴더를 만든다: `backend/`(Spring Boot), `frontend/`(React + Vite). **Java와 Spring Boot 버전을 정해** `specs/001-member-signup-login/plan.md`의 `Technical Context` 줄을 고친다 (지금 `미정`) — **2026-10-08 작성됨, 서버 컴파일은 CI 확인 대기** (코드 저장소 `feat/001-project-setup`)
 - [ ] T002 서버 빌드 파일 `backend/pom.xml`(Maven, 2026-10-08 결정)에 Spring Web, Spring Security, Spring Session JDBC, Spring Data JPA, PostgreSQL 드라이버, Spring Data Redis, Spring Mail, Bean Validation, Flyway(가안)를 넣는다 — **2026-10-08 작성됨, CI 확인 대기 (Session JDBC·Flyway는 Boot 4 스타터 사용)** (코드 저장소 `feat/001-project-setup`)
 - [x] T003 [P] `frontend/`를 Vite + React로 만들고, 개발 서버 프록시로 `/api` 요청을 서버로 보낸다 (`frontend/vite.config.js`). 화면과 서버를 같은 주소처럼 쓰기 위해서다 (상세/01 `개발 환경`) — **2026-10-08 완료** (린트·빌드 확인)
-- [ ] T004 [P] 개발용 PostgreSQL과 Redis를 `docker-compose.yml`로 띄운다. 방법은 `docs/가이드/03-로컬환경-도커컴포즈-사용법.md`를 따른다 — **2026-10-08 작성됨 (PostgreSQL 18, Redis 8), 실행 확인 대기** (코드 저장소 `feat/001-project-setup`)
+- [ ] T004 [P] 개발용 PostgreSQL과 Redis를 `docker-compose.yml`로 띄운다. 방법은 `docs/4-가이드/03-로컬환경-도커컴포즈-사용법.md`를 따른다 — **2026-10-08 작성됨 (PostgreSQL 18, Redis 8), 실행 확인 대기** (코드 저장소 `feat/001-project-setup`)
 - [ ] T005 `BE-RES/application.yml`에 `dev`, `prod` 설정을 나눈다. **DB 비밀번호와 SMTP 계정 정보는 환경 변수로만** 넣고 파일과 저장소에 적지 않는다 (공개 저장소, research D-1) — **2026-10-08 작성됨, CI 확인 대기** (코드 저장소 `feat/001-project-setup`)
 
 ---
@@ -48,7 +48,7 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 사용자 이야기 작업을 시작하지 않는다
 
-- [ ] T006 **팀 ERD 확인**: 팀 공통 ERD는 그대로 쓰고, 이 기능에 필요한 칸과 인덱스는 **내 확장**으로 더한다 (`docs/ERD-변경-요청.md`의 E-1 실패 횟수·잠금 시각, E-2 탈퇴하지 않은 회원 + 소문자 비교 중복 불가). 팀에 요청한 T-1 ~ T-3의 답도 확인한다. E-1을 Redis로 옮길지는 이때 다시 정하고 research.md D-3에 적는다
+- [ ] T006 **팀 ERD 확인**: 팀 공통 ERD는 그대로 쓰고, 이 기능에 필요한 칸과 인덱스는 **내 확장**으로 더한다 (`docs/3-설계/ERD-변경-요청.md`의 E-1 실패 횟수·잠금 시각, E-2 탈퇴하지 않은 회원 + 소문자 비교 중복 불가). 팀에 요청한 T-1 ~ T-3의 답도 확인한다. E-1을 Redis로 옮길지는 이때 다시 정하고 research.md D-3에 적는다
 - [ ] T007 DB 표를 만드는 파일 `BE-RES/db/migration/V1__auth_tables.sql`(Flyway, 가안)을 쓴다. `users`: `users_id` BIGINT 자동 증가 기본키, `email` "VARCHAR(255), NOT NULL", `password` "VARCHAR(255), NOT NULL", `nickname` "VARCHAR(20), NOT NULL", `intro` "VARCHAR(100), NULL", `created_at` "TIMESTAMPTZ, NOT NULL", `deleted_at` "TIMESTAMPTZ, NULL", `failed_login_count` "INT, NOT NULL, 기본 0", `locked_until` "TIMESTAMPTZ, NULL". 중복 불가는 "소문자로 맞춘 값이 같은 탈퇴하지 않은 회원은 둘 이상 없다"를 `lower(email)`, `lower(nickname)`과 `WHERE deleted_at IS NULL`인 부분 인덱스로 건다. 가입에 필요한 `blog`, `category`의 최소 칸도 팀 ERD대로 만든다 (칸과 규칙은 `003`이 정함)
 - [ ] T008 세션 표를 Spring Session JDBC가 정한 모양으로 만든다 (`BE-RES/db/migration/V2__spring_session.sql`). 쓰는 버전의 스키마 파일을 그대로 옮긴다 (구현 때 확인)
 - [ ] T009 [P] 설정값 묶음 `BE/user/config/AuthProperties.java`를 만들어 `application.yml`의 `auth.*` 13개 값을 읽는다. 값은 plan.md `설정값 목록`과 같다: 닉네임 2~10, 비밀번호 8~20, 허용 특수문자 `! @ # $ % ^ & * ( ) _ + - =`, 인증번호 6자리, 유효 10분, 다시 받기 1분, 하루 5번, 틀린 횟수 5, 인증됨 30분, 로그인 실패 5, 잠금 10분, 세션 7일, 최대 30일
@@ -143,7 +143,7 @@ description: "001 회원 가입과 로그인 작업 목록"
 - [ ] T037 [P] quickstart S-9(보안 점검), S-10(Redis가 꺼졌을 때)을 실행한다
 - [ ] T038 quickstart.md 전체 시나리오를 실행하고, 끝의 `구현 뒤에 채울 것`(실행 명령, 화면 순서)을 채운다
 - [ ] T039 사람이 직접 가입 시간을 재서 SC-006(5분, 제안값)을 확인하고 결과를 spec.md Assumptions에 적는다
-- [ ] T040 [P] 구현하면서 바뀐 가안(주소, 키 이름, 설정 이름)을 plan.md, research.md, contracts, `docs/상세/01-인증-인가.md`의 `구현 방식`에 같이 반영한다 (헌법 `작업 흐름`: 두 곳이 같이 바뀐다)
+- [ ] T040 [P] 구현하면서 바뀐 가안(주소, 키 이름, 설정 이름)을 plan.md, research.md, contracts, `docs/2-요구사항/상세/01-인증-인가.md`의 `구현 방식`에 같이 반영한다 (헌법 `작업 흐름`: 두 곳이 같이 바뀐다)
 - [ ] T041 FR-036(HTTPS)은 배포 환경(research D-5)이 정해지면 `prod` 설정에서 `Secure` 쿠키와 함께 확인한다
 
 ---
