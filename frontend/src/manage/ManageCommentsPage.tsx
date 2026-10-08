@@ -27,12 +27,13 @@ function messageOf(err: unknown): string {
 
 export default function ManageCommentsPage() {
   const { setCount } = useNewCommentCount()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const page = pageFrom(params.get('page'))
 
   /** 읽음 처리로 받은 NEW 기준. 받기 전에는 null */
   const [newSince, setNewSince] = useState<string | null>(null)
-  const [result, setResult] = useState<ManageCommentPage | null>(null)
+  /** key: 이 결과를 받은 쪽. 쪽이 바뀌면 새 결과가 올 때까지 이전 목록을 보이지 않는다 */
+  const [loaded, setLoaded] = useState<{ page: number; result: ManageCommentPage } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const [deleting, setDeleting] = useState<ManageComment | null>(null)
@@ -65,7 +66,7 @@ export default function ManageCommentsPage() {
     const controller = new AbortController()
     getManageComments(page, newSince, controller.signal)
       .then((res) => {
-        setResult(res)
+        setLoaded({ page, result: res })
         setError(null)
       })
       .catch((err: unknown) => {
@@ -74,13 +75,20 @@ export default function ManageCommentsPage() {
     return () => controller.abort()
   }, [page, newSince, reload])
 
+  const result = loaded?.page === page ? loaded.result : null
+
   async function remove(comment: ManageComment) {
     setDeleting(null)
     setMessage(null)
     try {
       await deleteComment(comment.commentId)
       setMessage({ text: '댓글을 삭제했습니다', error: false })
-      setReload((n) => n + 1)
+      if (result && result.items.length === 1 && page > 1) {
+        // 이 쪽의 마지막 댓글을 지웠으면 앞 쪽으로 (빈 쪽에는 쪽 번호가 없어 돌아갈 수 없다)
+        setParams({ page: String(page - 1) })
+      } else {
+        setReload((n) => n + 1)
+      }
     } catch (err) {
       setMessage({ text: messageOf(err), error: true })
     }

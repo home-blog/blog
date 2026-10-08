@@ -39,9 +39,11 @@ export default function ManagePostsPage() {
   const visibility = visibilityFrom(params.get('visibility'))
   const categoryId = categoryFrom(params.get('category'))
   const page = pageFrom(params.get('page'))
+  const queryKey = `${visibility}|${categoryId ?? ''}|${page}`
 
   const [categories, setCategories] = useState<CategorySummary[]>([])
-  const [result, setResult] = useState<ManagePostPage | null>(null)
+  /** key: 이 결과를 받은 조건. 조건이 바뀌면 새 결과가 올 때까지 이전 목록을 보이지 않는다 */
+  const [loaded, setLoaded] = useState<{ key: string; page: ManagePostPage } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const [deleting, setDeleting] = useState<ManagePost | null>(null)
@@ -61,14 +63,16 @@ export default function ManagePostsPage() {
     const controller = new AbortController()
     getManagePosts({ visibility, categoryId, page }, controller.signal)
       .then((res) => {
-        setResult(res)
+        setLoaded({ key: queryKey, page: res })
         setError(null)
       })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) setError(messageOf(err))
       })
     return () => controller.abort()
-  }, [visibility, categoryId, page, reload])
+  }, [visibility, categoryId, page, queryKey, reload])
+
+  const result = loaded?.key === queryKey ? loaded.page : null
 
   /** 거르기를 바꾸면 1쪽부터 */
   function filter(change: { visibility?: VisibilityFilter; category?: number | null }) {
@@ -95,7 +99,14 @@ export default function ManagePostsPage() {
     try {
       await deletePost(post.postId)
       setMessage({ text: '글을 삭제했습니다', error: false })
-      setReload((n) => n + 1)
+      if (result && result.items.length === 1 && page > 1) {
+        // 이 쪽의 마지막 글을 지웠으면 앞 쪽으로 (빈 쪽에는 쪽 번호가 없어 돌아갈 수 없다)
+        const next = new URLSearchParams(params)
+        next.set('page', String(page - 1))
+        setParams(next)
+      } else {
+        setReload((n) => n + 1)
+      }
     } catch (err) {
       setMessage({ text: messageOf(err), error: true })
     }

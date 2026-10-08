@@ -56,6 +56,9 @@ public class ManageCommentQueryService {
      * @param newSince NEW 기준. {@link NewSince#NONE}이면 NEW 없음, {@link NewSince#NEVER}면 남이 쓴 모든 댓글이 NEW
      */
     public ManageCommentPage list(Long memberId, int page, NewSince newSince) {
+        if (page < 1) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED);
+        }
         BlogInfo blog = myBlog(memberId);
         List<Long> postIds = postSummary.postIdsOf(blog.blogId());
         if (postIds.isEmpty()) {
