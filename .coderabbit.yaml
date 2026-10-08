@@ -11,12 +11,10 @@ reviews:
     - "!frontend/package-lock.json"
     - "!**/dist/**"
     - "!**/target/**"
-    - "!.specify/**"
-    - "!docs/3-설계/그림/**"
   path_instructions:
     - path: "backend/**/*.java"
       instructions: |
-        이 프로젝트의 원칙(.specify/memory/constitution.md)을 기준으로 본다.
+        이 프로젝트의 원칙(문서 저장소 home-blog/docs의 .specify/memory/constitution.md)을 기준으로 본다.
         - 비밀번호 원문을 저장하거나 로그·응답에 남기지 않는가
         - 권한 검사와 입력 검증을 서버(서비스 계층)에서 하는가
         - 쿼리를 문자열로 이어 붙이지 않는가 (SQL 주입)
