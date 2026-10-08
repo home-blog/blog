@@ -1,0 +1,57 @@
+# 공통 설정. 비밀 값은 환경 변수로만 넣는다 (공개 저장소). 기본값은 로컬 개발용이다.
+spring:
+  application:
+    name: myblog-server
+  profiles:
+    default: dev
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:myblog}
+    username: ${DB_USERNAME:myblog}
+    password: ${DB_PASSWORD:myblog-dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # 표는 Flyway가 만든다. JPA는 확인만 한다
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  session:
+    jdbc:
+      initialize-schema: never   # 세션 표는 Flyway(V1__spring_session.sql)로 만든다
+
+server:
+  servlet:
+    session:
+      timeout: 7d   # 마지막 사용 후 7일 (CF-02-10)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# 기능 설정값은 한곳에서 (헌법 원칙 VI). 값은 docs의 specs/001 plan.md `설정값 목록`과 같다
+auth:
+  nickname:
+    min-length: 2
+    max-length: 10
+  password:
+    min-length: 8
+    max-length: 20
+    allowed-specials: "!@#$%^&*()_+-="
+  email-verification:
+    code-length: 6
+    code-ttl: 10m
+    resend-interval: 1m
+    daily-limit: 5
+    max-wrong-attempts: 5
+    verified-ttl: 30m
+  login:
+    max-failed-attempts: 5
+    lock-duration: 10m
+  session:
+    idle-timeout: 7d
+    absolute-timeout: 30d

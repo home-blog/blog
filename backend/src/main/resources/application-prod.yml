@@ -1,0 +1,26 @@
+# 배포용. 모든 접속 정보는 환경 변수로 넣는다. 배포 환경은 아직 미정 (specs/001 research D-5)
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+  session:
+    jdbc:
+      initialize-schema: never
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true      # HTTPS에서만 쿠키 전송 (NF-10)
+        http-only: true
+        same-site: lax

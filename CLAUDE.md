@@ -8,8 +8,9 @@
 
 MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문자는 한곳에서 둘러보는 티스토리형 멀티 블로그 서비스. 팀원 4명이 공통 요구사항을 함께 정하고, 구현은 각자 한다.
 
-- 이 저장소(`home-blog/docs`, Mac의 `~/Documents/AIGJ_blog_docs`)가 **문서의 하나뿐인 원본**이다.
-- 코드는 **프로젝트 저장소**(Mac의 `~/myblog/blog-basic-AIGJ_01_012-myblog`)에 만든다. 그 안의 `docs/` 폴더는 2026-10-07 시점의 **옛 사본**이라 기준으로 삼지 않고, 고치지도 않는다.
+- 이 저장소(GitHub `home-blog/myblog`, Mac의 `~/Documents/AIGJ_blog_docs`)에 **문서와 코드가 함께** 있다 (2026-10-08부터. 이전 이름은 `home-blog/docs`). 문서의 하나뿐인 원본이다.
+- 코드는 `backend/`(서버), `frontend/`(화면)에 만든다. 마지막에 사용자가 `AIP-1/blog-basic-AIGJ_01_012-blog`로 옮긴다.
+- 예전 프로젝트 폴더(Mac `~/myblog/blog-basic-AIGJ_01_012-myblog`)는 더 쓰지 않는다. 옛 UI 시안과 문서 사본은 그 폴더의 `backup/ui-mock-2026-10-08` 브랜치에 남아 있다(GitHub에는 올리지 않음).
 - 이 저장소는 **공개(public)** 다. 비밀번호, 키, 계정 정보는 절대 넣지 않는다.
 
 ## 2. 세션을 시작하면
@@ -21,7 +22,7 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 
 ## 3. 어디에 무엇이 있나
 
-폴더: `docs/1-팀공통`(팀 합의 문서) · `docs/2-요구사항`(무엇을) · `docs/3-설계`(어떻게) · `docs/4-가이드`(쉬운 기술 설명) · `specs/`(Spec Kit). 2026-10-08에 이렇게 나눴다.
+폴더: `docs/1-팀공통`(팀 합의 문서) · `docs/2-요구사항`(무엇을) · `docs/3-설계`(어떻게) · `docs/4-가이드`(쉬운 기술 설명) · `specs/`(Spec Kit) · `backend/`·`frontend/`(코드). 2026-10-08에 이렇게 나눴다.
 
 | 위치 | 내용 | 고쳐도 되나 |
 |---|---|---|
@@ -34,6 +35,9 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 | `docs/4-가이드/` | 비전공자 팀원용 기술 설명 | |
 | `specs/001~006-*/` | Spec Kit 산출물: `spec.md`(무엇), `plan.md`·`research.md`·`data-model.md`·`contracts/`·`quickstart.md`(어떻게), `tasks.md`(작업 목록) | 확인 후 고친다 |
 | `.specify/memory/constitution.md` | 프로젝트 원칙(헌법) | 개정 절차를 따른다 |
+| `backend/` | 서버. Spring Boot 4.1, Java 21, Maven. 패키지 `com.myblog` 아래 기능별 모듈 `user`, `blog`, `post`, `comment`, `community`, `image`, `stats`, `common` | PR로 고친다 |
+| `frontend/` | 화면. React 19, Vite 8, TypeScript. 개발 중 `/api`는 Vite 프록시로 서버(8080)에 넘긴다 | PR로 고친다 |
+| `.github/`, `.coderabbit.yaml`, `sonar-project.properties` | CI, 자동 리뷰(CodeRabbit), 품질 분석(아카데미 SonarQube) 설정 | PR로 고친다 |
 | `.claude/`, `.specify/`(헌법 말고) | Spec Kit 도구 파일. 저장소에 올리지 않는다 | |
 
 **ERD는 Crowfoot에 있다** (기본 워크스페이스)
@@ -56,10 +60,19 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 - ERD를 고칠 때: 팀 공통은 Crowfoot `팀 공통 ERD`(668)에 **팀이 합의한 것만**, 내 확장 기능은 Crowfoot `myblog-제안`(666)에서 고쳐 나간다. 고친 뒤 `docs/3-설계/ERD-변경-요청.md`의 E-항목도 맞춘다.
 - 새 아이디어는 바로 MVP에 넣지 않고 "추후 확장 후보"에 모은다.
 
+### 코드 작성 규칙
+
+- 무엇을 만들지는 `specs/<기능>/tasks.md`, 어떻게는 같은 폴더의 `plan.md`, `data-model.md`, `contracts/`를 따른다.
+- 요청 흐름: 보안 필터 → 컨트롤러 → 서비스(핵심 규칙) → 저장소. 쿼리는 문자열로 이어 붙이지 않는다.
+- 설정값(글자 수, 시간, 횟수)은 `application.yml`(`auth.*` 등) 한곳에서 읽는다. 비밀 값은 환경 변수로만.
+- 표는 Flyway(`backend/src/main/resources/db/migration`)로만 만든다. JPA는 `ddl-auto: validate`.
+- 작업을 마치면 `tasks.md` 체크박스와 이 파일의 `6. 지금 상태`를 고치고, 사용자에게 무엇을 만들었는지 짧게 보고한다.
+
 ### 커밋과 올리기
 
 - 커밋 작성자는 `JaeUng <rnrn4308428@gmail.com>`. 메시지는 한국어로, 무엇을 왜 바꿨는지 적는다.
-- 클라우드 세션은 `home-blog/docs`를 붙여서(clone) 커밋하고 push한다. 그 뒤 Mac의 `~/Documents/AIGJ_blog_docs`에서 `git pull`로 맞춘다.
+- 문서만 바꿀 때는 `main`에 바로 커밋해도 된다. **코드를 바꿀 때는 브랜치**(`feat/<기능>-<내용>`, `fix/...`, `chore/...`)를 만들어 PR로 올리고, CI가 통과하면 merge한다. 커밋 메시지에 작업 ID(T001 등)를 적는다.
+- 클라우드 세션은 `home-blog/myblog`를 붙여서(clone) 커밋하고 push한다. 그 뒤 Mac의 `~/Documents/AIGJ_blog_docs`에서 `git pull`로 맞춘다.
 - Mac에서 git을 쓸 때는 삭제가 막혀 `tmp_obj_*`나 `.lock` 파일이 남을 수 있다. 끝나면 확인한다.
 
 ## 5. 기술 방향 (요약)
@@ -97,16 +110,15 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 - 팀 ERD 변경 요청(T-1~T-3)은 **팀에 아직 보내지 않았다.**
 - 팀 확인이 필요한 제안값: 가입 5분(001 SC-006), 글쓰기 3분(003 SC-011), 댓글 1분(005 SC-009), 대시보드 1분(006 SC-011). 006 원본의 `확인 필요` 4개(BM-01-3, BM-05-7, BM-06-5, BM-06-8).
 - 통합 API 명세서는 아직 없다. 기능별 초안이 `specs/*/contracts/`에 있다. ERD가 확정되면 합친다.
-- 프로젝트 저장소의 `CLAUDE.md`는 이 저장소를 원본으로 보라고 안내하도록 고쳤다(커밋은 사용자가 한다).
 
-- **코드 저장소 (2026-10-08 변경)**: 지금은 `home-blog` 조직의 새 저장소(사용자가 만들 예정, 이름 예 `home-blog/myblog`)에 올리고, 마지막에 사용자가 `AIP-1/blog-basic-AIGJ_01_012-blog`로 옮긴다. 이전 메모: `AIP-1/blog-basic-AIGJ_01_012-blog` (Mac `~/myblog/blog-basic-AIGJ_01_012-myblog`). 브랜치 `feat/001-project-setup`에 뼈대가 커밋돼 있다(아직 push 안 함). Claude는 이 저장소에 **GitHub 권한이 없다** — AIP-1 조직에 Claude GitHub App이 설치되면 push·PR·CI·merge를 한다. 그전에는 사용자가 IntelliJ에서 push한다.
+- **코드 (2026-10-08)**: 001 뼈대(T001~T005)를 Mac 예전 프로젝트 폴더에서 이 저장소의 `feat/001-project-setup` 브랜치로 옮겨 PR로 올렸다. CodeRabbit 설치, Secret `SONAR_TOKEN`·Variable `SONAR_HOST_URL` 등록은 사용자가 했다고 함(첫 PR에서 확인). SonarQube는 **아카데미 서버**, 프로젝트 키 `myblog-jaeung`. 아카데미 인프라의 계정·비밀번호는 이 공개 저장소에 적지 않는다.
 - 클라우드 작업 공간과 Mac 연결 셸 모두 **Maven 저장소가 막혀** 서버를 컴파일할 수 없다. 서버 빌드는 GitHub Actions CI나 사용자 IntelliJ(MCP로 연결 예정)로 확인한다. npm은 된다.
 - 사용자는 IntelliJ로 작업을 지켜본다. 구현을 마치면 무엇을 만들었는지 **짧게 보고**한다.
 
 ## 7. 다음 할 일
 
-1. 사용자가 GitHub에 빈 저장소 `home-blog/myblog`(이름 예)를 만들면: Mac 프로젝트 폴더의 `backup/ui-mock-2026-10-08`, `feat/001-project-setup` 브랜치를 올리고 첫 PR을 만든다. CI 통과 뒤 merge하고 사용자에게 알린다.
-2. 사용자가 CodeRabbit 설치, GitHub에 Secret `SONAR_TOKEN`·Variable `SONAR_HOST_URL` 등록. SonarQube는 **아카데미 서버**(`s4.java21.net:9000`)를 쓴다. 프로젝트 키 `myblog-jaeung`은 만들어 두었다(2026-10-08). 아카데미 인프라의 계정·비밀번호는 이 공개 저장소에 적지 않는다.
+1. 첫 PR(`feat/001-project-setup`)의 CI·CodeRabbit·SonarQube 결과를 확인하고, 서버 빌드가 깨지면 고친다. 통과하면 merge하고 사용자에게 알린다.
+2. 아카데미 인프라 쓰임 정하기(사용자 확인 대기): SonarQube는 아카데미 서버(확정), 이미지 저장은 MinIO(추천), 배포 때 Redis는 아카데미 서버(DB 번호 = 학번 끝 두 자리, 키 앞에 `myblog:`), RabbitMQ는 안 씀, Elasticsearch·Ollama·InfluxDB는 추후 확장 후보.
 3. 사용자가 `docs/3-설계/ERD-변경-요청.md`를 팀에 공유하고 T-1~T-3 답을 받는다.
 4. 001 구현 계속: T006(팀 ERD 확인)부터. 화면은 가입·로그인부터 트렌드에 맞게 디자인한다.
 5. 002~006의 남은 결정 17개(추천안 목록은 2026-10-08 대화)를 사용자가 확인하면 반영하고 `/speckit-tasks`로 작업 목록을 만든다.

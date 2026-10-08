@@ -1,0 +1,4 @@
+# 개발용 (내 컴퓨터 + docker-compose). 메일은 실제로 보내지 않고 서버 로그에 인증번호를 찍는다 (specs/001 research B-9)
+logging:
+  level:
+    com.myblog: DEBUG

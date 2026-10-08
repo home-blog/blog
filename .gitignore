@@ -8,3 +8,19 @@
 !.specify/memory/
 .specify/memory/*
 !.specify/memory/constitution.md
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# Maven
+backend/target/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# 환경 변수 파일 (비밀 값)
+.env
+.env.*

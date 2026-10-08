@@ -1,0 +1,34 @@
+# CodeRabbit: PR마다 1차 코드 리뷰 (merge를 막지는 않는다. 막는 것은 CI와 SonarQube 품질 게이트)
+language: ko-KR
+reviews:
+  profile: chill
+  high_level_summary: true
+  request_changes_workflow: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!frontend/package-lock.json"
+    - "!**/dist/**"
+    - "!**/target/**"
+    - "!.specify/**"
+    - "!docs/3-설계/그림/**"
+  path_instructions:
+    - path: "backend/**/*.java"
+      instructions: |
+        이 프로젝트의 원칙(.specify/memory/constitution.md)을 기준으로 본다.
+        - 비밀번호 원문을 저장하거나 로그·응답에 남기지 않는가
+        - 권한 검사와 입력 검증을 서버(서비스 계층)에서 하는가
+        - 쿼리를 문자열로 이어 붙이지 않는가 (SQL 주입)
+        - 설정값(글자 수, 시간, 횟수)을 코드에 박지 않고 application.yml에서 읽는가
+        - 여러 표를 함께 바꾸는 일이 한 트랜잭션인가
+        - 모듈 사이의 부르는 방향을 어기지 않는가 (user ← blog ← post ← comment/community/image, stats는 읽기만)
+    - path: "backend/src/main/resources/db/migration/**"
+      instructions: "이미 main에 들어간 마이그레이션 파일을 고치지 않았는지, 팀 공통 ERD와 다른 점이 있으면 설명이 있는지 본다."
+    - path: "frontend/**/*.{ts,tsx}"
+      instructions: |
+        - 사용자 입력이나 글 본문을 HTML로 그대로 넣지 않는가 (dangerouslySetInnerHTML 금지, 스크립트 실행 방지)
+        - 모든 변경 요청에 CSRF 토큰을 싣는가
+        - 401을 받으면 로그인 창으로 안내하는 공통 처리를 쓰는가
+chat:
+  auto_reply: true
