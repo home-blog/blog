@@ -164,3 +164,27 @@
 .post-nav > :first-child {
   justify-self: start;
 }
+
+/* 태그 (specs/005 US5): 본문 아래 둥근 표 */
+.post-tags {
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.post-tag {
+  display: inline-block;
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-button);
+  background: color-mix(in srgb, var(--grid) 35%, transparent);
+  color: var(--accent);
+  font-size: var(--step--1);
+  text-decoration: none;
+}
+
+.post-tag:hover {
+  text-decoration: underline;
+}

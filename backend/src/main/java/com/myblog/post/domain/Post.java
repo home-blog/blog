@@ -93,6 +93,11 @@ public class Post {
         return true;
     }
 
+    /** 글 칸은 그대로인데 딸린 것(태그)만 바뀌었을 때 수정 시각을 넣는다 (005 T044, 2026-10-08 가안: 태그만 바꿔도 "수정됨"). */
+    public void markUpdated(Instant now) {
+        this.updatedAt = now;
+    }
+
     /** 정리한 값이 지금 값과 모두 같은가 (같은 요청 번호로 다시 온 글쓰기가 처음과 같은지 볼 때). */
     public boolean sameAs(Long categoryId, Long topicId, String title, String content, String visibility) {
         String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;

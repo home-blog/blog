@@ -3,7 +3,7 @@
 // - 본문은 MarkdownView로만 그린다 (D-1). 제목·이름은 React가 글자로 보여 준다
 // - 로그인 상태가 바뀌면 다시 읽는다 (로그아웃한 뒤 비공개 글이 화면에 남지 않게)
 // - 주인에게만 수정·삭제. 삭제는 확인 창을 거치고, 끝나면 내 블로그로 간다 (FR-021, FR-022)
-// - 본문 아래에 좋아요(US3)·신고(US6)와 댓글 영역(US1) (specs/005)
+// - 본문 아래에 태그(US5), 좋아요(US3)·신고(US6), 댓글 영역(US1) (specs/005)
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
@@ -122,6 +122,19 @@ export default function PostDetailPage() {
       <Suspense fallback={<div className="post-content-raw">{post.content}</div>}>
         <MarkdownView source={post.content} />
       </Suspense>
+
+      {/* 태그 (specs/005 US5). 누르면 같은 태그의 공개 글 */}
+      {post.tags.length > 0 && (
+        <ul className="post-tags" aria-label="태그">
+          {post.tags.map((tag) => (
+            <li key={tag}>
+              <Link to={`/tags/${encodeURIComponent(tag)}`} className="post-tag">
+                #{tag}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* 좋아요 (specs/005 US3). 글이나 보는 사람이 바뀌면 새 값으로 다시 그린다 */}
       <div className="post-reactions">

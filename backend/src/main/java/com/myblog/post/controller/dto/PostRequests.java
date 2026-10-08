@@ -5,10 +5,12 @@ import com.myblog.post.validation.ValidTitle;
 import com.myblog.post.validation.ValidVisibility;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 /**
  * 글 요청 본문 (specs/003 contracts 10, 13).
  * 작성 시각·블로그 번호·작성자 칸은 두지 않는다: 보내도 무시된다 (FR-008, FR-014). 블로그는 세션의 회원으로 정한다.
+ * tags(005 contracts 8)는 0~5개이고 보낸 목록이 새 전체 목록이다. 검사는 서비스가 TagNormalizer로 한다 (칸 이름 tags, tags[n]).
  */
 public final class PostRequests {
 
@@ -25,7 +27,8 @@ public final class PostRequests {
             @NotNull(message = "CATEGORY_REQUIRED") Long categoryId,
             @NotNull(message = "TOPIC_REQUIRED") Long topicId,
             @ValidVisibility String visibility,
-            @Size(max = 36, message = "VALIDATION_FAILED") String requestKey) {
+            @Size(max = 36, message = "VALIDATION_FAILED") String requestKey,
+            List<String> tags) {
     }
 
     /**
@@ -37,6 +40,7 @@ public final class PostRequests {
             @ValidContent String content,
             @NotNull(message = "CATEGORY_REQUIRED") Long categoryId,
             @NotNull(message = "TOPIC_REQUIRED") Long topicId,
-            @ValidVisibility String visibility) {
+            @ValidVisibility String visibility,
+            List<String> tags) {
     }
 }
