@@ -70,6 +70,33 @@ public class Category {
         return category;
     }
 
+    /** 새 분류 (FR-037). 이름은 앞뒤 공백을 지운다. 공개 여부가 없으면 공개. */
+    public static Category create(Long blogId, String name, int sortOrder, String visibility) {
+        Category category = new Category();
+        category.blogId = blogId;
+        category.name = name.strip();
+        category.visibility = visibility == null ? "public" : visibility;
+        category.defaultCategory = false;
+        category.sortOrder = sortOrder;
+        category.colorIndex = 0;
+        return category;
+    }
+
+    /** 이름 바꾸기. 미분류도 바꿀 수 있다 (FR-042). 미분류는 이름이 아니라 isDefaultCategory()로 알아본다. */
+    public void rename(String name) {
+        this.name = name.strip();
+    }
+
+    /** 공개 여부 바꾸기 (FR-047). 이 분류의 글의 visibility는 바꾸지 않는다. */
+    public void changeVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
+    /** 순서 바꾸기 (FR-039). 작을수록 위. */
+    public void moveTo(int sortOrder) {
+        this.sortOrder = sortOrder;
+    }
+
     public Long getId() {
         return id;
     }

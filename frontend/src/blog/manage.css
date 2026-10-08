@@ -1,0 +1,110 @@
+/* 블로그 관리 화면(분류 관리, 블로그 설정): 원고지 종이 위 카드 하나 */
+.manage {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.manage-head {
+  margin-bottom: 1.5rem;
+}
+
+.manage-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+}
+
+.category-manager {
+  padding: 1rem clamp(0.75rem, 3vw, 1.5rem);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+}
+
+.category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.category-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'order name count' 'order actions actions';
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.category-order {
+  grid-area: order;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-name,
+.category-rename {
+  grid-area: name;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.category-rename input,
+.category-add input,
+.category-add select {
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  min-width: 0;
+}
+
+.category-count {
+  grid-area: count;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.category-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  padding: 0 0.45rem;
+  line-height: 1.4;
+  min-width: 2rem;
+}
+
+.category-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.category-add label {
+  font-weight: 600;
+  font-size: var(--step--1);
+}
+
+.category-add input {
+  flex: 1 1 10rem;
+}
+
+.category-message {
+  min-height: 1.5em;
+  margin-top: 0.75rem;
+}

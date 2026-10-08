@@ -2,7 +2,7 @@
 // 누구나 본다. 주인에게만 비공개 분류와 "블로그 설정" 버튼이 보인다 (실제 권한은 서버가 다시 본다)
 // 글 목록은 specs/004의 BlogPostList가 그린다
 import { useEffect, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
@@ -61,10 +61,9 @@ export default function BlogHomePage() {
         {blog.intro ? <p className="blog-intro">{blog.intro}</p> : <p className="blog-intro hint">아직 소개가 없습니다</p>}
         {blog.isOwner && (
           <p className="blog-owner-actions">
-            {/* 블로그 설정 화면은 US7에서 열린다 */}
-            <span className="btn btn-outline btn-small" aria-disabled="true" title="다음 단계에서 열립니다">
-              블로그 설정
-            </span>
+            <Link to="/manage/categories" className="btn btn-outline btn-small">
+              분류 관리
+            </Link>
           </p>
         )}
       </header>
