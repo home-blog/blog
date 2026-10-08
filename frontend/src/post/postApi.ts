@@ -59,6 +59,12 @@ export interface PostDetail {
   nextPostId: number | null
   /** 화면이 수정·삭제 버튼을 보일지만 정한다. 실제 권한은 서버가 다시 본다 */
   isOwner: boolean
+  /** 댓글 수 (specs/005 contracts 7) */
+  commentCount: number
+  /** 좋아요 수 */
+  likeCount: number
+  /** 로그인한 회원이 좋아요를 눌렀나 (로그인하지 않았으면 false) */
+  likedByMe: boolean
 }
 
 export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetail> {

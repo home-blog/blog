@@ -1,0 +1,116 @@
+/* 댓글 영역: 원고지 칸 선으로 나눈 목록, 내용은 글자 그대로(줄바꿈 유지) */
+.comments {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--grid-strong);
+}
+
+.comments-title {
+  margin: 0 0 1rem;
+  font-size: var(--step-1);
+}
+
+.comments-count {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.comment-list {
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  padding: 0.85rem 0;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.comment-meta {
+  margin: 0 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.comment-author {
+  font-weight: 600;
+}
+
+.comment-author.is-withdrawn {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.comment-actions {
+  margin-left: auto;
+}
+
+/* 입력한 글자 그대로: 줄바꿈을 살리고 긴 낱말은 줄을 바꾼다 */
+.comment-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-letter);
+  line-height: 1.8;
+}
+
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.comment-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.comment-input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.comment-input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.comment-form-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.comment-form-foot > :first-child {
+  flex: 1;
+}
+
+.comment-length {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.comment-length.is-over {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.comment-login {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px dashed var(--grid-strong);
+  border-radius: var(--radius-field);
+}

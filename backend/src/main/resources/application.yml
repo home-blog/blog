@@ -94,6 +94,13 @@ explore:
     keyword-min-length: 2
     keyword-max-length: 50
 
+# 댓글·좋아요·신고·태그·이미지 (specs/005 plan.md 설정값 목록). 글자는 코드 포인트로 센다
+community:
+  comment:
+    min-length: 1
+    max-length: 500
+    min-interval: 5s   # 같은 회원의 댓글 사이 최소 간격 (CF-18-7)
+
 myblog:
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
