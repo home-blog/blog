@@ -26,3 +26,4 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+        update-types: [minor, patch]   # 큰 버전은 따로 와서 하나씩 확인한다

@@ -26,6 +26,9 @@ server:
   servlet:
     session:
       timeout: 7d   # 마지막 사용 후 7일 (CF-02-10)
+      cookie:
+        http-only: true   # 화면의 스크립트가 세션 쿠키를 읽지 못하게 (NF-10)
+        same-site: lax    # 다른 사이트에서 보낸 요청에는 쿠키를 싣지 않게
 
 management:
   endpoints:
