@@ -76,6 +76,13 @@ public class Post {
         return post;
     }
 
+    /** 정리한 값이 지금 값과 모두 같은가 (같은 요청 번호로 다시 온 글쓰기가 처음과 같은지 볼 때). */
+    public boolean sameAs(Long categoryId, Long topicId, String title, String content, String visibility) {
+        String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        return this.categoryId.equals(categoryId) && this.topicId.equals(topicId) && this.title.equals(normalizeTitle(title))
+                && this.content.equals(normalizeContent(content)) && this.visibility.equals(newVisibility);
+    }
+
     /** 제목은 앞뒤 공백을 지운다. 없으면 빈 글자. */
     public static String normalizeTitle(String title) {
         return title == null ? "" : title.strip();
