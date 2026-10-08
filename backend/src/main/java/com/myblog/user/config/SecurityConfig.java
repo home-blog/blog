@@ -8,6 +8,7 @@ import java.time.Clock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -74,6 +75,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // 누구나 읽는 블로그·글 (003 contracts 1, 2, 11). 비공개는 서비스가 주인인지 보고 거른다
+                        .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();
