@@ -51,6 +51,7 @@ jobs:
           INSERT INTO vector_check VALUES (1, '[1,2,3]'), (2, '[9,9,9]');
           SELECT id, embedding <-> '[1,2,4]' AS distance FROM vector_check ORDER BY distance LIMIT 1;
           SELECT extversion AS pgvector_version FROM pg_extension WHERE extname = 'vector';
+          DROP TABLE vector_check;
           DROP EXTENSION vector;
           SQL
       - uses: actions/setup-java@v5
