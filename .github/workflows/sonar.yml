@@ -41,7 +41,7 @@ jobs:
       - name: 토큰 확인
         if: env.SONAR_TOKEN == ''
         run: echo "SONAR_TOKEN이 없어 SonarQube 분석을 건너뜁니다."
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         if: env.SONAR_TOKEN != ''
         with:
           fetch-depth: 0   # 새로 바뀐 코드를 구분하려면 전체 이력이 필요하다
