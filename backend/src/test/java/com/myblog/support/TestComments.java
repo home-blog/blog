@@ -27,6 +27,7 @@ public class TestComments {
         jdbc.update("delete from comment where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_report where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_like where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
+        jdbc.update("delete from post_image where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_tag where post_id in (" + postsOfBlog + ")", member.blogId());
         jdbc.update("delete from post where category_id in (select category_id from category where blog_id = ?)", member.blogId());
         jdbc.update("delete from category where blog_id = ?", member.blogId());
