@@ -81,10 +81,12 @@ public class EmailVerificationService {
         }
 
         // ⑤ 새 번호와 증표 저장 (이전 번호·증표 무효)  ⑥ 메일이 나갈 때까지 기다린다
-        String code = generator.generate();
-        String token = generator.newFlowToken();
-        store.startFlow(email, code, token, config.codeTtl());
+        String code;
+        String token;
         try {
+            code = generator.generate();
+            token = generator.newFlowToken();
+            store.startFlow(email, code, token, config.codeTtl());
             mailSender.send(email, code, config.codeTtl());
         } catch (MailSendFailedException e) {
             // ⑦ 실패하면 번호를 지우고 횟수에 넣지 않는다 → 바로 다시 받을 수 있다 (FR-020)
@@ -92,6 +94,10 @@ public class EmailVerificationService {
             store.clearFlow(email);
             store.releaseCooldown(email);
             throw new ApiException(ErrorCode.MAIL_SEND_FAILED);
+        } catch (RuntimeException e) {
+            // 메일이 나가기 전에 생긴 다른 오류: 1분 막기를 풀어 바로 다시 요청할 수 있게 한다
+            store.releaseCooldown(email);
+            throw e;
         }
         store.recordSent(email);
         return new SentCode(config.codeTtl(), token);
@@ -101,26 +107,22 @@ public class EmailVerificationService {
     public void confirm(String rawEmail, String rawCode, String verificationToken) {
         AuthProperties.EmailVerification config = properties.emailVerification();
         String email = User.normalizeEmail(rawEmail);
-        // 인증번호를 받은 그 사람의 증표가 아니면 번호가 없는 것과 같게 답한다
-        if (email == null || email.isEmpty() || !store.isFlowToken(email, verificationToken)) {
+        if (email == null || email.isEmpty()) {
             throw new ApiException(ErrorCode.CODE_EXPIRED);
         }
         String input = rawCode == null ? "" : rawCode.strip().toUpperCase(Locale.ROOT);
-        EmailVerificationStore.CodeCheck check = store.checkCode(email, input);
-        if (check == EmailVerificationStore.CodeCheck.NONE) {
-            throw new ApiException(ErrorCode.CODE_EXPIRED);
+        // 증표 확인·번호 확인·삭제·인증됨 표시를 Redis에서 한 번에 한다 (동시에 눌러도 한 번만 인정)
+        EmailVerificationStore.ConfirmResult result = store.confirm(email, input, verificationToken,
+                config.maxWrongAttempts(), config.codeTtl(), config.verifiedTtl());
+        switch (result) {
+            case MATCH -> {
+                return;
+            }
+            case MISMATCH -> throw new ApiException(ErrorCode.CODE_MISMATCH);
+            case ATTEMPTS_EXCEEDED -> throw new ApiException(ErrorCode.CODE_ATTEMPTS_EXCEEDED);
+            // 번호가 없거나, 인증번호를 받은 그 사람의 증표가 아니면 번호가 없는 것과 같게 답한다
+            default -> throw new ApiException(ErrorCode.CODE_EXPIRED);
         }
-        if (check == EmailVerificationStore.CodeCheck.MATCH) {
-            store.deleteCode(email);
-            store.markVerified(email, verificationToken, config.verifiedTtl());
-            return;
-        }
-        long failures = store.incrementFailures(email, config.codeTtl());
-        if (failures >= config.maxWrongAttempts()) {
-            store.deleteCode(email);
-            throw new ApiException(ErrorCode.CODE_ATTEMPTS_EXCEEDED);
-        }
-        throw new ApiException(ErrorCode.CODE_MISMATCH);
     }
 
     /**

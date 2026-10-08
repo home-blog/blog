@@ -60,8 +60,28 @@ public class EmailVerificationStore {
                     + "return 1",
             Long.class);
 
+    /**
+     * 인증번호 확인을 한 번에 처리한다: 증표 확인 → 번호 확인 → (맞으면) 번호·틀린 횟수·증표를 지우고 인증됨 표시 /
+     * (틀리면) 틀린 횟수 +1, 한도에 닿으면 번호 폐기. 다른 스크립트(새 흐름 시작, 이메일 변경)와 섞이지 않는다.
+     * 결과: 0 번호 없음(만료·폐기·증표 불일치), 1 맞음, 2 틀림, 3 틀린 횟수 초과
+     */
+    private static final RedisScript<Long> CONFIRM = RedisScript.of(
+            "if redis.call('GET', KEYS[2]) ~= ARGV[2] then return 0 end "
+                    + "local code = redis.call('GET', KEYS[1]) "
+                    + "if not code then return 0 end "
+                    + "if code == ARGV[1] then "
+                    + "  redis.call('DEL', KEYS[1], KEYS[2], KEYS[3]) "
+                    + "  redis.call('SET', KEYS[4], ARGV[2], 'PX', ARGV[5]) "
+                    + "  return 1 "
+                    + "end "
+                    + "local c = redis.call('INCR', KEYS[3]) "
+                    + "if c == 1 then redis.call('PEXPIRE', KEYS[3], ARGV[4]) end "
+                    + "if c >= tonumber(ARGV[3]) then redis.call('DEL', KEYS[1], KEYS[3]) return 3 end "
+                    + "return 2",
+            Long.class);
+
     /** 인증번호 확인 결과 */
-    public enum CodeCheck { NONE, MATCH, MISMATCH }
+    public enum ConfirmResult { NO_CODE, MATCH, MISMATCH, ATTEMPTS_EXCEEDED }
 
     private final StringRedisTemplate redis;
 
@@ -80,25 +100,28 @@ public class EmailVerificationStore {
                 hash(code), hash(token), String.valueOf(ttl.toMillis()));
     }
 
-    /** 넣은 번호가 저장한 번호와 같은지. 번호가 없으면(만료·폐기) NONE. */
-    public CodeCheck checkCode(String email, String input) {
-        String saved = redis.opsForValue().get(key("code", email));
-        if (saved == null) {
-            return CodeCheck.NONE;
+    /**
+     * 인증번호를 확인한다 (한 번에, CONFIRM 스크립트). 증표가 그 흐름의 것이 아니면 번호가 없는 것과 같게 본다.
+     * 맞으면 인증됨 표시(증표의 해시)를 verifiedTtl 동안 남긴다.
+     */
+    public ConfirmResult confirm(String email, String code, String token, int maxWrongAttempts, Duration codeTtl,
+            Duration verifiedTtl) {
+        if (token == null) {
+            return ConfirmResult.NO_CODE;
         }
-        boolean same = MessageDigest.isEqual(saved.getBytes(StandardCharsets.UTF_8),
-                hash(input).getBytes(StandardCharsets.UTF_8));
-        return same ? CodeCheck.MATCH : CodeCheck.MISMATCH;
-    }
-
-    /** 번호와 틀린 횟수를 지운다. */
-    public void deleteCode(String email) {
-        redis.delete(List.of(key("code", email), key("fail", email)));
-    }
-
-    /** 틀린 횟수를 하나 올리고 올린 뒤의 값을 돌려준다. 처음 틀릴 때 만료를 건다. */
-    public long incrementFailures(String email, Duration ttl) {
-        return increment(key("fail", email), ttl);
+        Long result = redis.execute(CONFIRM,
+                List.of(key("code", email), key("flow", email), key("fail", email), key("verified", email)),
+                hash(code), hash(token), String.valueOf(maxWrongAttempts), String.valueOf(codeTtl.toMillis()),
+                String.valueOf(verifiedTtl.toMillis()));
+        if (result == null) {
+            return ConfirmResult.NO_CODE;
+        }
+        return switch (result.intValue()) {
+            case 1 -> ConfirmResult.MATCH;
+            case 2 -> ConfirmResult.MISMATCH;
+            case 3 -> ConfirmResult.ATTEMPTS_EXCEEDED;
+            default -> ConfirmResult.NO_CODE;
+        };
     }
 
     /**
@@ -122,16 +145,6 @@ public class EmailVerificationStore {
     /** 메일 발송에 성공한 뒤에만 부른다: 보낸 횟수를 올린다 (FR-018, FR-020). */
     public void recordSent(String email) {
         increment(key("daily", email), DAILY_WINDOW);
-    }
-
-    public boolean isFlowToken(String email, String token) {
-        return token != null && hash(token).equals(redis.opsForValue().get(key("flow", email)));
-    }
-
-    /** 인증 완료: 인증됨 표시에 증표(해시)를 담아 둔다. 인증 단계의 증표는 지운다. */
-    public void markVerified(String email, String token, Duration ttl) {
-        redis.opsForValue().set(key("verified", email), hash(token), ttl);
-        redis.delete(key("flow", email));
     }
 
     /** 인증을 마쳤고, 그때 받은 증표와 같은지. */

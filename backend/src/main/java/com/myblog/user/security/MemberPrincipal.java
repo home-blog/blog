@@ -17,6 +17,9 @@ import org.springframework.security.core.userdetails.UserDetails;
  */
 public class MemberPrincipal implements UserDetails, CredentialsContainer {
 
+    /** 세션에 직렬화되어 저장된다 (UserDetails가 Serializable). 칸을 바꾸면 올린다 */
+    private static final long serialVersionUID = 1L;
+
     private static final List<GrantedAuthority> MEMBER = List.of(new SimpleGrantedAuthority("ROLE_MEMBER"));
 
     private final Long id;
