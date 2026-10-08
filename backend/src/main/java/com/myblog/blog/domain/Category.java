@@ -65,7 +65,7 @@ public class Category {
         category.name = DEFAULT_NAME;
         category.visibility = "public";
         category.defaultCategory = true;
-        category.sortOrder = 0;
+        category.sortOrder = 1; // data-model 2: 기본 분류가 맨 앞
         category.colorIndex = 0;
         return category;
     }

@@ -26,13 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.member
   }, [])
 
+  /** 서버가 로그아웃을 마쳤을 때만 화면도 로그아웃으로 바꾼다. 실패하면 오류를 그대로 던진다 (공용 기기에서 안전하게) */
   const logout = useCallback(async () => {
     try {
       await api('/api/auth/logout', { method: 'POST' })
     } finally {
       resetCsrfToken()
-      setMember(null)
     }
+    setMember(null)
   }, [])
 
   const value = useMemo(() => ({ member, login, logout }), [member, login, logout])
