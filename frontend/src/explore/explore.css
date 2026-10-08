@@ -7,6 +7,9 @@
 }
 
 .post-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
   margin: 1.5rem 0;
   padding: 2rem 1rem;
   text-align: center;
@@ -124,4 +127,8 @@ a.pagination-step:hover {
 .pagination-step[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.post-empty p {
+  margin: 0;
 }

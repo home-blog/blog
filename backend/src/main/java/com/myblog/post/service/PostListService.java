@@ -50,12 +50,19 @@ public class PostListService {
 
     /**
      * @param viewerId 로그인한 회원 번호. 로그인하지 않았거나 탈퇴했으면 null (방문자)
-     * @param page     요청한 페이지 번호 글자 그대로 (없으면 null)
+     * @param page       요청한 페이지 번호 글자 그대로 (없으면 null)
+     * @param categoryId 고른 분류 번호 글자 그대로 (없거나 비었으면 모든 분류)
      */
-    public PostListView list(Long blogId, Long viewerId, String page) {
+    public PostListView list(Long blogId, Long viewerId, String page, String categoryId) {
         BlogInfo blog = blogDirectory.blog(blogId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));
         boolean isOwner = viewerId != null && viewerId.equals(blog.ownerId());
         ListScope scope = visibility.listScope(blog.ownerId(), blogDirectory.categoriesOf(blogId), viewerId);
+        Long chosenCategoryId = null;
+        if (categoryId != null && !categoryId.isEmpty()) {
+            CategoryInfo chosen = chosenCategory(scope, categoryId);
+            chosenCategoryId = chosen.categoryId();
+            scope = new ListScope(List.of(chosen), scope.publicPostsOnly());
+        }
 
         long totalCount = count(scope);
         PageSlice slice = PageNumbers.of(page, totalCount, pageSize);
@@ -64,8 +71,24 @@ public class PostListService {
         List<PostRow> rows = read(scope, slice).stream()
                 .map(post -> toRow(post, categoryById.get(post.getCategoryId())))
                 .toList();
-        return new PostListView(blogId, isOwner, null, totalCount, slice.page(), slice.totalPages(), slice.pageSize(),
+        return new PostListView(blogId, isOwner, chosenCategoryId, totalCount, slice.page(), slice.totalPages(), slice.pageSize(),
                 rows);
+    }
+
+    /**
+     * 고른 분류는 보이는 분류 묶음 안에 있을 때만 쓴다 (FR-007). 다른 블로그의 분류, 없는 번호, 숫자가 아닌 값,
+     * 방문자가 보낸 비공개 분류 번호는 모두 똑같이 "존재하지 않는 분류"다: 비공개 분류가 있다는 것을 드러내지 않는다
+     * (004 D-2: 가, D-7).
+     */
+    private static CategoryInfo chosenCategory(ListScope scope, String categoryId) {
+        return scope.categories().stream()
+                .filter(category -> category.categoryId().toString().equals(categoryId))
+                .findFirst()
+                .orElseThrow(PostListService::unknownCategory);
+    }
+
+    private static ApiException unknownCategory() {
+        return new ApiException(ErrorCode.CATEGORY_NOT_FOUND);
     }
 
     private long count(ListScope scope) {

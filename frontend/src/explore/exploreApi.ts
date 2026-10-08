@@ -31,12 +31,12 @@ export interface PostListPage {
 
 export function getBlogPosts(
   blogId: number,
-  options: { page?: number; categoryId?: number | null } = {},
+  options: { page?: number; categoryId?: number | string | null } = {},
   signal?: AbortSignal,
 ): Promise<PostListPage> {
   const params = new URLSearchParams()
   if (options.page && options.page > 1) params.set('page', String(options.page))
-  if (options.categoryId != null) params.set('categoryId', String(options.categoryId))
+  if (options.categoryId != null && options.categoryId !== '') params.set('categoryId', String(options.categoryId))
   const query = params.toString()
   return api<PostListPage>(`/api/blogs/${blogId}/posts${query ? `?${query}` : ''}`, { signal })
 }
