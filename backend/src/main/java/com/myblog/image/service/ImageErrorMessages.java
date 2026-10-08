@@ -5,6 +5,7 @@ import com.myblog.common.error.FieldErrorMessages;
 import com.myblog.image.config.ImageProperties;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.util.unit.DataSize;
 
 /**
  * 이미지 오류 문구의 숫자·형식을 설정값(community.image)에 맞춘다.
@@ -29,8 +30,17 @@ public class ImageErrorMessages implements FieldErrorMessages {
     }
 
     static String invalidImage(ImageProperties properties) {
-        return "이미지는 %dMB 이하의 %s만 올릴 수 있습니다".formatted(
-                properties.maxSize().toMegabytes(), String.join(", ", properties.allowedTypes()));
+        return "이미지는 %s 이하의 %s만 올릴 수 있습니다".formatted(
+                sizeText(properties.maxSize()), String.join(", ", properties.allowedTypes()));
+    }
+
+    /** 딱 떨어지는 MB면 MB로, 아니면 KB로 적는다 (1.5MB를 1MB로 줄여 안내하지 않게). */
+    static String sizeText(DataSize size) {
+        long megabyte = DataSize.ofMegabytes(1).toBytes();
+        if (size.toBytes() % megabyte == 0) {
+            return size.toMegabytes() + "MB";
+        }
+        return size.toKilobytes() + "KB";
     }
 
     static String limit(int maxPerPost) {
