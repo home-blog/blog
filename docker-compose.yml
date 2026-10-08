@@ -25,5 +25,27 @@ services:
       interval: 5s
       retries: 10
 
+  # 이미지 저장소 (specs/005 T051, D-1). S3 방식으로 부른다. 버킷은 서버가 처음 쓸 때 만든다.
+  # 공식 minio/minio 이미지는 Docker Hub에서 더 받을 수 없어서(2026-10 확인) 같은 MinIO를 이어 빌드하는 pgsty/minio를 쓴다.
+  # 서버 코드는 S3 방식만 쓰므로 다른 S3 호환 저장소로 바꿔도 코드는 그대로다.
+  # 접속 키는 개발 전용 값이다. 서버에는 환경 변수 IMAGE_S3_ACCESS_KEY, IMAGE_S3_SECRET_KEY로 같은 값을 넣는다.
+  # 들여다보기: http://localhost:9001 (같은 키로 로그인)
+  minio:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: myblog-dev
+      MINIO_ROOT_PASSWORD: myblog-dev-secret
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      retries: 10
+
 volumes:
   postgres-data:
+  minio-data:

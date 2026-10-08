@@ -90,6 +90,11 @@ public enum ErrorCode {
     TAG_TOO_MANY(HttpStatus.BAD_REQUEST, "※ 태그는 5개까지 붙일 수 있습니다"),
     TAG_INVALID(HttpStatus.BAD_REQUEST, "※ 태그는 공백과 쉼표 없이 1~15자로 입력해 주세요"),
     TAG_DUPLICATED(HttpStatus.BAD_REQUEST, "※ 이미 붙인 태그입니다"),
+    /** 크기·형식이 맞지 않는 이미지. 숫자와 형식 목록은 설정값(community.image.*)에 따라 ImageUploadService가 채운다. */
+    INVALID_IMAGE(HttpStatus.BAD_REQUEST, "이미지는 5MB 이하의 jpg, png, gif, webp만 올릴 수 있습니다"),
+    IMAGE_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 이미지는 글 하나에 10장까지 올릴 수 있습니다"),
+    /** 이미지 저장소에 연결할 수 없다. 저장소 주소·경로는 알리지 않는다. */
+    STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "※ 잠시 뒤 다시 시도해 주세요"),
 
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */

@@ -5,11 +5,13 @@ import com.myblog.blog.BlogDirectory.BlogInfo;
 import com.myblog.blog.BlogDirectory.CategoryInfo;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
+import com.myblog.post.PostContentSavedEvent;
 import com.myblog.post.domain.Post;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.tag.TagNormalizer;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -22,6 +24,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *   <li>분류가 내 블로그의 것이 아니면 INVALID_CATEGORY.</li>
  *   <li>주제가 topic 표에 없으면 topicId "주제를 골라 주세요".</li>
  *   <li>태그(005)는 TagNormalizer로 다듬고 검사해 글과 <b>같은 트랜잭션</b>에서 저장한다. 규칙에 어긋나면 글도 저장하지 않는다.</li>
+ *   <li>저장한 뒤 같은 트랜잭션에서 PostContentSavedEvent를 낸다: 이미지 모듈이 본문 속 이미지를 이 글에 연결한다 (005 T057).</li>
  *   <li>같은 requestKey의 글이 이미 있으면 새로 만들지 않고 그 번호를 돌려준다 (D-6). 내용(태그 포함)이 다르면 POST_ALREADY_SAVED.
  *       거의 동시에 같은 키가 오면 request_key 중복 불가로 DB가 하나만 받고, 나머지는 다시 찾아 같은 번호를 돌려준다.</li>
  * </ol>
@@ -35,15 +38,18 @@ public class PostWriteService {
     private final PostInputChecks checks;
     private final TagNormalizer tagNormalizer;
     private final PostTagService tagService;
+    private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
 
     public PostWriteService(BlogDirectory blogDirectory, PostRepository posts, PostInputChecks checks,
-            TagNormalizer tagNormalizer, PostTagService tagService, PlatformTransactionManager transactionManager) {
+            TagNormalizer tagNormalizer, PostTagService tagService, ApplicationEventPublisher events,
+            PlatformTransactionManager transactionManager) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
         this.checks = checks;
         this.tagNormalizer = tagNormalizer;
         this.tagService = tagService;
+        this.events = events;
         this.transaction = new TransactionTemplate(transactionManager);
     }
 
@@ -65,9 +71,10 @@ public class PostWriteService {
         checks.checkTopic(topicId);
         try {
             Long postId = transaction.execute(status -> {
-                Long id = posts.saveAndFlush(Post.create(categoryId, topicId, title, content, visibility, requestKey)).getId();
-                tagService.replaceTags(id, tags);
-                return id;
+                Post post = posts.saveAndFlush(Post.create(categoryId, topicId, title, content, visibility, requestKey));
+                tagService.replaceTags(post.getId(), tags);
+                events.publishEvent(new PostContentSavedEvent(post.getId(), memberId, post.getContent()));
+                return post.getId();
             });
             return new Created(postId, true);
         } catch (DataIntegrityViolationException e) {
