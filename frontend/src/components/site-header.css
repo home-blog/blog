@@ -18,13 +18,26 @@
 
 .site-nav {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
   font-size: var(--step--1);
+}
+
+.site-nav > * {
+  white-space: nowrap;
 }
 
 .site-member {
   color: var(--ink-soft);
+}
+
+/* 좁은 화면에서는 닉네임을 숨겨 메뉴 자리를 만든다 */
+@media (max-width: 30rem) {
+  .site-member {
+    display: none;
+  }
 }
 
 .site-link {

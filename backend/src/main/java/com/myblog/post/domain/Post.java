@@ -1,5 +1,6 @@
 package com.myblog.post.domain;
 
+import com.myblog.common.Visibility;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -57,6 +58,39 @@ public class Post {
     private Instant updatedAt;
 
     protected Post() {
+    }
+
+    /**
+     * 새 글 (FR-010 ~ FR-014). 제목은 앞뒤 공백을 지우고, 본문은 줄바꿈만 \n으로 맞추고 그 밖에는 손대지 않는다 (D-2).
+     * 공개 여부가 없으면 공개. 작성 시각은 저장할 때 채워지고 수정 시각은 비어 있다.
+     */
+    public static Post create(Long categoryId, Long topicId, String title, String content, String visibility,
+            String requestKey) {
+        Post post = new Post();
+        post.categoryId = categoryId;
+        post.topicId = topicId;
+        post.title = normalizeTitle(title);
+        post.content = normalizeContent(content);
+        post.visibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        post.requestKey = requestKey;
+        return post;
+    }
+
+    /** 정리한 값이 지금 값과 모두 같은가 (같은 요청 번호로 다시 온 글쓰기가 처음과 같은지 볼 때). */
+    public boolean sameAs(Long categoryId, Long topicId, String title, String content, String visibility) {
+        String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        return this.categoryId.equals(categoryId) && this.topicId.equals(topicId) && this.title.equals(normalizeTitle(title))
+                && this.content.equals(normalizeContent(content)) && this.visibility.equals(newVisibility);
+    }
+
+    /** 제목은 앞뒤 공백을 지운다. 없으면 빈 글자. */
+    public static String normalizeTitle(String title) {
+        return title == null ? "" : title.strip();
+    }
+
+    /** 본문은 줄바꿈(\r\n)만 \n으로 맞춘다. 앞뒤 공백은 지우지 않는다. 없으면 빈 글자. */
+    public static String normalizeContent(String content) {
+        return content == null ? "" : content.replace("\r\n", "\n");
     }
 
     public Long getId() {
