@@ -102,16 +102,24 @@ public class EmailVerificationStore {
     private final StringRedisTemplate redis;
     private final SecretKeySpec secretKey;
 
-    /** 배포에서는 비밀키가 꼭 있어야 한다. 서버마다 다른 임시 키를 쓰면 한 서버가 저장한 인증을 다른 서버가 확인하지 못한다. */
-    static final int MIN_SECRET_LENGTH = 32;
+    /** 비밀키 길이의 하한. 설정값(myblog.verification.min-secret-length)을 이보다 낮출 수는 없다 (HMAC-SHA-256의 키 강도). */
+    static final int SECRET_LENGTH_FLOOR = 32;
 
+    /**
+     * 배포에서는 비밀키가 꼭 있어야 한다. 서버마다 다른 임시 키를 쓰면 한 서버가 저장한 인증을 다른 서버가 확인하지 못한다.
+     * 최소 길이는 설정값에서 읽고(기본 32), 하한보다 낮게 정하면 서버를 켜지 않는다.
+     */
     public EmailVerificationStore(StringRedisTemplate redis, @Value("${myblog.verification.secret:}") String secret,
-            @Value("${myblog.verification.require-secret:false}") boolean requireSecret) {
+            @Value("${myblog.verification.require-secret:false}") boolean requireSecret,
+            @Value("${myblog.verification.min-secret-length:32}") int minSecretLength) {
         this.redis = redis;
+        if (minSecretLength < SECRET_LENGTH_FLOOR) {
+            throw new IllegalStateException("myblog.verification.min-secret-length는 " + SECRET_LENGTH_FLOOR + " 이상이어야 합니다");
+        }
         boolean blank = secret == null || secret.isBlank();
-        if (requireSecret && (blank || secret.length() < MIN_SECRET_LENGTH)) {
+        if (requireSecret && (blank || secret.length() < minSecretLength)) {
             // 배포 설정(prod)에서는 켜지 않고 바로 멈춘다: 잘못된 설정을 늦게 알게 되는 것보다 낫다
-            throw new IllegalStateException("myblog.verification.secret(VERIFICATION_SECRET)에 " + MIN_SECRET_LENGTH
+            throw new IllegalStateException("myblog.verification.secret(VERIFICATION_SECRET)에 " + minSecretLength
                     + "자 이상의 무작위 값을 넣어야 서버를 켤 수 있습니다");
         }
         byte[] keyBytes;
