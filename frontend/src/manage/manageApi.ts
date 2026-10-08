@@ -88,3 +88,42 @@ export async function getNewCommentCount(signal?: AbortSignal): Promise<number> 
   const res = await api<{ count: number }>('/api/manage/comments/new-count', { signal })
   return res.count
 }
+
+/** 하루 숫자. date는 한국 날짜(YYYY-MM-DD) */
+export interface DailyCount {
+  date: string
+  views: number
+  visitors: number
+}
+
+export interface DailyStat extends DailyCount {
+  comments: number
+}
+
+/** 통계 (contracts 7). days는 7 또는 30 */
+export function getStats(days: number, signal?: AbortSignal): Promise<{ days: number; daily: DailyStat[] }> {
+  return api(`/api/manage/stats?days=${days}`, { signal })
+}
+
+export interface Count {
+  today: number
+  yesterday: number
+  total: number
+}
+
+/** 대시보드 (contracts 2) */
+export interface Dashboard {
+  views: Count
+  visitors: Count
+  newCommentCount: number
+  /** 오늘 포함 30일, 오래된 날부터 */
+  chart: DailyCount[]
+  /** 공개 글만, views는 최근 7일 조회수 */
+  popularPosts: { postId: number; title: string; views: number }[]
+  /** 비공개 포함 최근 글 */
+  recentPosts: { postId: number; title: string; createdAt: string; visibility: 'public' | 'private' }[]
+}
+
+export function getDashboard(signal?: AbortSignal): Promise<Dashboard> {
+  return api<Dashboard>('/api/manage/dashboard', { signal })
+}
