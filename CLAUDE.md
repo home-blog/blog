@@ -106,7 +106,7 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 ## 7. 다음 할 일
 
 1. 사용자가 GitHub에 빈 저장소 `home-blog/myblog`(이름 예)를 만들면: Mac 프로젝트 폴더의 `backup/ui-mock-2026-10-08`, `feat/001-project-setup` 브랜치를 올리고 첫 PR을 만든다. CI 통과 뒤 merge하고 사용자에게 알린다.
-2. 사용자가 CodeRabbit 설치, SonarQube Cloud 연결, GitHub Secrets `SONAR_TOKEN`·Variables `SONAR_ORGANIZATION`·`SONAR_PROJECT_KEY` 등록.
+2. 사용자가 CodeRabbit 설치, GitHub에 Secret `SONAR_TOKEN`·Variable `SONAR_HOST_URL` 등록. SonarQube는 **아카데미 서버**(`s4.java21.net:9000`)를 쓴다. 프로젝트 키 `myblog-jaeung`은 만들어 두었다(2026-10-08). 아카데미 인프라의 계정·비밀번호는 이 공개 저장소에 적지 않는다.
 3. 사용자가 `docs/3-설계/ERD-변경-요청.md`를 팀에 공유하고 T-1~T-3 답을 받는다.
 4. 001 구현 계속: T006(팀 ERD 확인)부터. 화면은 가입·로그인부터 트렌드에 맞게 디자인한다.
 5. 002~006의 남은 결정 17개(추천안 목록은 2026-10-08 대화)를 사용자가 확인하면 반영하고 `/speckit-tasks`로 작업 목록을 만든다.
