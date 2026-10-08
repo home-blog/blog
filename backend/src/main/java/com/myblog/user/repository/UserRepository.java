@@ -31,7 +31,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u from User u where u.id = :id and u.deletedAt is null")
     Optional<User> findActiveById(@Param("id") Long id);
 
-    /** 탈퇴하는 동안 같은 회원 줄을 잠근다 (002 research R-3). 두 번 눌러도 한 번만 처리된다. */
+    /**
+     * 회원 줄을 잠그고 읽는다. 같은 회원의 비밀번호 변경·탈퇴가 동시에 와도 하나씩 처리된다
+     * (002 research R-3, PR #18 리뷰: 동시 비밀번호 변경).
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id and u.deletedAt is null")
     Optional<User> findActiveByIdForUpdate(@Param("id") Long id);
