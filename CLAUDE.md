@@ -2,7 +2,7 @@
 
 이 파일은 Claude가 이 저장소에서 작업할 때 **가장 먼저 읽는 지침**입니다. Claude는 세션이 바뀌면 이전 대화를 기억하지 못하므로, 이 파일과 아래 기준 문서를 읽고 이어서 작업합니다.
 
-> 마지막 정리: 2026-10-08
+> 마지막 정리: 2026-10-08 16:20 (클라우드 세션에서 로컬 Claude Code로 옮기기 전)
 
 ## 1. 이 저장소는
 
@@ -117,6 +117,16 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 - PR 흐름: 브랜치 push → REST로 PR 생성(`gh api repos/home-blog/myblog/pulls`, GraphQL인 `gh pr create`는 막힘) → CI·CodeRabbit 확인, 맞는 지적은 고침 → `gh api .../pulls/N/merge`. 원격 브랜치 삭제는 이 세션에서 막혀 있다. **Dependabot PR은 직접 merge하지 않는다**(안전장치가 막음). 같은 변경을 내 PR로 반영하면 Dependabot이 자기 PR을 닫는다.
 - 작업 공간과 Mac 셸 모두 Maven 저장소가 막혀 서버를 직접 컴파일할 수 없다. **서버 빌드는 PR의 CI로 확인한다.** npm은 된다.
 - 사용자는 IntelliJ로 작업을 지켜본다. 구현을 마치면 무엇을 만들었는지 **짧게 보고**한다.
+
+### 이어받기 메모 (2026-10-08 16:20, 클라우드 세션 → 로컬 Claude Code로 옮김)
+
+- **PR #15 merge됨** (16:21, 001 마무리 T036·T040, 인증번호·증표 HMAC 저장, 비밀키 최소 길이 설정값). 남은 001 작업은 T037~T039(직접 실행·측정), T041(배포 HTTPS). 배포에서는 환경 변수 `VERIFICATION_SECRET`(32자 이상 무작위)이 꼭 있어야 서버가 켜진다.
+- **다음 작업: 002 계정 관리 US1** (`specs/002-account-management/tasks.md` Phase 2·3, T001~T019, PR 하나). 브랜치 `feat/002-us1-profile`을 최신 `main`에서 만든다. 클라우드 세션이 Mac 폴더에 같은 이름의 빈 브랜치를 만들다 멈췄으니, 남아 있으면 지우고 새로 만든다.
+- **로컬에서 달라지는 점**: 클라우드에서는 Maven 다운로드가 막혀 서버를 CI로만 확인했다. 로컬 Mac에서는 `cd backend && mvn verify`(docker compose로 PostgreSQL·Redis를 띄운 뒤)로 직접 확인할 수 있을 것이다. git push도 사용자 계정으로 바로 된다.
+- PR 만들기: `gh pr create` 또는 GitHub 화면. Dependabot PR은 같은 변경을 내 PR로 반영하는 방식을 유지한다.
+- CI 실패 원인은 PR의 "서버 빌드·테스트 실패" 주석(annotation)에 요약된다.
+- Crowfoot(ERD)은 MCP로 연결해야 쓸 수 있다. 문서 666(내 확장), 668(팀 공통, 발급 DB `cf_u6_d2`에 연결, 아직 빈 DB).
+- 사용자는 IntelliJ로 `~/Documents/AIGJ_blog_docs`를 연다. **Spring 기능을 적극적으로 쓰고**(기술스택 2.2 표), **PR은 기능 단위로** 올리고, 구현을 마치면 짧게 보고한다.
 
 ## 7. 다음 할 일
 
