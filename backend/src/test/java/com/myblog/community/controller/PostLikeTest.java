@@ -20,6 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,8 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -53,6 +56,9 @@ class PostLikeTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private MockMvc mvc;
     private final List<Member> created = new ArrayList<>();
@@ -176,6 +182,39 @@ class PostLikeTest {
         assertThat(jdbc.queryForObject("select count(*) from post_like where users_id = ?", Long.class, reader.id())).isZero();
         // 남이 누른 좋아요는 그대로
         assertThat(jdbc.queryForObject("select count(*) from post_like where post_id = ?", Long.class, otherPost)).isOne();
+    }
+
+    @Test
+    void 탈퇴가_진행_중일_때_온_좋아요는_탈퇴가_끝난_뒤_401이고_줄이_남지_않는다() throws Exception {
+        // 탈퇴처럼 회원 줄을 FOR UPDATE로 잡고 있는 트랜잭션 (PR #30 리뷰)
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> withdrawal = pool.submit(() -> tx.executeWithoutResult(status -> {
+                jdbc.queryForList("select 1 from users where users_id = ? for update", reader.id());
+                locked.countDown();
+                try {
+                    release.await(10, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                jdbc.update("update users set deleted_at = now() where users_id = ?", reader.id());
+            }));
+            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            Future<Integer> like = pool.submit(() -> mvc.perform(put("/api/posts/{id}/like", postId).with(csrf())
+                    .session(readerSession)).andReturn().getResponse().getStatus());
+            Thread.sleep(500);
+            assertThat(like.isDone()).as("탈퇴가 끝날 때까지 기다린다").isFalse();
+            release.countDown();
+            withdrawal.get(10, TimeUnit.SECONDS);
+            assertThat(like.get(10, TimeUnit.SECONDS)).isEqualTo(401);
+        } finally {
+            release.countDown();
+            pool.shutdown();
+        }
+        assertThat(likes()).isZero();
     }
 
     private List<Integer> together(List<RequestBuilder> requests) throws Exception {
