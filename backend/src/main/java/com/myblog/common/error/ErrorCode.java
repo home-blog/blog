@@ -40,7 +40,18 @@ public enum ErrorCode {
     // 로그인 (specs/001)
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다"),
     /** 문구의 횟수·분은 설정값에 따라 서비스가 채운다 (LoginService). */
-    ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 시도가 %d회 실패해 잠겼습니다. %d분 뒤에 다시 시도해 주세요");
+    ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 시도가 %d회 실패해 잠겼습니다. %d분 뒤에 다시 시도해 주세요"),
+
+    // 계정 관리 (specs/002 contracts 2 ~ 4)
+    /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
+    CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),
+    PASSWORD_SAME_AS_CURRENT(HttpStatus.BAD_REQUEST, "현재 비밀번호와 다른 값을 입력해 주세요"),
+    WITHDRAWAL_CONFLICT(HttpStatus.CONFLICT, "※ 잠시 뒤 다시 시도해 주세요"),
+    /** 문구의 숫자는 설정값(account.intro.max-length)에 따라 AccountFieldErrorMessages가 채운다. */
+    INTRO_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 소개는 100자 이하로 입력해 주세요"),
+    CURRENT_PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "※ 현재 비밀번호를 입력해 주세요"),
+    PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "※ 비밀번호를 입력해 주세요"),
+    WITHDRAWAL_NOT_AGREED(HttpStatus.BAD_REQUEST, "※ 탈퇴 안내를 확인해 주세요");
 
     private final HttpStatus status;
     private final String message;

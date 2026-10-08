@@ -1,9 +1,9 @@
 package com.myblog.user.controller;
 
-import com.myblog.common.error.ApiException;
-import com.myblog.common.error.ErrorCode;
 import com.myblog.user.controller.dto.AuthRequests;
+import com.myblog.user.domain.User;
 import com.myblog.user.security.MemberPrincipal;
+import com.myblog.user.service.CurrentMemberService;
 import com.myblog.user.service.EmailVerificationService;
 import com.myblog.user.service.LoginService;
 import com.myblog.user.service.SignupService;
@@ -31,11 +31,14 @@ public class AuthController {
     private final EmailVerificationService verification;
     private final SignupService signupService;
     private final LoginService loginService;
+    private final CurrentMemberService currentMember;
 
-    public AuthController(EmailVerificationService verification, SignupService signupService, LoginService loginService) {
+    public AuthController(EmailVerificationService verification, SignupService signupService, LoginService loginService,
+            CurrentMemberService currentMember) {
         this.verification = verification;
         this.signupService = signupService;
         this.loginService = loginService;
+        this.currentMember = currentMember;
     }
 
     @PostMapping("/login")
@@ -45,13 +48,14 @@ public class AuthController {
         return MemberResponse.of(member);
     }
 
-    /** 지금 로그인했는지 (contracts 8). 화면이 처음 열릴 때 부른다. */
+    /**
+     * 지금 로그인했는지 (contracts 8). 화면이 처음 열릴 때와 닉네임을 바꾼 뒤 부른다.
+     * 세션에 남은 값이 아니라 DB의 닉네임을 돌려주고, 탈퇴한 회원이면 401이다 (specs/002 T005).
+     */
     @GetMapping("/me")
-    public MemberResponse me(@AuthenticationPrincipal MemberPrincipal member) {
-        if (member == null) {
-            throw new ApiException(ErrorCode.UNAUTHENTICATED);
-        }
-        return MemberResponse.of(member);
+    public MemberResponse me(@AuthenticationPrincipal MemberPrincipal principal) {
+        User member = currentMember.get(principal);
+        return new MemberResponse(new Member(member.getId(), member.getNickname()));
     }
 
     @PostMapping("/email-verifications")

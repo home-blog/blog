@@ -63,4 +63,27 @@ class UserRepositoryTest {
         assertThatThrownBy(() -> users.saveAndFlush(User.create("nick2@example.com", "hash", "MINSU")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    void 두_회원이_대소문자만_다른_같은_닉네임으로_바꾸면_DB가_두_번째를_막는다() {
+        // specs/002 T011, quickstart S-2의 10, SC-002: 미리 확인을 지나쳐도 DB의 중복 불가가 마지막으로 막는다
+        User first = users.saveAndFlush(User.create("change1@example.com", "hash", "바꾸기1"));
+        User second = users.saveAndFlush(User.create("change2@example.com", "hash", "바꾸기2"));
+
+        first.changeProfile("NewName", null);
+        users.saveAndFlush(first);
+        second.changeProfile("newname", null);
+
+        assertThatThrownBy(() -> users.saveAndFlush(second)).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void 나를_빼고_닉네임_중복을_확인한다() {
+        User me = users.saveAndFlush(User.create("except1@example.com", "hash", "나야나"));
+        users.saveAndFlush(User.create("except2@example.com", "hash", "너야너"));
+
+        assertThat(users.existsActiveByNicknameExcept("나야나", me.getId())).isFalse();
+        assertThat(users.existsActiveByNicknameExcept(" 너야너 ", me.getId())).isTrue();
+        assertThat(users.findActiveById(me.getId())).isPresent();
+    }
 }

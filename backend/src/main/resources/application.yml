@@ -59,6 +59,12 @@ auth:
     idle-timeout: 7d
     absolute-timeout: 30d
 
+# 계정 관리 (specs/002 plan.md 설정값 목록)
+account:
+  intro:
+    min-length: 0
+    max-length: 100
+
 myblog:
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다

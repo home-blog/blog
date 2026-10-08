@@ -72,6 +72,15 @@ public class User {
         return email == null ? null : email.strip().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * 닉네임과 소개를 고친다 (002 FR-005, FR-006). 이메일을 바꾸는 메서드는 두지 않는다.
+     * 닉네임은 앞뒤 공백을 지우고, 소개는 입력 그대로 두되 비어 있으면 NULL로 저장한다 (002 research B-4).
+     */
+    public void changeProfile(String nickname, String intro) {
+        this.nickname = nickname.strip();
+        this.intro = intro == null || intro.isEmpty() ? null : intro;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
