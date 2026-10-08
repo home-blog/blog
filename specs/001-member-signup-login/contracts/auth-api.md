@@ -145,6 +145,8 @@
 | 403 | `EMAIL_NOT_VERIFIED` | 이메일 인증을 먼저 완료해 주세요 | FR-002, FR-022 |
 | 403 | `VERIFICATION_EXPIRED` | 인증 유효 시간이 지났습니다. 이메일 인증을 다시 해 주세요 | FR-022 |
 
+> 구현 (2026-10-08): 서버의 "인증됨" 표시는 30분이 지나면 저절로 사라지므로, 서버는 "인증한 적 없음"과 "시간이 지남"을 구별하지 못하고 둘 다 `EMAIL_NOT_VERIFIED`로 답한다. **화면이 인증을 마친 상태에서 이 답을 받으면 `VERIFICATION_EXPIRED` 문구를 보여 주고** 인증을 처음부터 다시 하게 한다.
+
 `VALIDATION_FAILED`의 칸별 문구:
 
 | `field` | `message` |

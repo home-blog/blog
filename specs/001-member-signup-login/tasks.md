@@ -71,16 +71,16 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Redis 저장 `BE/user/verification/EmailVerificationStore.java`: 키 5종과 만료를 data-model 3번 그대로 쓴다. `emailauth:code:{email}` 10분, `emailauth:fail:{email}` 10분, `emailauth:cooldown:{email}` 60초, `emailauth:daily:{email}` 24시간(첫 발송부터), `emailauth:verified:{email}` 30분. 이메일은 소문자로 맞춘 값
-- [ ] T017 [P] [US1] 인증번호 만들기 `BE/user/verification/VerificationCodeGenerator.java`: `SecureRandom`으로 "영문 대문자+숫자 6자리 (`O`, `0`, `I`, `1` 없음)" (FR-014, NF-05)
-- [ ] T018 [P] [US1] 메일 보내기 `BE/user/mail/VerificationMailSender.java`(인터페이스)와 SMTP 구현, `dev`에서만 쓰는 로그 출력 구현을 만든다. 메일에는 서비스 이름, 인증번호, 유효 시간, "본인이 요청하지 않았다면 이 메일을 무시해 주세요"를 넣는다 (FR-013, FR-014, research B-9)
-- [ ] T019 [US1] 인증번호 받기 `BE/user/service/EmailVerificationService.java`의 `send`: ① 형식 검사 ② 가입된 이메일이면 **메일을 보내지 않고** 거절 ③ 닉네임 중복 거절 ④ 1분·하루 제한 ⑤ 번호를 만들어 저장(이전 번호 덮어씀) ⑥ **메일이 나갈 때까지 기다려** 보내고 ⑦ 실패하면 번호를 지우고 1분·하루 횟수에 넣지 않는다 (contracts 2, research D-2) — T013, T016 ~ T018 다음
-- [ ] T020 [US1] 인증번호 확인 `EmailVerificationService.confirm`: 번호가 없으면 `CODE_EXPIRED`, 맞으면 번호를 바로 지우고 인증됨 표시 30분, 틀리면 틀린 횟수 +1, 5번째면 번호를 지우고 `CODE_ATTEMPTS_EXCEEDED`. 입력은 대문자로 바꿔 비교 (contracts 3, FR-015 ~ 017, 019)
-- [ ] T021 [US1] 이메일 변경 `EmailVerificationService.cancel`: 번호, 틀린 횟수, 인증됨 표시를 지우고 1분·하루 횟수는 남긴다 (contracts 4, FR-021)
-- [ ] T022 [US1] 가입하기 `BE/user/service/SignupService.java`: 모든 칸 다시 검사 → 인증됨 표시 확인(없으면 `EMAIL_NOT_VERIFIED`) → 이메일·닉네임 중복 재확인 → 비밀번호 BCrypt 해시 → `users`, `blog`(이름 "{닉네임}의 블로그", 소개 비움), `category`(이름 "미분류", 기본 분류 표시 참)를 **한 묶음(트랜잭션)** 으로 저장 → 인증됨 표시 삭제. DB 중복 불가 위반은 `EMAIL_ALREADY_REGISTERED`로 바꿔 답한다. 가입 뒤 자동 로그인은 하지 않는다 (contracts 5, FR-001 ~ 012, 022, 023)
-- [ ] T023 [US1] `BE/user/controller/AuthController.java`에 `POST /api/auth/email-verifications`, `/confirm`, `/cancel`, `POST /api/auth/signup`을 만든다. 응답 문구는 상세/01 `안내 문구` 표 그대로 (contracts 2 ~ 5)
-- [ ] T024 [P] [US1] Redis에 연결할 수 없을 때 `503 SERVICE_UNAVAILABLE` "잠시 뒤 다시 시도해 주세요"로 답하게 `GlobalExceptionHandler`에 더한다 (quickstart S-10)
-- [ ] T025 [US1] 가입 화면 `FE/pages/SignupPage.jsx`: 인증번호 받기 → 확인 → 이메일 칸 잠금 → `이메일 변경`, 비밀번호 규칙 충족을 칸 아래에 바로 표시(FR-008), 칸별 오류와 맨 위 어긴 칸으로 커서 이동·비밀번호 칸 비우기(FR-009), 누른 뒤 버튼 잠금(FR-012), 가입 완료 문구 뒤 로그인 화면으로 이동
+- [x] T016 [P] [US1] Redis 저장 `BE/user/verification/EmailVerificationStore.java`: 키 5종과 만료를 data-model 3번 그대로 쓴다. `emailauth:code:{email}` 10분, `emailauth:fail:{email}` 10분, `emailauth:cooldown:{email}` 60초, `emailauth:daily:{email}` 24시간(첫 발송부터), `emailauth:verified:{email}` 30분. 이메일은 소문자로 맞춘 값
+- [x] T017 [P] [US1] 인증번호 만들기 `BE/user/verification/VerificationCodeGenerator.java`: `SecureRandom`으로 "영문 대문자+숫자 6자리 (`O`, `0`, `I`, `1` 없음)" (FR-014, NF-05)
+- [x] T018 [P] [US1] 메일 보내기 `BE/user/mail/VerificationMailSender.java`(인터페이스)와 SMTP 구현, `dev`에서만 쓰는 로그 출력 구현을 만든다. 메일에는 서비스 이름, 인증번호, 유효 시간, "본인이 요청하지 않았다면 이 메일을 무시해 주세요"를 넣는다 (FR-013, FR-014, research B-9)
+- [x] T019 [US1] 인증번호 받기 `BE/user/service/EmailVerificationService.java`의 `send`: ① 형식 검사 ② 가입된 이메일이면 **메일을 보내지 않고** 거절 ③ 닉네임 중복 거절 ④ 1분·하루 제한 ⑤ 번호를 만들어 저장(이전 번호 덮어씀) ⑥ **메일이 나갈 때까지 기다려** 보내고 ⑦ 실패하면 번호를 지우고 1분·하루 횟수에 넣지 않는다 (contracts 2, research D-2) — T013, T016 ~ T018 다음
+- [x] T020 [US1] 인증번호 확인 `EmailVerificationService.confirm`: 번호가 없으면 `CODE_EXPIRED`, 맞으면 번호를 바로 지우고 인증됨 표시 30분, 틀리면 틀린 횟수 +1, 5번째면 번호를 지우고 `CODE_ATTEMPTS_EXCEEDED`. 입력은 대문자로 바꿔 비교 (contracts 3, FR-015 ~ 017, 019)
+- [x] T021 [US1] 이메일 변경 `EmailVerificationService.cancel`: 번호, 틀린 횟수, 인증됨 표시를 지우고 1분·하루 횟수는 남긴다 (contracts 4, FR-021)
+- [x] T022 [US1] 가입하기 `BE/user/service/SignupService.java`: 모든 칸 다시 검사 → 인증됨 표시 확인(없으면 `EMAIL_NOT_VERIFIED`) → 이메일·닉네임 중복 재확인 → 비밀번호 BCrypt 해시 → `users`, `blog`(이름 "{닉네임}의 블로그", 소개 비움), `category`(이름 "미분류", 기본 분류 표시 참)를 **한 묶음(트랜잭션)** 으로 저장 → 인증됨 표시 삭제. DB 중복 불가 위반은 `EMAIL_ALREADY_REGISTERED`로 바꿔 답한다. 가입 뒤 자동 로그인은 하지 않는다 (contracts 5, FR-001 ~ 012, 022, 023)
+- [x] T023 [US1] `BE/user/controller/AuthController.java`에 `POST /api/auth/email-verifications`, `/confirm`, `/cancel`, `POST /api/auth/signup`을 만든다. 응답 문구는 상세/01 `안내 문구` 표 그대로 (contracts 2 ~ 5)
+- [x] T024 [P] [US1] Redis에 연결할 수 없을 때 `503 SERVICE_UNAVAILABLE` "잠시 뒤 다시 시도해 주세요"로 답하게 `GlobalExceptionHandler`에 더한다 (quickstart S-10)
+- [x] T025 [US1] 가입 화면 `FE/pages/SignupPage.tsx`: 인증번호 받기 → 확인 → 이메일 칸 잠금 → `이메일 변경`, 비밀번호 규칙 충족을 칸 아래에 바로 표시(FR-008), 칸별 오류와 맨 위 어긴 칸으로 커서 이동·비밀번호 칸 비우기(FR-009), 누른 뒤 버튼 잠금(FR-012), 가입 완료 문구 뒤 로그인 화면으로 이동
 
 **Checkpoint**: quickstart S-1 ~ S-4가 통과한다. 여기까지가 MVP다
 
