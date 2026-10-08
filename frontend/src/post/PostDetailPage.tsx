@@ -3,12 +3,13 @@
 // - 본문은 MarkdownView로만 그린다 (D-1). 제목·이름은 React가 글자로 보여 준다
 // - 로그인 상태가 바뀌면 다시 읽는다 (로그아웃한 뒤 비공개 글이 화면에 남지 않게)
 // - 주인에게만 수정·삭제. 삭제는 확인 창을 거치고, 끝나면 내 블로그로 간다 (FR-021, FR-022)
-// - 본문 아래에 댓글 영역 (specs/005 US1)
+// - 본문 아래에 좋아요(US3)와 댓글 영역(US1) (specs/005)
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import CommentSection from '../comment/CommentSection'
+import LikeButton from '../community/LikeButton'
 import ConfirmDialog from '../components/ConfirmDialog'
 import '../pages/auth-layout.css'
 import { deletePost, getPost, type PostDetail } from './postApi'
@@ -120,6 +121,16 @@ export default function PostDetailPage() {
       <Suspense fallback={<div className="post-content-raw">{post.content}</div>}>
         <MarkdownView source={post.content} />
       </Suspense>
+
+      {/* 좋아요 (specs/005 US3). 글이나 보는 사람이 바뀌면 새 값으로 다시 그린다 */}
+      <div className="post-reactions">
+        <LikeButton
+          key={key}
+          postId={post.postId}
+          initial={{ likeCount: post.likeCount, likedByMe: post.likedByMe }}
+          isOwner={post.isOwner}
+        />
+      </div>
 
       <nav className="post-nav" aria-label="이전·다음 글">
         {post.prevPostId !== null ? (

@@ -25,6 +25,7 @@ public class TestComments {
     public void deleteMember(TestMembers.Member member) {
         String postsOfBlog = "select post_id from post where category_id in (select category_id from category where blog_id = ?)";
         jdbc.update("delete from comment where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
+        jdbc.update("delete from post_like where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post where category_id in (select category_id from category where blog_id = ?)", member.blogId());
         jdbc.update("delete from category where blog_id = ?", member.blogId());
         jdbc.update("delete from blog where blog_id = ?", member.blogId());

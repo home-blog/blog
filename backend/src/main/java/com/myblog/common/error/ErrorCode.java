@@ -80,6 +80,7 @@ public enum ErrorCode {
     COMMENT_TOO_FREQUENT(HttpStatus.TOO_MANY_REQUESTS, "※ 잠시 뒤에 다시 등록해 주세요"),
     /** 없는 댓글, 볼 수 없는 글의 댓글, 지울 권한이 없는 남의 댓글이 모두 같은 응답이다 (2026-10-08 결정, 403을 쓰지 않음). */
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 댓글입니다"),
+    SELF_LIKE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "※ 자기 글에는 좋아요를 누를 수 없습니다"),
 
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
