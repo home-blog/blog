@@ -5,6 +5,7 @@
 // - 저장 중에는 버튼과 칸을 잠그고, 실패해도 입력한 내용은 그대로 둔다 (FR-015)
 // - 저장하지 않고 나가면 묻는다 (FR-017)
 // - 글자 수는 입력한 원문 그대로 센다 (D-2). 최종 판단은 서버가 한다
+// - 태그 0~5개 (specs/005 US5, TagInput). 서버의 tags / tags[n] 오류는 태그 칸에 보여 준다
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
@@ -14,12 +15,23 @@ import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
 import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
+import TagInput from './TagInput'
 import './post-editor.css'
 
-type Field = 'title' | 'content' | 'categoryId' | 'topicId' | 'visibility'
-type FieldErrors = Partial<Record<Field, string>>
+type Field = 'title' | 'content' | 'categoryId' | 'topicId' | 'visibility' | 'tags'
+type FieldErrors = Partial<Record<Field, string>> & { tagItems?: Record<number, string> }
 
-const EMPTY: PostInput = { title: '', content: '', categoryId: null, topicId: null, visibility: 'public' }
+const EMPTY: PostInput = { title: '', content: '', categoryId: null, topicId: null, visibility: 'public', tags: [] }
+
+/** 서버 오류에서 tags[n] 칸의 문구를 번호별로 모은다 */
+function tagItemErrors(err: ApiError): Record<number, string> | undefined {
+  const items: Record<number, string> = {}
+  for (const e of err.fieldErrors) {
+    const match = /^tags\[(\d+)\]$/.exec(e.field)
+    if (match) items[Number(match[1])] = e.message
+  }
+  return Object.keys(items).length > 0 ? items : undefined
+}
 
 /** 화면을 그리는 데 필요한 목록과 글자 수 제한 */
 interface EditorOptions {
@@ -54,7 +66,14 @@ export default function PostEditorPage() {
           }))
         : Promise.all([getPostEdit(editingId, controller.signal), getPostForm(controller.signal)]).then(([post, defaults]) => ({
             options: { categories: post.categories, topics: post.topics, limits: defaults.limits },
-            start: { title: post.title, content: post.content, categoryId: post.categoryId, topicId: post.topicId, visibility: post.visibility },
+            start: {
+              title: post.title,
+              content: post.content,
+              categoryId: post.categoryId,
+              topicId: post.topicId,
+              visibility: post.visibility,
+              tags: post.tags,
+            },
           }))
     load
       .then(({ options, start }) => {
@@ -75,7 +94,8 @@ export default function PostEditorPage() {
       input.content !== initial.content ||
       input.categoryId !== initial.categoryId ||
       input.topicId !== initial.topicId ||
-      input.visibility !== initial.visibility)
+      input.visibility !== initial.visibility ||
+      input.tags.join('\n') !== initial.tags.join('\n'))
   useUnsavedChangesPrompt(dirty)
 
   if (savedPostId !== null) return <Navigate to={`/posts/${savedPostId}`} replace />
@@ -138,6 +158,8 @@ export default function PostEditorPage() {
           categoryId: err.messageFor('categoryId'),
           topicId: err.messageFor('topicId'),
           visibility: err.messageFor('visibility'),
+          tags: err.messageFor('tags'),
+          tagItems: tagItemErrors(err),
         })
       } else {
         // 401이면 client.ts가 로그인 창을 띄운다. 입력한 내용은 그대로 둔다
@@ -280,6 +302,17 @@ export default function PostEditorPage() {
           </span>
         </div>
       </div>
+
+      <TagInput
+        tags={input.tags}
+        disabled={busy}
+        serverError={errors.tags}
+        serverTagErrors={errors.tagItems}
+        onChange={(tags) => {
+          update('tags', tags)
+          setErrors((prev) => ({ ...prev, tags: undefined, tagItems: undefined }))
+        }}
+      />
 
       {formError && (
         <p className="msg msg-error form-error" role="alert">
