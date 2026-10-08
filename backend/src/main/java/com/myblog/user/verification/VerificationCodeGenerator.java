@@ -2,6 +2,7 @@ package com.myblog.user.verification;
 
 import com.myblog.user.config.AuthProperties;
 import java.security.SecureRandom;
+import java.util.Base64;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,6 +19,13 @@ public class VerificationCodeGenerator {
 
     public VerificationCodeGenerator(AuthProperties properties) {
         this.length = properties.emailVerification().codeLength();
+    }
+
+    /** 인증번호를 받은 사람에게 주는 증표. 추측할 수 없는 32바이트 난수. */
+    public String newFlowToken() {
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public String generate() {

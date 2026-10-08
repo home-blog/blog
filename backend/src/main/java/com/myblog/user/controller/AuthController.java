@@ -27,31 +27,34 @@ public class AuthController {
 
     @PostMapping("/email-verifications")
     public SendCodeResponse sendCode(@RequestBody AuthRequests.SendCode request) {
-        Duration validFor = verification.send(request.nickname(), request.email());
+        EmailVerificationService.SentCode sent = verification.send(request.nickname(), request.email());
+        Duration validFor = sent.validFor();
         return new SendCodeResponse(
                 "인증번호를 보냈습니다. %d분 안에 입력해 주세요".formatted(validFor.toMinutes()),
-                validFor.toSeconds());
+                validFor.toSeconds(),
+                sent.verificationToken());
     }
 
     @PostMapping("/email-verifications/confirm")
     public MessageResponse confirmCode(@RequestBody AuthRequests.ConfirmCode request) {
-        verification.confirm(request.email(), request.code());
+        verification.confirm(request.email(), request.code(), request.verificationToken());
         return new MessageResponse("이메일 인증이 완료되었습니다");
     }
 
     @PostMapping("/email-verifications/cancel")
     public ResponseEntity<Void> cancel(@RequestBody AuthRequests.CancelVerification request) {
-        verification.cancel(request.email());
+        verification.cancel(request.email(), request.verificationToken());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/signup")
     public ResponseEntity<MessageResponse> signup(@Valid @RequestBody AuthRequests.Signup request) {
-        signupService.signup(request.nickname(), request.email(), request.password());
+        signupService.signup(request.nickname(), request.email(), request.password(), request.verificationToken());
         return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse("가입이 완료되었습니다. 로그인해 주세요"));
     }
 
-    public record SendCodeResponse(String message, long expiresInSeconds) {
+    /** verificationToken은 확인·이메일 변경·가입 요청에 그대로 다시 보낸다. */
+    public record SendCodeResponse(String message, long expiresInSeconds, String verificationToken) {
     }
 
     public record MessageResponse(String message) {

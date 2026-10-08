@@ -16,10 +16,11 @@ public final class AuthRequests {
     public record SendCode(String nickname, String email) {
     }
 
-    public record ConfirmCode(String email, String code) {
+    /** verificationToken: 인증번호를 받을 때 응답으로 받은 증표 */
+    public record ConfirmCode(String email, String code, String verificationToken) {
     }
 
-    public record CancelVerification(String email) {
+    public record CancelVerification(String email, String verificationToken) {
     }
 
     /** 가입하기. 어긴 칸마다 VALIDATION_FAILED의 fieldErrors로 알린다 (FR-009). */
@@ -28,6 +29,7 @@ public final class AuthRequests {
             @ValidNickname String nickname,
             @ValidEmail String email,
             @ValidPassword String password,
-            String passwordConfirm) implements PasswordConfirmation {
+            String passwordConfirm,
+            String verificationToken) implements PasswordConfirmation {
     }
 }

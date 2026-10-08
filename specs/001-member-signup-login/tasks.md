@@ -71,7 +71,7 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 ### Implementation for User Story 1
 
-- [x] T016 [P] [US1] Redis 저장 `BE/user/verification/EmailVerificationStore.java`: 키 5종과 만료를 data-model 3번 그대로 쓴다. `emailauth:code:{email}` 10분, `emailauth:fail:{email}` 10분, `emailauth:cooldown:{email}` 60초, `emailauth:daily:{email}` 24시간(첫 발송부터), `emailauth:verified:{email}` 30분. 이메일은 소문자로 맞춘 값
+- [x] T016 [P] [US1] Redis 저장 `BE/user/verification/EmailVerificationStore.java`: 키와 만료를 data-model 3번 그대로 쓴다 (2026-10-08 리뷰 반영으로 인증 증표 `emailauth:flow` 추가, 6종). `emailauth:code:{email}` 10분, `emailauth:fail:{email}` 10분, `emailauth:cooldown:{email}` 60초, `emailauth:daily:{email}` 24시간(첫 발송부터), `emailauth:verified:{email}` 30분. 이메일은 소문자로 맞춘 값
 - [x] T017 [P] [US1] 인증번호 만들기 `BE/user/verification/VerificationCodeGenerator.java`: `SecureRandom`으로 "영문 대문자+숫자 6자리 (`O`, `0`, `I`, `1` 없음)" (FR-014, NF-05)
 - [x] T018 [P] [US1] 메일 보내기 `BE/user/mail/VerificationMailSender.java`(인터페이스)와 SMTP 구현, `dev`에서만 쓰는 로그 출력 구현을 만든다. 메일에는 서비스 이름, 인증번호, 유효 시간, "본인이 요청하지 않았다면 이 메일을 무시해 주세요"를 넣는다 (FR-013, FR-014, research B-9)
 - [x] T019 [US1] 인증번호 받기 `BE/user/service/EmailVerificationService.java`의 `send`: ① 형식 검사 ② 가입된 이메일이면 **메일을 보내지 않고** 거절 ③ 닉네임 중복 거절 ④ 1분·하루 제한 ⑤ 번호를 만들어 저장(이전 번호 덮어씀) ⑥ **메일이 나갈 때까지 기다려** 보내고 ⑦ 실패하면 번호를 지우고 1분·하루 횟수에 넣지 않는다 (contracts 2, research D-2) — T013, T016 ~ T018 다음

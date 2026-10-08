@@ -1,8 +1,10 @@
 package com.myblog.user.verification;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,8 +16,12 @@ import org.springframework.stereotype.Component;
  * emailauth:fail:{email}      틀린 횟수       인증번호와 같은 10분
  * emailauth:cooldown:{email}  다시 받기 막기  1분 (발송 성공 뒤)
  * emailauth:daily:{email}     보낸 횟수       첫 발송부터 24시간
- * emailauth:verified:{email}  인증됨 표시     30분
+ * emailauth:flow:{email}      인증 증표       인증번호와 같은 10분 (인증번호를 받은 사람만 가진다)
+ * emailauth:verified:{email}  인증됨 표시     30분 (값은 인증 증표. 가입할 때 같은 증표를 내야 한다)
  * </pre>
+ *
+ * 인증 증표는 "인증번호를 받은 그 사람"이 확인·이메일 변경·가입을 하는지 확인하는 데 쓴다.
+ * 남이 같은 이메일로 먼저 가입하거나(선점) 인증을 취소해 방해하는 것을 막는다.
  */
 @Component
 public class EmailVerificationStore {
@@ -24,6 +30,11 @@ public class EmailVerificationStore {
     static final Duration DAILY_WINDOW = Duration.ofHours(24);
 
     private static final String PREFIX = "emailauth:";
+
+    /** 횟수를 올리고, 처음 올린 때만 만료를 건다. 두 명령을 한 번에 실행해 만료 없는 키가 남지 않게 한다. */
+    private static final RedisScript<Long> INCREMENT_WITH_TTL = RedisScript.of(
+            "local c = redis.call('INCR', KEYS[1]) if c == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end return c",
+            Long.class);
 
     private final StringRedisTemplate redis;
 
@@ -49,16 +60,20 @@ public class EmailVerificationStore {
 
     /** 틀린 횟수를 하나 올리고 올린 뒤의 값을 돌려준다. 처음 틀릴 때 만료를 건다. */
     public long incrementFailures(String email, Duration ttl) {
-        String key = key("fail", email);
-        Long count = redis.opsForValue().increment(key);
-        if (count != null && count == 1L) {
-            redis.expire(key, ttl);
-        }
-        return count == null ? 0L : count;
+        return increment(key("fail", email), ttl);
     }
 
-    public boolean isCoolingDown(String email) {
-        return Boolean.TRUE.equals(redis.hasKey(key("cooldown", email)));
+    /**
+     * 1분 막기를 건다. 이미 걸려 있으면 false. 확인과 걸기를 한 번에 해서(SET NX)
+     * 동시에 여러 요청이 와도 하나만 통과한다 (FR-018).
+     */
+    public boolean tryStartCooldown(String email, Duration cooldown) {
+        return Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key("cooldown", email), "1", cooldown));
+    }
+
+    /** 메일을 보내지 못했거나 하루 한도에 걸렸을 때 1분 막기를 푼다 (FR-020: 바로 다시 받을 수 있게). */
+    public void releaseCooldown(String email) {
+        redis.delete(key("cooldown", email));
     }
 
     public long sentCount(String email) {
@@ -66,32 +81,45 @@ public class EmailVerificationStore {
         return value == null ? 0L : Long.parseLong(value);
     }
 
-    /** 메일 발송에 성공한 뒤에만 부른다: 1분 막기를 걸고 보낸 횟수를 올린다 (FR-018, FR-020). */
-    public void recordSent(String email, Duration cooldown) {
-        redis.opsForValue().set(key("cooldown", email), "1", cooldown);
-        String daily = key("daily", email);
-        Long count = redis.opsForValue().increment(daily);
-        if (count != null && count == 1L) {
-            redis.expire(daily, DAILY_WINDOW);
-        }
+    /** 메일 발송에 성공한 뒤에만 부른다: 보낸 횟수를 올린다 (FR-018, FR-020). */
+    public void recordSent(String email) {
+        increment(key("daily", email), DAILY_WINDOW);
     }
 
-    public void markVerified(String email, Duration ttl) {
-        redis.opsForValue().set(key("verified", email), "1", ttl);
+    /** 인증번호를 받은 사람에게 준 증표를 저장한다. 같은 이메일로 다시 받으면 이전 증표는 무효가 된다. */
+    public void saveFlowToken(String email, String token, Duration ttl) {
+        redis.opsForValue().set(key("flow", email), token, ttl);
     }
 
-    public boolean isVerified(String email) {
-        return Boolean.TRUE.equals(redis.hasKey(key("verified", email)));
+    public boolean isFlowToken(String email, String token) {
+        return token != null && token.equals(redis.opsForValue().get(key("flow", email)));
+    }
+
+    /** 인증 완료: 인증됨 표시에 증표를 담아 둔다. 인증 단계의 증표는 지운다. */
+    public void markVerified(String email, String token, Duration ttl) {
+        redis.opsForValue().set(key("verified", email), token, ttl);
+        redis.delete(key("flow", email));
+    }
+
+    /** 인증을 마쳤고, 그때 받은 증표와 같은지. */
+    public boolean isVerified(String email, String token) {
+        return token != null && token.equals(redis.opsForValue().get(key("verified", email)));
     }
 
     public void clearVerified(String email) {
         redis.delete(key("verified", email));
     }
 
-    /** 이메일 변경: 번호, 틀린 횟수, 인증됨 표시를 지운다. 1분·하루 횟수는 남긴다 (FR-021). */
+    /** 이메일 변경: 번호, 틀린 횟수, 증표, 인증됨 표시를 지운다. 1분·하루 횟수는 남긴다 (FR-021). */
     public void clearFlow(String email) {
         deleteCode(email);
+        redis.delete(key("flow", email));
         clearVerified(email);
+    }
+
+    private long increment(String key, Duration ttl) {
+        Long count = redis.execute(INCREMENT_WITH_TTL, List.of(key), String.valueOf(ttl.toMillis()));
+        return count == null ? 0L : count;
     }
 
     private static String key(String kind, String email) {

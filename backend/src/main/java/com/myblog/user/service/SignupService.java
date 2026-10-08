@@ -32,12 +32,13 @@ public class SignupService {
         this.registration = registration;
     }
 
-    public User signup(String rawNickname, String rawEmail, String password) {
+    public User signup(String rawNickname, String rawEmail, String password, String verificationToken) {
         String email = User.normalizeEmail(rawEmail);
         String nickname = rawNickname.strip();
 
-        // 인증됨 표시가 없으면 거절 (FR-002, FR-022). 시간이 지나 사라졌는지는 화면이 안다 (VERIFICATION_EXPIRED로 보여 줌)
-        if (!store.isVerified(email)) {
+        // 인증됨 표시가 없거나, 인증한 사람의 증표가 아니면 거절 (FR-002, FR-022).
+        // 시간이 지나 사라졌는지는 화면이 안다 (VERIFICATION_EXPIRED로 보여 줌)
+        if (!store.isVerified(email, verificationToken)) {
             throw new ApiException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
         // 인증 뒤 그사이에 누가 가입했는지 다시 확인 (FR-023)

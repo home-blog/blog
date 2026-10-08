@@ -45,8 +45,12 @@ public class EmailVerificationService {
         this.mailSender = mailSender;
     }
 
-    /** 인증번호 받기. 성공하면 번호의 유효 시간을 돌려준다. */
-    public Duration send(String rawNickname, String rawEmail) {
+    /** 인증번호를 보낸 결과: 번호의 유효 시간과, 이 사람만 가지는 인증 증표. */
+    public record SentCode(Duration validFor, String verificationToken) {
+    }
+
+    /** 인증번호 받기. */
+    public SentCode send(String rawNickname, String rawEmail) {
         AuthProperties.EmailVerification config = properties.emailVerification();
 
         // ① 형식
@@ -67,34 +71,39 @@ public class EmailVerificationService {
             throw fieldError(ErrorCode.NICKNAME_ALREADY_USED, "nickname");
         }
 
-        // ④ 1분에 1번, 하루 5번 (FR-018)
-        if (store.isCoolingDown(email)) {
+        // ④ 1분에 1번, 하루 5번 (FR-018). 1분 막기는 확인과 동시에 건다 (동시에 여러 번 눌러도 하나만 통과)
+        if (!store.tryStartCooldown(email, config.resendInterval())) {
             throw new ApiException(ErrorCode.RESEND_TOO_SOON);
         }
         if (store.sentCount(email) >= config.dailyLimit()) {
+            store.releaseCooldown(email);
             throw new ApiException(ErrorCode.RESEND_DAILY_LIMIT);
         }
 
-        // ⑤ 새 번호 저장 (이전 번호 무효)  ⑥ 메일이 나갈 때까지 기다린다
+        // ⑤ 새 번호와 증표 저장 (이전 번호·증표 무효)  ⑥ 메일이 나갈 때까지 기다린다
         String code = generator.generate();
+        String token = generator.newFlowToken();
         store.saveCode(email, code, config.codeTtl());
+        store.saveFlowToken(email, token, config.codeTtl());
         try {
             mailSender.send(email, code, config.codeTtl());
         } catch (MailSendFailedException e) {
             // ⑦ 실패하면 번호를 지우고 횟수에 넣지 않는다 → 바로 다시 받을 수 있다 (FR-020)
-            log.warn("인증번호 메일 발송 실패", e);
-            store.deleteCode(email);
+            log.warn("인증번호 메일 발송 실패: {}", e.getMessage());
+            store.clearFlow(email);
+            store.releaseCooldown(email);
             throw new ApiException(ErrorCode.MAIL_SEND_FAILED);
         }
-        store.recordSent(email, config.resendInterval());
-        return config.codeTtl();
+        store.recordSent(email);
+        return new SentCode(config.codeTtl(), token);
     }
 
     /** 인증번호 확인. 맞으면 번호를 바로 지우고 인증됨 표시를 남긴다 (FR-015, FR-016, FR-019). */
-    public void confirm(String rawEmail, String rawCode) {
+    public void confirm(String rawEmail, String rawCode, String verificationToken) {
         AuthProperties.EmailVerification config = properties.emailVerification();
         String email = User.normalizeEmail(rawEmail);
-        if (email == null || email.isEmpty()) {
+        // 인증번호를 받은 그 사람의 증표가 아니면 번호가 없는 것과 같게 답한다
+        if (email == null || email.isEmpty() || !store.isFlowToken(email, verificationToken)) {
             throw new ApiException(ErrorCode.CODE_EXPIRED);
         }
         String saved = store.findCode(email).orElseThrow(() -> new ApiException(ErrorCode.CODE_EXPIRED));
@@ -102,7 +111,7 @@ public class EmailVerificationService {
 
         if (saved.equals(input)) {
             store.deleteCode(email);
-            store.markVerified(email, config.verifiedTtl());
+            store.markVerified(email, verificationToken, config.verifiedTtl());
             return;
         }
         long failures = store.incrementFailures(email, config.codeTtl());
@@ -113,10 +122,16 @@ public class EmailVerificationService {
         throw new ApiException(ErrorCode.CODE_MISMATCH);
     }
 
-    /** 이메일 변경: 번호, 틀린 횟수, 인증됨 표시를 지운다. 1분·하루 횟수는 남긴다 (FR-021). */
-    public void cancel(String rawEmail) {
+    /**
+     * 이메일 변경: 번호, 틀린 횟수, 증표, 인증됨 표시를 지운다. 1분·하루 횟수는 남긴다 (FR-021).
+     * 그 인증을 시작한 사람(증표가 맞는 사람)만 지울 수 있다. 아니면 아무것도 하지 않는다.
+     */
+    public void cancel(String rawEmail, String verificationToken) {
         String email = User.normalizeEmail(rawEmail);
-        if (email != null && !email.isEmpty()) {
+        if (email == null || email.isEmpty()) {
+            return;
+        }
+        if (store.isFlowToken(email, verificationToken) || store.isVerified(email, verificationToken)) {
             store.clearFlow(email);
         }
     }

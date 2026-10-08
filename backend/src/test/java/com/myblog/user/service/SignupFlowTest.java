@@ -95,16 +95,18 @@ class SignupFlowTest {
 
     @Test
     void 인증을_마치면_가입되고_블로그와_미분류가_함께_생긴다() throws Exception {
-        sendCode(nickname, email)
+        String body = sendCode(nickname, email)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("인증번호를 보냈습니다. 10분 안에 입력해 주세요"))
-                .andExpect(jsonPath("$.expiresInSeconds").value(600));
+                .andExpect(jsonPath("$.expiresInSeconds").value(600))
+                .andReturn().getResponse().getContentAsString();
+        String token = body.replaceAll(".*\"verificationToken\":\"([^\"]+)\".*", "$1");
 
-        confirm(email, mail.lastCode.get(email))
+        confirm(email, mail.lastCode.get(email), token)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("이메일 인증이 완료되었습니다"));
 
-        signup(nickname, email, "abcd123!", "abcd123!")
+        signup(nickname, email, "abcd123!", "abcd123!", token)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.message").value("가입이 완료되었습니다. 로그인해 주세요"));
 
@@ -120,14 +122,14 @@ class SignupFlowTest {
         });
 
         // 같은 요청을 다시 보내면 거절 (인증됨 표시가 지워졌다)
-        signup(nickname, email, "abcd123!", "abcd123!")
+        signup(nickname, email, "abcd123!", "abcd123!", token)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
     }
 
     @Test
     void 인증_없이_가입하면_403() throws Exception {
-        signup(nickname, email, "abcd123!", "abcd123!")
+        signup(nickname, email, "abcd123!", "abcd123!", "no-token")
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"))
                 .andExpect(jsonPath("$.message").value("이메일 인증을 먼저 완료해 주세요"));
@@ -136,18 +138,39 @@ class SignupFlowTest {
 
     @Test
     void 이메일을_바꾸면_인증이_취소된다() throws Exception {
-        sendCode(nickname, email).andExpect(status().isOk());
-        confirm(email, mail.lastCode.get(email)).andExpect(status().isOk());
-        mvc.perform(post("/api/auth/email-verifications/cancel").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("email", email))))
-                .andExpect(status().isNoContent());
+        String token = sendAndGetToken(nickname, email);
+        confirm(email, mail.lastCode.get(email), token).andExpect(status().isOk());
+        cancel(email, token).andExpect(status().isNoContent());
 
-        signup(nickname, email, "abcd123!", "abcd123!").andExpect(status().isForbidden());
+        signup(nickname, email, "abcd123!", "abcd123!", token).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 인증한_사람의_증표가_아니면_가입할_수_없다() throws Exception {
+        String token = sendAndGetToken(nickname, email);
+        confirm(email, mail.lastCode.get(email), token).andExpect(status().isOk());
+
+        // 남이 같은 이메일로 먼저 가입하려 해도(선점) 증표가 없으면 거절
+        signup("other" + nickname.substring(1, 5), email, "zzzz999!", "zzzz999!", "stolen")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
+        // 남이 인증을 취소하려 해도 증표가 없으면 아무 일도 없다
+        cancel(email, "stolen").andExpect(status().isNoContent());
+
+        signup(nickname, email, "abcd123!", "abcd123!", token).andExpect(status().isCreated());
+    }
+
+    @Test
+    void 증표가_다르면_인증번호를_확인할_수_없다() throws Exception {
+        sendAndGetToken(nickname, email);
+        confirm(email, mail.lastCode.get(email), "stolen")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
     }
 
     @Test
     void 가입_칸을_어기면_칸마다_이유를_알려_준다() throws Exception {
-        signup("철", "not-an-email", "short", "different")
+        signup("철", "not-an-email", "short", "different", "x")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors[*].field", hasItems("nickname", "email", "password", "passwordConfirm")))
@@ -188,24 +211,24 @@ class SignupFlowTest {
 
     @Test
     void 틀린_번호를_5번_넣으면_번호가_폐기된다() throws Exception {
-        sendCode(nickname, email).andExpect(status().isOk());
+        String token = sendAndGetToken(nickname, email);
         String right = mail.lastCode.get(email);
         String wrong = right.equals("AAAAAA") ? "BBBBBB" : "AAAAAA";
 
         for (int i = 1; i <= 4; i++) {
-            confirm(email, wrong).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_MISMATCH"));
+            confirm(email, wrong, token).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_MISMATCH"));
         }
-        confirm(email, wrong).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("CODE_ATTEMPTS_EXCEEDED"));
-        confirm(email, right).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
+        confirm(email, wrong, token).andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.code").value("CODE_ATTEMPTS_EXCEEDED"));
+        confirm(email, right, token).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
     }
 
     @Test
     void 인증번호는_한_번만_쓰고_소문자로_넣어도_된다() throws Exception {
-        sendCode(nickname, email).andExpect(status().isOk());
+        String token = sendAndGetToken(nickname, email);
         String code = mail.lastCode.get(email);
 
-        confirm(email, code.toLowerCase()).andExpect(status().isOk());
-        confirm(email, code).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
+        confirm(email, code.toLowerCase(), token).andExpect(status().isOk());
+        confirm(email, code, token).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CODE_EXPIRED"));
     }
 
     private ResultActions sendCode(String nick, String mailAddress) throws Exception {
@@ -213,15 +236,30 @@ class SignupFlowTest {
                 .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("nickname", nick, "email", mailAddress))));
     }
 
-    private ResultActions confirm(String mailAddress, String code) throws Exception {
-        return mvc.perform(post("/api/auth/email-verifications/confirm").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("email", mailAddress, "code", code))));
+    /** 인증번호를 받고, 응답의 인증 증표를 돌려준다. */
+    private String sendAndGetToken(String nick, String mailAddress) throws Exception {
+        String body = sendCode(nick, mailAddress).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String token = body.replaceAll(".*\"verificationToken\":\"([^\"]+)\".*", "$1");
+        assertThat(token).isNotBlank().doesNotContain("{");
+        return token;
     }
 
-    private ResultActions signup(String nick, String mailAddress, String password, String confirm) throws Exception {
+    private ResultActions confirm(String mailAddress, String code, String token) throws Exception {
+        return mvc.perform(post("/api/auth/email-verifications/confirm").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("email", mailAddress, "code", code, "verificationToken", token))));
+    }
+
+    private ResultActions cancel(String mailAddress, String token) throws Exception {
+        return mvc.perform(post("/api/auth/email-verifications/cancel").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("email", mailAddress, "verificationToken", token))));
+    }
+
+    private ResultActions signup(String nick, String mailAddress, String password, String confirm, String token) throws Exception {
         return mvc.perform(post("/api/auth/signup").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json(Map.of("nickname", nick, "email", mailAddress, "password", password, "passwordConfirm", confirm))));
+                .content(json(Map.of("nickname", nick, "email", mailAddress, "password", password,
+                        "passwordConfirm", confirm, "verificationToken", token))));
     }
 
     /** 테스트 값에는 따옴표·역슬래시가 없어서 간단히 만든다. */

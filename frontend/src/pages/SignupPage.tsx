@@ -43,6 +43,8 @@ export default function SignupPage({ onSignedUp }: Props) {
   const [passwordConfirm, setPasswordConfirm] = useState('')
 
   const [phase, setPhase] = useState<Phase>('idle')
+  // 인증번호를 받을 때 서버가 준 증표. 확인·이메일 변경·가입 때 다시 보낸다 (내가 시작한 인증임을 증명)
+  const [verificationToken, setVerificationToken] = useState('')
   const [expiresAt, setExpiresAt] = useState<number | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({})
@@ -107,11 +109,12 @@ export default function SignupPage({ onSignedUp }: Props) {
     }
     setBusy('send')
     try {
-      const res = await api<{ message: string; expiresInSeconds: number }>('/api/auth/email-verifications', {
+      const res = await api<{ message: string; expiresInSeconds: number; verificationToken: string }>('/api/auth/email-verifications', {
         method: 'POST',
         body: { nickname: nickname.trim(), email: email.trim() },
       })
       setPhase('sent')
+      setVerificationToken(res.verificationToken)
       setCode('')
       setNow(Date.now())
       setExpiresAt(Date.now() + res.expiresInSeconds * 1000)
@@ -134,7 +137,7 @@ export default function SignupPage({ onSignedUp }: Props) {
     try {
       const res = await api<{ message: string }>('/api/auth/email-verifications/confirm', {
         method: 'POST',
-        body: { email: email.trim(), code: code.trim() },
+        body: { email: email.trim(), code: code.trim(), verificationToken },
       })
       setPhase('verified')
       setExpiresAt(null)
@@ -154,12 +157,13 @@ export default function SignupPage({ onSignedUp }: Props) {
   async function changeEmail() {
     setBusy('cancel')
     try {
-      await api('/api/auth/email-verifications/cancel', { method: 'POST', body: { email: email.trim() } })
+      await api('/api/auth/email-verifications/cancel', { method: 'POST', body: { email: email.trim(), verificationToken } })
     } catch {
       // 지우지 못해도 화면은 처음 상태로 돌린다. 서버의 인증 표시는 시간이 지나면 사라진다
     } finally {
       setBusy(null)
       setPhase('idle')
+      setVerificationToken('')
       setExpiresAt(null)
       setCode('')
       setNotices({})
@@ -197,7 +201,7 @@ export default function SignupPage({ onSignedUp }: Props) {
     try {
       await api('/api/auth/signup', {
         method: 'POST',
-        body: { nickname: nickname.trim(), email: email.trim(), password, passwordConfirm },
+        body: { nickname: nickname.trim(), email: email.trim(), password, passwordConfirm, verificationToken },
       })
       onSignedUp()
     } catch (err) {
