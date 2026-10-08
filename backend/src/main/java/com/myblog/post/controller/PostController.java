@@ -53,7 +53,7 @@ public class PostController {
             @Valid @RequestBody PostRequests.Write request) {
         Long memberId = loggedInMember.requireIdOf(authentication);
         PostWriteService.Created result = writeService.create(memberId, request.categoryId(), request.topicId(),
-                request.title(), request.content(), request.visibility(), request.requestKey());
+                request.title(), request.content(), request.visibility(), request.requestKey(), request.tags());
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(new PostIdResponse(result.postId()));
     }

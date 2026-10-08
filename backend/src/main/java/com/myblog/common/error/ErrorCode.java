@@ -86,6 +86,10 @@ public enum ErrorCode {
     REPORT_REASON_REQUIRED(HttpStatus.BAD_REQUEST, "※ 신고 사유를 골라 주세요"),
     /** 칸별 문구. 글자 수는 설정값(community.report.detail-max-length)에 따라 ReportFieldErrorMessages가 채운다. */
     REPORT_DETAIL_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 신고 내용은 200자 이하로 입력해 주세요"),
+    /** 태그 칸별 문구 (tags, tags[n]). 숫자는 설정값(community.tag.*)에 따라 TagNormalizer가 채운다. */
+    TAG_TOO_MANY(HttpStatus.BAD_REQUEST, "※ 태그는 5개까지 붙일 수 있습니다"),
+    TAG_INVALID(HttpStatus.BAD_REQUEST, "※ 태그는 공백과 쉼표 없이 1~15자로 입력해 주세요"),
+    TAG_DUPLICATED(HttpStatus.BAD_REQUEST, "※ 이미 붙인 태그입니다"),
 
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
