@@ -107,6 +107,21 @@ community:
     min-length: 1
     max-length: 15    # tag.name 칸(15)보다 길게 정하면 서버가 켜지지 않는다
     page-size: 10     # 태그별 글 목록 한 페이지 (004 목록과 같은 값, CF-10-2)
+  image:
+    max-size: 5MB          # 한 장 (CF-22-2). 파일 업로드의 프레임워크 크기 설정도 이 값에서 정한다 (ImageConfig)
+    max-per-post: 10       # 글 하나 (CF-22-3)
+    allowed-types: jpg, png, gif, webp   # 형식은 파일 앞부분의 형식 표시로 확인한다 (D-6)
+    orphan-ttl: 24h        # 글에 연결되지 않은 이미지를 지우기까지 (CF-22-5, D-3, 가안)
+    cleanup-interval: 1h   # 정리 작업 간격
+    storage: s3            # s3(개발 MinIO) 또는 disk(서버 디스크) (D-1)
+    s3:
+      endpoint: ${IMAGE_S3_ENDPOINT:http://localhost:9000}
+      region: ${IMAGE_S3_REGION:us-east-1}
+      bucket: ${IMAGE_S3_BUCKET:myblog-images}
+      access-key: ${IMAGE_S3_ACCESS_KEY:}   # 접속 키는 환경 변수로만 (개발용 값은 docker-compose.yml에)
+      secret-key: ${IMAGE_S3_SECRET_KEY:}
+    disk:
+      directory: ${IMAGE_DISK_DIRECTORY:./data/images}
 
 myblog:
   verification:

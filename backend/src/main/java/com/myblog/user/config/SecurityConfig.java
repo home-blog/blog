@@ -84,6 +84,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}/comments").permitAll()
                         // 같은 태그의 공개 글 목록 (005 contracts 9). 누가 보든 공개 분류의 공개 글만
                         .requestMatchers(HttpMethod.GET, "/api/tags/**").permitAll()
+                        // 이미지 보기 (005 contracts 11). 볼 수 있는지는 서비스가 글·올린 사람을 보고 정한다
+                        .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();

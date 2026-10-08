@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -89,6 +91,21 @@ public class GlobalExceptionHandler {
         if (e.getParameter().hasParameterAnnotation(PathVariable.class)) {
             return respond(ErrorCode.NOT_FOUND);
         }
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
+    }
+
+    /**
+     * 파일이 업로드 크기 설정(community.image.max-size)을 넘으면 프레임워크가 우리 코드보다 먼저 거절한다.
+     * 그때도 서비스가 직접 거절할 때와 같은 400 INVALID_IMAGE로 답한다 (specs/005 R-6).
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException e) {
+        return respond(ErrorCode.INVALID_IMAGE);
+    }
+
+    /** multipart 모양이 아닌 요청 등 파일을 읽을 수 없는 요청. */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipart(MultipartException e) {
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 

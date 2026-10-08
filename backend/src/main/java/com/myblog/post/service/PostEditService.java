@@ -2,6 +2,7 @@ package com.myblog.post.service;
 
 import com.myblog.blog.BlogDirectory;
 import com.myblog.blog.BlogDirectory.CategoryInfo;
+import com.myblog.post.PostContentSavedEvent;
 import com.myblog.post.PostDeletingEvent;
 import com.myblog.post.controller.dto.PostRequests;
 import com.myblog.post.domain.Post;
@@ -84,6 +85,8 @@ public class PostEditService {
             post.markUpdated(now);
             changed = true;
         }
+        // 이미지 모듈이 본문 속 이미지를 연결하고 빠진 이미지를 지운다 (005 T057). 거절하면 수정 전체가 취소된다
+        events.publishEvent(new PostContentSavedEvent(post.getId(), memberId, post.getContent()));
         if (changed) {
             posts.flush();
         }

@@ -6,11 +6,13 @@
 // - 저장하지 않고 나가면 묻는다 (FR-017)
 // - 글자 수는 입력한 원문 그대로 센다 (D-2). 최종 판단은 서버가 한다
 // - 태그 0~5개 (specs/005 US5, TagInput). 서버의 tags / tags[n] 오류는 태그 칸에 보여 준다
+// - 이미지 올리기 (specs/005 US4): 받은 주소를 본문의 커서 자리에 ![](주소)로 넣는다
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
 import { ApiError } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ImageUploadButton from '../image/ImageUploadButton'
 import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
 import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
@@ -55,6 +57,7 @@ export default function PostEditorPage() {
   // 화면이 다시 그려지기 전에 빠르게 여러 번 눌러도 요청은 하나만 보낸다 (busy는 다음 그리기부터 보인다)
   const sending = useRef(false)
   const [confirmPublic, setConfirmPublic] = useState(false)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -175,6 +178,19 @@ export default function PostEditorPage() {
     setInput((prev) => ({ ...prev, [key]: value }))
   }
 
+  /** 본문의 커서 자리(없으면 끝)에 이미지 문법을 넣는다. 글과 붙지 않게 빈 줄로 띄워 문단 하나로 둔다 */
+  function insertImage(url: string) {
+    const area = contentRef.current
+    setInput((prev) => {
+      const at = area ? area.selectionStart : prev.content.length
+      const before = prev.content.slice(0, at)
+      const after = prev.content.slice(area ? area.selectionEnd : at)
+      const lead = before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n'
+      const tail = after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n'
+      return { ...prev, content: `${before}${lead}![](${url})${tail}${after}` }
+    })
+  }
+
   return (
     <form className="editor" onSubmit={submit} noValidate aria-labelledby="editor-title">
       <h1 id="editor-title" className="visually-hidden">
@@ -276,10 +292,14 @@ export default function PostEditorPage() {
       </div>
 
       <div className="field editor-content-field">
-        <label htmlFor="post-content">
-          본문 <span className="hint">마크다운으로 씁니다</span>
-        </label>
+        <div className="editor-content-head">
+          <label htmlFor="post-content">
+            본문 <span className="hint">마크다운으로 씁니다</span>
+          </label>
+          <ImageUploadButton postId={editingId} disabled={busy} onUploaded={insertImage} />
+        </div>
         <textarea
+          ref={contentRef}
           id="post-content"
           className="editor-content-input"
           value={input.content}
