@@ -16,7 +16,6 @@ import com.myblog.user.domain.User;
 import com.myblog.user.mail.MailSendFailedException;
 import com.myblog.user.mail.VerificationMailSender;
 import com.myblog.user.repository.UserRepository;
-import com.myblog.user.verification.EmailVerificationStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -81,9 +80,6 @@ class SignupFlowTest {
 
     @Autowired
     private CategoryRepository categories;
-
-    @Autowired
-    private EmailVerificationStore store;
 
     @Autowired
     private StringRedisTemplate redis;
@@ -172,7 +168,7 @@ class SignupFlowTest {
     void 예전_증표로는_새_인증을_취소할_수_없다() throws Exception {
         String oldToken = sendAndGetToken(nickname, email);
         confirm(email, mail.lastCode.get(email), oldToken).andExpect(status().isOk());
-        store.releaseCooldown(email); // 1분 기다린 셈 치고 다시 받는다
+        redis.delete("emailauth:cooldown:" + email); // 1분 기다린 셈 치고 다시 받는다
         String newToken = sendAndGetToken(nickname, email);
 
         cancel(email, oldToken).andExpect(status().isNoContent()); // 아무것도 지우지 않는다

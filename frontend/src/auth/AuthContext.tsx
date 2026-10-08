@@ -15,8 +15,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api<{ member: Member }>('/api/auth/me', { notifyUnauthenticated: false })
       .then((res) => fresh() && setMember(res.member))
       .catch((err: unknown) => {
-        if (fresh()) setMember(null)
-        if (!(err instanceof ApiError)) console.error(err)
+        // 서버가 "로그인 안 함"(401)이라고 답했을 때만 로그아웃 상태로 본다.
+        // 네트워크 오류 등은 알 수 없음(undefined)으로 두어, 로그인한 사람을 로그아웃으로 잘못 보이지 않게 한다
+        if (fresh() && err instanceof ApiError && err.status === 401) setMember(null)
+        else console.error(err)
       })
     return () => {
       cancelled = true

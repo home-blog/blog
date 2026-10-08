@@ -71,32 +71,33 @@ public class EmailVerificationService {
             throw fieldError(ErrorCode.NICKNAME_ALREADY_USED, "nickname");
         }
 
+        // 이 요청의 증표. 1분 막기와 새 흐름의 "주인"을 표시한다 (정리할 때 남의 것을 지우지 않게)
+        String token = generator.newFlowToken();
+
         // ④ 1분에 1번, 하루 5번 (FR-018). 1분 막기는 확인과 동시에 건다 (동시에 여러 번 눌러도 하나만 통과)
-        if (!store.tryStartCooldown(email, config.resendInterval())) {
+        if (!store.tryStartCooldown(email, token, config.resendInterval())) {
             throw new ApiException(ErrorCode.RESEND_TOO_SOON);
         }
         if (store.sentCount(email) >= config.dailyLimit()) {
-            store.releaseCooldown(email);
+            store.releaseCooldown(email, token);
             throw new ApiException(ErrorCode.RESEND_DAILY_LIMIT);
         }
 
         // ⑤ 새 번호와 증표 저장 (이전 번호·증표 무효)  ⑥ 메일이 나갈 때까지 기다린다
         String code;
-        String token;
         try {
             code = generator.generate();
-            token = generator.newFlowToken();
             store.startFlow(email, code, token, config.codeTtl());
             mailSender.send(email, code, config.codeTtl());
         } catch (MailSendFailedException e) {
-            // ⑦ 실패하면 번호를 지우고 횟수에 넣지 않는다 → 바로 다시 받을 수 있다 (FR-020)
+            // ⑦ 실패하면 내 번호를 지우고 횟수에 넣지 않는다 → 바로 다시 받을 수 있다 (FR-020)
             log.warn("인증번호 메일 발송 실패: {}", e.getMessage());
-            store.clearFlow(email);
-            store.releaseCooldown(email);
+            store.cancelIfOwner(email, token);
+            store.releaseCooldown(email, token);
             throw new ApiException(ErrorCode.MAIL_SEND_FAILED);
         } catch (RuntimeException e) {
-            // 메일이 나가기 전에 생긴 다른 오류: 1분 막기를 풀어 바로 다시 요청할 수 있게 한다
-            store.releaseCooldown(email);
+            // 메일이 나가기 전에 생긴 다른 오류: 내가 건 1분 막기를 풀어 바로 다시 요청할 수 있게 한다
+            store.releaseCooldown(email, token);
             throw e;
         }
         store.recordSent(email);
