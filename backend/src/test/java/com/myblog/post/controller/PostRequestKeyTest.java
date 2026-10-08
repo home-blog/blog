@@ -110,6 +110,22 @@ class PostRequestKeyTest {
     }
 
     @Test
+    void 같은_키로_내용을_바꿔_다시_보내면_처음_글을_저장된_것처럼_답하지_않고_409() throws Exception {
+        String key = UUID.randomUUID().toString();
+        assertThat(send(key).getStatus()).isEqualTo(201);
+        MockHttpServletResponse changed = mvc.perform(post("/api/posts").with(csrf()).session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(TestJson.of("title", "연속", "content", "본문", "categoryId", owner.defaultCategoryId(),
+                                "topicId", topicId, "visibility", "private", "requestKey", key)))
+                .andReturn().getResponse();
+        assertThat(changed.getStatus()).isEqualTo(409);
+        assertThat(JsonPath.read(changed.getContentAsString(), "$.code").toString()).isEqualTo("POST_ALREADY_SAVED");
+        assertThat(postCount()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select p.visibility from post p join category c using (category_id) where c.blog_id = ?",
+                String.class, owner.blogId())).isEqualTo("public");
+    }
+
+    @Test
     void S5_3_다른_키면_같은_내용이어도_글_두_개() throws Exception {
         assertThat(send(UUID.randomUUID().toString()).getStatus()).isEqualTo(201);
         assertThat(send(UUID.randomUUID().toString()).getStatus()).isEqualTo(201);

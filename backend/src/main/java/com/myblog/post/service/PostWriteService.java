@@ -19,7 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *   <li>글이 들어갈 블로그는 세션의 회원으로 정한다. 요청에서 블로그 번호를 받지 않는다.</li>
  *   <li>분류가 내 블로그의 것이 아니면 INVALID_CATEGORY.</li>
  *   <li>주제가 topic 표에 없으면 topicId "주제를 골라 주세요".</li>
- *   <li>같은 requestKey의 글이 이미 있으면 새로 만들지 않고 그 번호를 돌려준다 (D-6).
+ *   <li>같은 requestKey의 글이 이미 있으면 새로 만들지 않고 그 번호를 돌려준다 (D-6). 내용이 다르면 POST_ALREADY_SAVED.
  *       거의 동시에 같은 키가 오면 request_key 중복 불가로 DB가 하나만 받고, 나머지는 다시 찾아 같은 번호를 돌려준다.</li>
  * </ol>
  * 중복으로 저장이 거절되면 그 트랜잭션은 쓸 수 없으므로, 저장과 다시 찾기를 각각 따로 된 트랜잭션에서 한다.
@@ -48,7 +48,7 @@ public class PostWriteService {
             String requestKey) {
         BlogInfo blog = blogDirectory.myBlog(memberId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));
         if (requestKey != null) {
-            Optional<Long> existing = transaction.execute(status -> findMine(requestKey, blog));
+            Optional<Long> existing = transaction.execute(status -> findMine(requestKey, blog, categoryId, topicId, title, content, visibility));
             if (existing.isPresent()) {
                 return new Created(existing.get(), false);
             }
@@ -62,7 +62,7 @@ public class PostWriteService {
         } catch (DataIntegrityViolationException e) {
             // 같은 키가 먼저 저장됐거나, 그사이 분류가 지워졌다 (외래 키)
             if (requestKey != null) {
-                Optional<Long> existing = transaction.execute(status -> findMine(requestKey, blog));
+                Optional<Long> existing = transaction.execute(status -> findMine(requestKey, blog, categoryId, topicId, title, content, visibility));
                 if (existing.isPresent()) {
                     return new Created(existing.get(), false);
                 }
@@ -71,16 +71,25 @@ public class PostWriteService {
         }
     }
 
-    /** 이 키의 글이 내 블로그의 것일 때만 돌려준다. 남의 글의 번호는 알려 주지 않는다. */
-    private Optional<Long> findMine(String requestKey, BlogInfo blog) {
-        Optional<Post> post = posts.findByRequestKey(requestKey);
-        if (post.isEmpty()) {
+    /**
+     * 이 키의 글이 내 블로그의 것일 때만 돌려준다. 남의 글의 번호는 알려 주지 않는다.
+     * 같은 키인데 내용이 다르면(저장은 됐는데 응답을 못 받아 고친 뒤 다시 보낸 경우) 처음 글을 저장된 것처럼 답하지 않고
+     * POST_ALREADY_SAVED로 알린다: 비공개로 바꿔 다시 보냈는데 공개 글이 남는 일을 막는다.
+     */
+    private Optional<Long> findMine(String requestKey, BlogInfo blog, Long categoryId, Long topicId, String title,
+            String content, String visibility) {
+        Optional<Post> found = posts.findByRequestKey(requestKey);
+        if (found.isEmpty()) {
             return Optional.empty();
         }
-        Optional<CategoryInfo> category = blogDirectory.category(post.get().getCategoryId());
-        if (category.isPresent() && category.get().blogId().equals(blog.blogId())) {
-            return Optional.of(post.get().getId());
+        Post post = found.get();
+        Optional<CategoryInfo> category = blogDirectory.category(post.getCategoryId());
+        if (category.isEmpty() || !category.get().blogId().equals(blog.blogId())) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED);
         }
-        throw new ApiException(ErrorCode.VALIDATION_FAILED);
+        if (!post.sameAs(categoryId, topicId, title, content, visibility)) {
+            throw new ApiException(ErrorCode.POST_ALREADY_SAVED);
+        }
+        return Optional.of(post.getId());
     }
 }

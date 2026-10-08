@@ -45,6 +45,8 @@ public enum ErrorCode {
     // 블로그·분류·글 (specs/003 contracts). ※는 상세/03 안내 문구 표에 아직 없는 제안 문구다
     /** 없는 글, 남의 비공개 글, 남의 글의 수정·삭제가 모두 같은 응답이다 (FR-019, FR-026). */
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 글입니다"),
+    /** 같은 요청 번호로 이미 저장된 글이 있는데 내용이 다르다 (응답을 못 받고 고쳐서 다시 보낸 경우, D-6). */
+    POST_ALREADY_SAVED(HttpStatus.CONFLICT, "※ 이 글은 이미 저장되었습니다. 내 블로그에서 저장된 글을 확인한 뒤 고쳐 주세요"),
     BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 블로그입니다"),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 분류입니다"),
     INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "※ 분류를 다시 골라 주세요"),
