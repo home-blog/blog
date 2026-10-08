@@ -3,7 +3,7 @@
 // - 본문은 MarkdownView로만 그린다 (D-1). 제목·이름은 React가 글자로 보여 준다
 // - 로그인 상태가 바뀌면 다시 읽는다 (로그아웃한 뒤 비공개 글이 화면에 남지 않게)
 // - 주인에게만 수정·삭제. 삭제는 확인 창을 거치고, 끝나면 내 블로그로 간다 (FR-021, FR-022)
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
@@ -32,6 +32,8 @@ export default function PostDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // 확인을 빠르게 두 번 눌러도 삭제 요청은 하나만 (deleting은 다음 그리기부터 보인다)
+  const deletingRef = useRef(false)
 
   useEffect(() => {
     if (!validId || viewer === null) return
@@ -59,6 +61,8 @@ export default function PostDetailPage() {
   const { post } = current
 
   async function remove() {
+    if (deletingRef.current) return
+    deletingRef.current = true
     setConfirmDelete(false)
     setDeleting(true)
     setDeleteError(null)
@@ -67,6 +71,7 @@ export default function PostDetailPage() {
       navigate(`/blog/${post.blogId}`, { replace: true })
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요')
+      deletingRef.current = false
       setDeleting(false)
     }
   }
