@@ -1,5 +1,5 @@
 // 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /mypage 마이페이지, /mypage/password 비밀번호 변경, /mypage/withdrawal 회원 탈퇴(로그인 필요)
-// /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기·/manage/categories 분류 관리(로그인 필요) — specs/003
+// /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기·/manage/categories 분류 관리·/manage/blog 블로그 설정(로그인 필요) — specs/003
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
 // 005: /tags/:tagName 같은 태그의 공개 글(누구나)
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
@@ -9,6 +9,7 @@ import { LoginModalProvider } from './auth/LoginModal'
 import PasswordChangePage from './account/PasswordChangePage'
 import WithdrawalPage from './account/WithdrawalPage'
 import RequireLogin from './auth/RequireLogin'
+import BlogSettingsPage from './blog/BlogSettingsPage'
 import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
 import SiteHeader from './components/SiteHeader'
@@ -118,6 +119,14 @@ const router = createBrowserRouter([
         element: (
           <RequireLogin>
             <CategoryManagePage />
+          </RequireLogin>
+        ),
+      },
+      {
+        path: '/manage/blog',
+        element: (
+          <RequireLogin>
+            <BlogSettingsPage />
           </RequireLogin>
         ),
       },

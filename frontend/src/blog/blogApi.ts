@@ -40,6 +40,11 @@ export function getMyBlog(signal?: AbortSignal): Promise<MyBlog> {
   return api<MyBlog>('/api/me/blog', { signal })
 }
 
+/** 내 블로그 이름·소개 고치기 (contracts 4). 앞뒤 공백은 서버가 지운다 */
+export function updateMyBlog(name: string, intro: string): Promise<MyBlog> {
+  return api<MyBlog>('/api/me/blog', { method: 'PUT', body: { name, intro } })
+}
+
 // 분류 관리 (contracts 5 ~ 8): 내 블로그는 세션으로 정한다
 export function createCategory(name: string, visibility: Visibility): Promise<CategorySummary> {
   return api<CategorySummary>('/api/me/blog/categories', { method: 'POST', body: { name, visibility } })

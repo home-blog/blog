@@ -114,3 +114,11 @@
   border: 1px dashed var(--grid-strong);
   border-radius: var(--radius-field);
 }
+
+.comment-load-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
