@@ -1,7 +1,8 @@
-// 모든 화면 위의 머리글: 서비스 이름, 로그인 상태, 로그인·가입·로그아웃
+// 모든 화면 위의 머리글: 서비스 이름, 글 검색, 로그인 상태, 로그인·가입·로그아웃
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
+import SearchBox from '../explore/SearchBox'
 import './site-header.css'
 
 /** 로그인해야 볼 수 있는 화면. 여기서 로그아웃하면 첫 화면으로 보낸다 (FR-031). 기능이 생기면 더한다. */
@@ -29,6 +30,8 @@ export default function SiteHeader() {
       <Link to="/" className="site-brand">
         MyBlog
       </Link>
+      {/* 글 검색은 누구나 (specs/004 US5) */}
+      <SearchBox />
       <nav className="site-nav" aria-label="계정">
         {member === undefined ? null : member ? (
           <>

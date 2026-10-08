@@ -127,8 +127,8 @@ export default function PostDetailPage() {
         ) : (
           <span />
         )}
-        {/* 분류별 글 목록 주소는 specs/004가 정하면 바꾼다 */}
-        <Link to={`/blog/${post.blogId}`} className="btn btn-quiet btn-small">
+        {/* 이 글의 분류로 좁힌 블로그 글 목록 (specs/004 T043, 주소 ?category=) */}
+        <Link to={`/blog/${post.blogId}?category=${post.category.categoryId}`} className="btn btn-quiet btn-small">
           목록으로
         </Link>
         {post.nextPostId !== null ? (

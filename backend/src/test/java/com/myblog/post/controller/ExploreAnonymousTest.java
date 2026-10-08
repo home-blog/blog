@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
-/** 로그인하지 않아도 목록·분류별 목록·페이지 넘기기가 모두 된다 (specs/004 US7, quickstart S-7의 1, T035, SC-010). */
+/** 로그인하지 않아도 목록·분류별 목록·검색·페이지 넘기기가 모두 된다 (specs/004 US7, quickstart S-7의 1, T035, SC-010). */
 @SpringBootTest
 @Transactional
 @Import({TestMembers.class, TestPosts.class})
@@ -53,13 +53,15 @@ class ExploreAnonymousTest {
     }
 
     @Test
-    void S7_1_로그인_없이_목록_분류별_목록_2페이지가_모두_200() throws Exception {
+    void S7_1_로그인_없이_목록_분류별_목록_검색_2페이지가_모두_200() throws Exception {
         for (MockHttpSession session : new MockHttpSession[] {null, expiredSession()}) {
             for (RequestBuilder request : new RequestBuilder[] {
                     withSession(get("/api/blogs/{id}/posts", owner.blogId()), session),
                     withSession(get("/api/blogs/{id}/posts", owner.blogId())
                             .param("categoryId", owner.defaultCategoryId().toString()), session),
-                    withSession(get("/api/blogs/{id}/posts", owner.blogId()).param("page", "2"), session)}) {
+                    withSession(get("/api/blogs/{id}/posts", owner.blogId()).param("page", "2"), session),
+                    withSession(get("/api/search/posts").param("q", "글 1"), session),
+                    withSession(get("/api/search/posts").param("q", "글 1").param("page", "2"), session)}) {
                 mvc.perform(request).andExpect(status().isOk());
             }
         }
