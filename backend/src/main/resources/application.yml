@@ -56,3 +56,7 @@ auth:
   session:
     idle-timeout: 7d
     absolute-timeout: 30d
+
+myblog:
+  verification:
+    min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다

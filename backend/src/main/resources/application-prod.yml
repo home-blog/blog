@@ -17,6 +17,11 @@ spring:
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
 
+myblog:
+  verification:
+    secret: ${VERIFICATION_SECRET}   # 인증번호·증표 HMAC 비밀키 (32자 이상 무작위 값). 공개 저장소에 적지 않는다
+    require-secret: true   # 비어 있거나 32자보다 짧으면 서버를 켜지 않는다
+
 server:
   servlet:
     session:
