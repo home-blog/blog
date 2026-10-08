@@ -39,3 +39,23 @@ export async function getCategories(blogId: number, signal?: AbortSignal): Promi
 export function getMyBlog(signal?: AbortSignal): Promise<MyBlog> {
   return api<MyBlog>('/api/me/blog', { signal })
 }
+
+// 분류 관리 (contracts 5 ~ 8): 내 블로그는 세션으로 정한다
+export function createCategory(name: string, visibility: Visibility): Promise<CategorySummary> {
+  return api<CategorySummary>('/api/me/blog/categories', { method: 'POST', body: { name, visibility } })
+}
+
+/** 보낸 칸만 바꾼다 */
+export function updateCategory(categoryId: number, change: { name?: string; visibility?: Visibility }): Promise<CategorySummary> {
+  return api<CategorySummary>(`/api/me/blog/categories/${categoryId}`, { method: 'PATCH', body: change })
+}
+
+/** 내 분류 번호 전체를 위에서부터 새 순서로 */
+export async function reorderCategories(categoryIds: number[]): Promise<CategorySummary[]> {
+  const res = await api<{ categories: CategorySummary[] }>('/api/me/blog/categories/order', { method: 'PUT', body: { categoryIds } })
+  return res.categories
+}
+
+export function deleteCategory(categoryId: number): Promise<void> {
+  return api<void>(`/api/me/blog/categories/${categoryId}`, { method: 'DELETE' })
+}
