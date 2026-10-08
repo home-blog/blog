@@ -19,6 +19,18 @@ public interface BlogDailyStatRepository extends JpaRepository<BlogDailyStat, Lo
             + " from BlogDailyStat s where s.blogId = :blogId")
     Totals totalsOf(@Param("blogId") Long blogId);
 
+    /** 그날 조회수 +1. 줄이 없으면 만든다 (한 쿼리, research R-3). */
+    @Modifying
+    @Query(value = "insert into blog_daily_stat (blog_id, stat_date, views, visitors) values (:blogId, :date, 1, 0)"
+            + " on conflict (blog_id, stat_date) do update set views = blog_daily_stat.views + 1", nativeQuery = true)
+    int addView(@Param("blogId") Long blogId, @Param("date") LocalDate date);
+
+    /** 그날 방문자 +1. 줄이 없으면 만든다. */
+    @Modifying
+    @Query(value = "insert into blog_daily_stat (blog_id, stat_date, views, visitors) values (:blogId, :date, 0, 1)"
+            + " on conflict (blog_id, stat_date) do update set visitors = blog_daily_stat.visitors + 1", nativeQuery = true)
+    int addVisitor(@Param("blogId") Long blogId, @Param("date") LocalDate date);
+
     interface Totals {
 
         long getViews();

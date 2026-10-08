@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -66,6 +67,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("select p.id as id, p.title as title from Post p where p.id in :postIds")
     List<PostTitle> findTitlesByIdIn(@Param("postIds") Collection<Long> postIds);
+
+    /** 누적 조회수 +1을 DB에서 바로 (specs/006 T051, 읽고 쓰기가 아님). */
+    @Modifying
+    @Query("update Post p set p.views = p.views + 1 where p.id = :postId")
+    int incrementViews(@Param("postId") Long postId);
 
     interface PostTitle {
 

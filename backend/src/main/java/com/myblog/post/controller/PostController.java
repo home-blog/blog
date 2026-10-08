@@ -1,5 +1,6 @@
 package com.myblog.post.controller;
 
+import com.myblog.post.PostViewedEvent;
 import com.myblog.post.controller.dto.PostRequests;
 import com.myblog.post.service.PostEditService;
 import com.myblog.post.service.PostFormService;
@@ -8,6 +9,7 @@ import com.myblog.post.service.PostReadService;
 import com.myblog.post.service.PostWriteService;
 import com.myblog.user.LoggedInMember;
 import jakarta.validation.Valid;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -31,14 +33,16 @@ public class PostController {
     private final PostWriteService writeService;
     private final PostReadService readService;
     private final PostEditService editService;
+    private final ApplicationEventPublisher events;
 
     public PostController(LoggedInMember loggedInMember, PostFormService formService, PostWriteService writeService,
-            PostReadService readService, PostEditService editService) {
+            PostReadService readService, PostEditService editService, ApplicationEventPublisher events) {
         this.loggedInMember = loggedInMember;
         this.formService = formService;
         this.writeService = writeService;
         this.readService = readService;
         this.editService = editService;
+        this.events = events;
     }
 
     /** 글쓰기 화면의 기본값 (contracts 9). */
@@ -58,10 +62,17 @@ public class PostController {
                 .body(new PostIdResponse(result.postId()));
     }
 
-    /** 글 상세 (contracts 11). 누구나 부른다. 볼 수 없는 글은 없는 글과 같은 404. */
+    /**
+     * 글 상세 (contracts 11). 누구나 부른다. 볼 수 없는 글은 없는 글과 같은 404.
+     * 보여 줄 수 있는 글이면 "읽혔다"고 알린다. 통계 모듈이 듣고 센다 (specs/006 T051, contracts 9).
+     * 읽기 트랜잭션이 끝나 DB 연결을 돌려준 뒤에 알린다: 세는 쪽이 연결을 하나 더 잡아도 한 요청이 연결 둘을 같이 쥐지 않는다.
+     */
     @GetMapping("/api/posts/{postId}")
     public PostReadService.PostDetail read(@PathVariable Long postId, Authentication authentication) {
-        return readService.read(postId, loggedInMember.idOf(authentication).orElse(null));
+        Long viewerId = loggedInMember.idOf(authentication).orElse(null);
+        PostReadService.PostDetail detail = readService.read(postId, viewerId);
+        events.publishEvent(new PostViewedEvent(detail.postId(), detail.blogId(), viewerId, detail.isOwner()));
+        return detail;
     }
 
     /** 수정 화면용 글 (contracts 12). 남의 글이면 404. */

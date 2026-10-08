@@ -1,10 +1,11 @@
 // 통계 /manage/stats (specs/006 US6, T043, FR-031, FR-032)
 // - 기간 7일 / 30일 (처음 30일). 조회수·방문자 자리와 댓글 수 자리 두 개
-// - 그래프는 T058에서 그린다 (D-10). 그 전에는 날짜별 숫자 표
+// - 선 그래프 두 개 (T058, D-10: uPlot). 같은 숫자를 접힌 표로도 볼 수 있다
 // - 유입 경로·시간대·기기 정보는 없다 (BM-06-8 확인 필요, 원본대로)
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
+import DailyLineChart, { type ChartSeries } from './charts/DailyLineChart'
 import DailyTable from './DailyTable'
 import { getStats, type DailyStat } from './manageApi'
 import './manage-pages.css'
@@ -40,6 +41,15 @@ export default function StatsPage() {
   const rows = daily?.days === days ? daily.rows : null
   // 오류도 그 기간의 것만 보인다. 다른 기간으로 바꾸면 지난 오류가 남지 않는다
   const error = failure?.days === days ? failure.message : null
+  const chart = useMemo(() => {
+    if (!rows) return null
+    const views: ChartSeries[] = [
+      { label: '조회수', values: rows.map((r) => r.views), colorToken: '--category-1' },
+      { label: '방문자', values: rows.map((r) => r.visitors), colorToken: '--category-2' },
+    ]
+    const comments: ChartSeries[] = [{ label: '댓글', values: rows.map((r) => r.comments), colorToken: '--category-3' }]
+    return { dates: rows.map((r) => r.date), views, comments }
+  }, [rows])
 
   return (
     <div className="manage">
@@ -66,30 +76,38 @@ export default function StatsPage() {
         </p>
       )}
       {!error && !rows && <p className="hint">불러오는 중</p>}
-      {!error && rows && (
+      {!error && rows && chart && (
         <div className="stats-panels">
           <section className="manage-panel" aria-labelledby="stats-views">
             <h2 id="stats-views" className="manage-panel-title">
               조회수·방문자
             </h2>
-            <DailyTable
-              caption={`최근 ${days}일 조회수와 방문자`}
-              rows={rows}
-              columns={[
-                { label: '조회수', value: (r) => r.views },
-                { label: '방문자', value: (r) => r.visitors },
-              ]}
-            />
+            <DailyLineChart dates={chart.dates} series={chart.views} label={`최근 ${days}일 조회수와 방문자 그래프`} />
+            <details className="chart-numbers">
+              <summary>숫자로 보기</summary>
+              <DailyTable
+                caption={`최근 ${days}일 조회수와 방문자`}
+                rows={rows}
+                columns={[
+                  { label: '조회수', value: (r) => r.views },
+                  { label: '방문자', value: (r) => r.visitors },
+                ]}
+              />
+            </details>
           </section>
           <section className="manage-panel" aria-labelledby="stats-comments">
             <h2 id="stats-comments" className="manage-panel-title">
               댓글 수
             </h2>
-            <DailyTable
-              caption={`최근 ${days}일 댓글 수`}
-              rows={rows}
-              columns={[{ label: '댓글', value: (r) => r.comments }]}
-            />
+            <DailyLineChart dates={chart.dates} series={chart.comments} label={`최근 ${days}일 댓글 수 그래프`} />
+            <details className="chart-numbers">
+              <summary>숫자로 보기</summary>
+              <DailyTable
+                caption={`최근 ${days}일 댓글 수`}
+                rows={rows}
+                columns={[{ label: '댓글', value: (r) => r.comments }]}
+              />
+            </details>
           </section>
         </div>
       )}

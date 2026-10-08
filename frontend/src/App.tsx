@@ -4,6 +4,7 @@
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
 // 005: /tags/:tagName 같은 태그의 공개 글(누구나)
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Outlet, RouterProvider, useNavigate, useParams } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { LoginModalProvider } from './auth/LoginModal'
@@ -13,12 +14,10 @@ import RequireLogin from './auth/RequireLogin'
 import BlogSettingsPage from './blog/BlogSettingsPage'
 import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
-import DashboardPage from './manage/DashboardPage'
 import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
 import ManagePostsPage from './manage/ManagePostsPage'
 import NewCommentCountProvider from './manage/NewCommentCountProvider'
-import StatsPage from './manage/StatsPage'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -29,6 +28,14 @@ import MyPage from './pages/MyPage'
 import SearchPage from './pages/SearchPage'
 import SignupPage from './pages/SignupPage'
 import TagPostsPage from './pages/TagPostsPage'
+
+// 그래프 도구(uPlot)를 쓰는 화면은 따로 불러온다: 첫 화면이 가벼워지고, 블로그 관리를 열 때만 받는다 (specs/006 T058)
+const DashboardPage = lazy(() => import('./manage/DashboardPage'))
+const StatsPage = lazy(() => import('./manage/StatsPage'))
+
+function Loading({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<p className="hint">불러오는 중</p>}>{children}</Suspense>
+}
 
 /** 글 번호마다 화면을 새로 만든다: 다른 글로 옮겨 가면 이전 글의 입력·확인 창 상태가 남지 않는다 */
 function PostDetailRoute() {
@@ -131,11 +138,25 @@ const router = createBrowserRouter([
           </RequireLogin>
         ),
         children: [
-          { index: true, element: <DashboardPage /> },
+          {
+            index: true,
+            element: (
+              <Loading>
+                <DashboardPage />
+              </Loading>
+            ),
+          },
           { path: 'posts', element: <ManagePostsPage /> },
           { path: 'categories', element: <CategoryManagePage /> },
           { path: 'comments', element: <ManageCommentsPage /> },
-          { path: 'stats', element: <StatsPage /> },
+          {
+            path: 'stats',
+            element: (
+              <Loading>
+                <StatsPage />
+              </Loading>
+            ),
+          },
           { path: 'blog', element: <BlogSettingsPage /> },
         ],
       },

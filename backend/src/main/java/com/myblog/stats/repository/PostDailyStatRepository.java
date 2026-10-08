@@ -17,6 +17,12 @@ public interface PostDailyStatRepository extends JpaRepository<PostDailyStat, Lo
             + " where s.postId in :postIds and s.statDate >= :from group by s.postId")
     List<PostViews> sumViewsSince(@Param("postIds") Collection<Long> postIds, @Param("from") LocalDate from);
 
+    /** 그날 글 조회수 +1. 줄이 없으면 만든다 (한 쿼리, research R-3). */
+    @Modifying
+    @Query(value = "insert into post_daily_stat (post_id, stat_date, views) values (:postId, :date, 1)"
+            + " on conflict (post_id, stat_date) do update set views = post_daily_stat.views + 1", nativeQuery = true)
+    int addView(@Param("postId") Long postId, @Param("date") LocalDate date);
+
     interface PostViews {
 
         Long getPostId();

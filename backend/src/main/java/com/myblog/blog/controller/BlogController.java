@@ -1,5 +1,6 @@
 package com.myblog.blog.controller;
 
+import com.myblog.blog.BlogVisitedEvent;
 import com.myblog.blog.controller.dto.BlogRequests;
 import com.myblog.blog.service.BlogQueryService;
 import com.myblog.blog.service.BlogQueryService.BlogView;
@@ -8,6 +9,7 @@ import com.myblog.blog.service.BlogSettingsService;
 import com.myblog.user.LoggedInMember;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,11 +28,14 @@ public class BlogController {
     private final LoggedInMember loggedInMember;
     private final BlogQueryService queryService;
     private final BlogSettingsService settingsService;
+    private final ApplicationEventPublisher events;
 
-    public BlogController(LoggedInMember loggedInMember, BlogQueryService queryService, BlogSettingsService settingsService) {
+    public BlogController(LoggedInMember loggedInMember, BlogQueryService queryService, BlogSettingsService settingsService,
+            ApplicationEventPublisher events) {
         this.loggedInMember = loggedInMember;
         this.queryService = queryService;
         this.settingsService = settingsService;
+        this.events = events;
     }
 
     /** 내 블로그 (contracts 3). */
@@ -47,10 +52,17 @@ public class BlogController {
         return new MyBlogResponse(blog.blogId(), blog.name(), blog.intro());
     }
 
-    /** 블로그 정보 (contracts 1). */
+    /**
+     * 블로그 정보 (contracts 1).
+     * 블로그 첫 화면·분류별 목록이 열 때마다 부르므로 여기서 방문을 알린다. 방문자는 통계 모듈이 센다 (specs/006 T056, D-5 B).
+     * 읽기 트랜잭션이 끝난 뒤에 알린다 (PostController.read와 같은 까닭).
+     */
     @GetMapping("/api/blogs/{blogId}")
     public BlogView blog(@PathVariable Long blogId, Authentication authentication) {
-        return queryService.blog(blogId, loggedInMember.idOf(authentication).orElse(null));
+        Long viewerId = loggedInMember.idOf(authentication).orElse(null);
+        BlogView blog = queryService.blog(blogId, viewerId);
+        events.publishEvent(new BlogVisitedEvent(blog.blogId(), viewerId, blog.isOwner()));
+        return blog;
     }
 
     /** 분류 목록과 글 개수 (contracts 2). 보는 사람에 따라 비공개 분류와 개수가 다르다. */
