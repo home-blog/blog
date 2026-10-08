@@ -2,7 +2,6 @@ package com.myblog.user.service;
 
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
-import com.myblog.user.config.AuthProperties;
 import com.myblog.user.domain.User;
 import com.myblog.user.security.MemberPrincipal;
 import com.myblog.user.security.SessionLifetimeFilter;
@@ -31,16 +30,14 @@ public class LoginService {
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final LoginAttemptService attempts;
-    private final AuthProperties properties;
     private final Clock clock;
     private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
 
     public LoginService(AuthenticationManager authenticationManager, SecurityContextRepository securityContextRepository,
-            LoginAttemptService attempts, AuthProperties properties, Clock clock) {
+            LoginAttemptService attempts, Clock clock) {
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
         this.attempts = attempts;
-        this.properties = properties;
         this.clock = clock;
     }
 
@@ -75,9 +72,6 @@ public class LoginService {
     }
 
     private ApiException locked(String email) {
-        long seconds = attempts.lockedForSeconds(email).orElse(properties.login().lockDuration().toSeconds());
-        long minutes = Math.max(1, (seconds + 59) / 60);
-        String message = ErrorCode.ACCOUNT_LOCKED.message().formatted(properties.login().maxFailedAttempts(), minutes);
-        return new ApiException(ErrorCode.ACCOUNT_LOCKED, message, seconds);
+        return attempts.lockedError(email, ErrorCode.ACCOUNT_LOCKED.message());
     }
 }
