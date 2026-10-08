@@ -47,7 +47,23 @@ jobs:
           java-version: "21"
           cache: maven
       - name: 빌드와 테스트
-        run: mvn -B -ntp verify
+        run: mvn -B -ntp verify 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0
+        shell: bash
+      - name: 실패 원인을 주석으로 남기기
+        # 로그를 열지 않아도 PR 화면과 API에서 원인을 볼 수 있게 한다
+        if: failure()
+        shell: bash
+        run: |
+          summary=$(grep -E "^\[ERROR\]|FAILURE!|Tests run:.*(Failures|Errors): [1-9]" build.log | grep -v "^\[ERROR\] *$" | head -40)
+          for f in target/surefire-reports/*.txt; do
+            [ -f "$f" ] || continue
+            if grep -qE "(Failures|Errors): [1-9]" "$f"; then
+              summary+=$'\n'"$(grep -E -A6 "<<< (FAILURE|ERROR)!" "$f" | head -30)"
+            fi
+          done
+          summary="${summary//'%'/'%25'}"
+          summary="${summary//$'\n'/'%0A'}"
+          echo "::error title=서버 빌드·테스트 실패::${summary:0:60000}"
 
   frontend:
     name: 화면 (React)
