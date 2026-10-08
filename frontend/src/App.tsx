@@ -12,11 +12,12 @@ import RequireLogin from './auth/RequireLogin'
 import BlogSettingsPage from './blog/BlogSettingsPage'
 import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
+import DashboardPage from './manage/DashboardPage'
 import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
-import ManagePlaceholder from './manage/ManagePlaceholder'
 import ManagePostsPage from './manage/ManagePostsPage'
 import NewCommentCountProvider from './manage/NewCommentCountProvider'
+import StatsPage from './manage/StatsPage'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -127,11 +128,11 @@ const router = createBrowserRouter([
           </RequireLogin>
         ),
         children: [
-          { index: true, element: <ManagePlaceholder title="대시보드" /> },
+          { index: true, element: <DashboardPage /> },
           { path: 'posts', element: <ManagePostsPage /> },
           { path: 'categories', element: <CategoryManagePage /> },
           { path: 'comments', element: <ManageCommentsPage /> },
-          { path: 'stats', element: <ManagePlaceholder title="통계" /> },
+          { path: 'stats', element: <StatsPage /> },
           { path: 'blog', element: <BlogSettingsPage /> },
         ],
       },
