@@ -39,6 +39,8 @@ export default function CommentSection({ postId, initialCount }: Props) {
   const busyRef = useRef(false)
   // 목록 읽기마다 올린다. 늦게 온 옛 응답이 새 목록을 덮어쓰지 않게 마지막 읽기의 답만 쓴다
   const loadVersion = useRef(0)
+  // 지금 화면의 글·로그인 상태. 등록을 기다리는 사이 로그인한 사람이 바뀌면 끝난 등록의 결과를 화면에 넣지 않는다
+  const currentKey = useRef(key)
   const inputId = useId()
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -61,11 +63,12 @@ export default function CommentSection({ postId, initialCount }: Props) {
 
   // 로그인 상태가 바뀌면 다시 읽는다 (삭제할 수 있는 댓글이 달라진다)
   useEffect(() => {
+    currentKey.current = key
     if (viewer === null) return
     const controller = new AbortController()
-    load(`${postId}:${viewer}`, controller.signal)
+    load(key, controller.signal)
     return () => controller.abort()
-  }, [postId, viewer, load])
+  }, [key, viewer, load])
 
   const current = loaded?.key === key ? loaded : null
   const comments = current && 'comments' in current ? current.comments : null
@@ -84,6 +87,7 @@ export default function CommentSection({ postId, initialCount }: Props) {
       const created = await writeComment(postId, body)
       // 등록은 끝났다. 목록이 있으면 맨 아래에 붙이고, 아직 없거나 읽기에 실패했으면 다시 읽는다 (그 실패는 등록 실패가 아니다)
       setBody('')
+      if (currentKey.current !== key) return
       if (comments) {
         setLoaded((prev) => (prev?.key === key && 'comments' in prev ? { ...prev, comments: [...prev.comments, created] } : prev))
       } else {
@@ -122,8 +126,11 @@ export default function CommentSection({ postId, initialCount }: Props) {
       </h2>
 
       {current && 'error' in current && (
-        <p className="msg msg-error" role="alert">
-          {current.error}
+        <p className="msg msg-error comment-load-error" role="alert">
+          {current.error}{' '}
+          <button type="button" className="btn btn-quiet btn-small" onClick={() => load(key)}>
+            다시 읽기
+          </button>
         </p>
       )}
       {deleteError && (
