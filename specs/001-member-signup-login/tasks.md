@@ -139,11 +139,11 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 **Purpose**: 여러 이야기에 걸친 마무리
 
-- [ ] T036 [P] 로그 설정 `BE-RES/logback-spring.xml`: 요청 본문을 남기지 않아 비밀번호가 로그에 남지 않게 하고, 인증번호 로그 출력은 `dev`에서만 켠다 (FR-010, research B-9)
+- [x] T036 [P] 로그 설정 `BE-RES/logback-spring.xml`: 요청 본문을 남기지 않아 비밀번호가 로그에 남지 않게 하고, 인증번호 로그 출력은 `dev`에서만 켠다 (FR-010, research B-9)
 - [ ] T037 [P] quickstart S-9(보안 점검), S-10(Redis가 꺼졌을 때)을 실행한다
 - [ ] T038 quickstart.md 전체 시나리오를 실행하고, 끝의 `구현 뒤에 채울 것`(실행 명령, 화면 순서)을 채운다
 - [ ] T039 사람이 직접 가입 시간을 재서 SC-006(5분, 제안값)을 확인하고 결과를 spec.md Assumptions에 적는다
-- [ ] T040 [P] 구현하면서 바뀐 가안(주소, 키 이름, 설정 이름)을 plan.md, research.md, contracts, `docs/2-요구사항/상세/01-인증-인가.md`의 `구현 방식`에 같이 반영한다 (헌법 `작업 흐름`: 두 곳이 같이 바뀐다)
+- [x] T040 [P] 구현하면서 바뀐 가안(주소, 키 이름, 설정 이름)을 plan.md, research.md, contracts, `docs/2-요구사항/상세/01-인증-인가.md`의 `구현 방식`에 같이 반영한다 (헌법 `작업 흐름`: 두 곳이 같이 바뀐다)
 - [ ] T041 FR-036(HTTPS)은 배포 환경(research D-5)이 정해지면 `prod` 설정에서 `Secure` 쿠키와 함께 확인한다
 
 ---

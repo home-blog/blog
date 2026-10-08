@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  로그 설정 (specs/001 T036, FR-010, research B-9)
+  - Spring Boot 기본 모양(콘솔)을 그대로 쓴다.
+  - 요청 본문은 어떤 설정에서도 남기지 않는다. 비밀번호·인증번호가 로그에 남지 않게 요청 기록 로거는 끈다.
+  - 개발용 메일(서버 로그에 인증번호 출력)은 dev에서만 켜고, 그 밖의 설정에서는 끈다.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- 요청 본문·헤더를 남기는 로거: 어디서도 켜지 않는다 -->
+    <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="OFF"/>
+    <logger name="org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor" level="INFO"/>
+    <logger name="org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor" level="INFO"/>
+
+    <springProfile name="dev">
+        <logger name="com.myblog" level="DEBUG"/>
+        <!-- 개발용 메일: 서버 로그에 인증번호를 찍는다 (quickstart S-1) -->
+        <logger name="com.myblog.user.mail.LoggingVerificationMailSender" level="INFO"/>
+    </springProfile>
+
+    <springProfile name="!dev">
+        <logger name="com.myblog.user.mail.LoggingVerificationMailSender" level="OFF"/>
+    </springProfile>
+</configuration>
