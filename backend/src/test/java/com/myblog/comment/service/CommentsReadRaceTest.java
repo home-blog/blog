@@ -111,15 +111,20 @@ class CommentsReadRaceTest {
     @Test
     void 읽음_처리_두_개가_동시에_와도_시각이_뒤로_가지_않는다() throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(4);
+        // 스레드마다 따로 로그인한 세션 (테스트용 세션 객체 하나를 여러 스레드가 함께 고치지 않게)
+        List<MockHttpSession> sessions = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            sessions.add(members.login(mvc, owner));
+        }
         try {
             Instant last = null;
             for (int round = 0; round < 10; round++) {
                 CountDownLatch start = new CountDownLatch(1);
                 List<CompletableFuture<Void>> calls = new ArrayList<>();
-                for (int i = 0; i < 4; i++) {
+                for (MockHttpSession each : sessions) {
                     calls.add(CompletableFuture.runAsync(() -> {
                         await(start);
-                        markRead();
+                        markRead(each);
                     }, pool));
                 }
                 start.countDown();
@@ -152,8 +157,12 @@ class CommentsReadRaceTest {
     }
 
     private String markRead() {
+        return markRead(ownerSession);
+    }
+
+    private String markRead(MockHttpSession session) {
         try {
-            return mvc.perform(post("/api/manage/comments/read").with(csrf()).session(ownerSession))
+            return mvc.perform(post("/api/manage/comments/read").with(csrf()).session(session))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         } catch (Exception e) {
             throw new IllegalStateException(e);
