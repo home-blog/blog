@@ -57,4 +57,4 @@ jobs:
         run: mvn -B -ntp verify
       - name: SonarQube 분석
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v8
