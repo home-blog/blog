@@ -3,12 +3,14 @@
 // - 탈퇴한 작성자는 "탈퇴한 사용자" (FR-007)
 // - 로그인하지 않았으면 입력칸 대신 안내와 로그인 버튼. 로그인하면 이 글로 돌아온다 (FR-001)
 // - 등록 중에는 버튼을 잠근다. 실패 문구는 서버 것 그대로 보여 준다
+// - 지울 수 있는 댓글(canDelete)에만 삭제 버튼. 확인 창에서 취소하면 요청을 보내지 않는다 (US2, FR-004). 고치기 버튼은 없다 (FR-005)
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useLoginPrompt } from '../auth/loginPrompt'
 import { useAuth } from '../auth/useAuth'
-import { getComments, writeComment, type CommentItem } from './commentApi'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { deleteComment, getComments, writeComment, type CommentItem } from './commentApi'
 import { COMMENT_MAX_LENGTH, commentLength, commentMessages } from './rules'
 import './comment.css'
 
@@ -36,6 +38,9 @@ export default function CommentSection({ postId, initialCount }: Props) {
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const inputId = useId()
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // 로그인 상태가 바뀌면 다시 읽는다 (삭제할 수 있는 댓글이 달라진다)
   useEffect(() => {
@@ -76,6 +81,24 @@ export default function CommentSection({ postId, initialCount }: Props) {
     }
   }
 
+  async function remove() {
+    const commentId = deleteTarget
+    setDeleteTarget(null)
+    if (commentId === null || deletingId !== null) return
+    setDeletingId(commentId)
+    setDeleteError(null)
+    try {
+      await deleteComment(commentId)
+      setLoaded((prev) =>
+        prev && 'comments' in prev ? { ...prev, comments: prev.comments.filter((c) => c.id !== commentId) } : prev,
+      )
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : commentMessages.failed)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <section className="comments" aria-labelledby={`${inputId}-title`}>
       <h2 id={`${inputId}-title`} className="comments-title">
@@ -85,6 +108,11 @@ export default function CommentSection({ postId, initialCount }: Props) {
       {current && 'error' in current && (
         <p className="msg msg-error" role="alert">
           {current.error}
+        </p>
+      )}
+      {deleteError && (
+        <p className="msg msg-error" role="alert">
+          {deleteError}
         </p>
       )}
       {comments && comments.length > 0 && (
@@ -98,6 +126,16 @@ export default function CommentSection({ postId, initialCount }: Props) {
                 <time className="hint" dateTime={comment.createdAt}>
                   {formatTime(comment.createdAt)}
                 </time>
+                {comment.canDelete && (
+                  <button
+                    type="button"
+                    className="btn btn-quiet btn-small comment-actions"
+                    disabled={deletingId !== null}
+                    onClick={() => setDeleteTarget(comment.id)}
+                  >
+                    {deletingId === comment.id ? '삭제하는 중' : '삭제'}
+                  </button>
+                )}
               </p>
               <p className="comment-body">{comment.body}</p>
             </li>
@@ -149,6 +187,17 @@ export default function CommentSection({ postId, initialCount }: Props) {
           </div>
         )
       )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="댓글 삭제"
+        confirmLabel="삭제"
+        danger
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={remove}
+      >
+        <p>댓글을 삭제할까요?</p>
+      </ConfirmDialog>
     </section>
   )
 }

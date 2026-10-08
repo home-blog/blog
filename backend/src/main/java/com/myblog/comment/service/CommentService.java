@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>같은 회원의 댓글은 min-interval(5초) 간격으로만 받는다. 마지막 댓글 시각을 DB에서 읽고, 같은 회원의 요청은
  *       트랜잭션 잠금(pg_advisory_xact_lock)으로 한 줄로 세워 거의 동시에 온 요청도 하나만 통과한다 (D-2, Redis 안 씀).</li>
  *   <li>작성자가 탈퇴했으면 번호·닉네임 없이 withdrawn만 참이다 (D-9).</li>
+ *   <li>삭제는 댓글 작성자와 그 글의 블로그 주인만. 그 밖의 사람에게는 없는 댓글과 같은 COMMENT_NOT_FOUND (contracts 3).</li>
  * </ul>
  */
 @Service
@@ -85,6 +86,25 @@ public class CommentService {
         }
         Comment saved = comments.saveAndFlush(Comment.write(post.postId(), memberId, request.body(), now));
         return view(saved, memberNames.namesOf(List.of(memberId)), post, memberId);
+    }
+
+    /**
+     * 댓글 삭제 (contracts 3, FR-004, research B-3). 줄을 실제로 지운다.
+     * 그 글을 볼 수 없거나, 작성자도 블로그 주인도 아니면 댓글이 있다는 것도 알리지 않고 COMMENT_NOT_FOUND.
+     */
+    @Transactional
+    public void delete(Long memberId, Long commentId) {
+        Comment comment = comments.findById(commentId).orElseThrow(CommentService::commentNotFound);
+        PostRef post = postLookup.findVisible(comment.getPostId(), memberId).orElseThrow(CommentService::commentNotFound);
+        if (!memberId.equals(comment.getMemberId()) && !post.isOwnedBy(memberId)) {
+            throw commentNotFound();
+        }
+        comments.delete(comment);
+        comments.flush();
+    }
+
+    private static ApiException commentNotFound() {
+        return new ApiException(ErrorCode.COMMENT_NOT_FOUND);
     }
 
     private PostRef visiblePost(Long postId, Long viewerId) {
