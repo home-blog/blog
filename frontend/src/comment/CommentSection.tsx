@@ -4,7 +4,7 @@
 // - 로그인하지 않았으면 입력칸 대신 안내와 로그인 버튼. 로그인하면 이 글로 돌아온다 (FR-001)
 // - 등록 중에는 버튼을 잠근다. 실패 문구는 서버 것 그대로 보여 준다
 // - 지울 수 있는 댓글(canDelete)에만 삭제 버튼. 확인 창에서 취소하면 요청을 보내지 않는다 (US2, FR-004). 고치기 버튼은 없다 (FR-005)
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useLoginPrompt } from '../auth/loginPrompt'
@@ -37,24 +37,35 @@ export default function CommentSection({ postId, initialCount }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  // 목록 읽기마다 올린다. 늦게 온 옛 응답이 새 목록을 덮어쓰지 않게 마지막 읽기의 답만 쓴다
+  const loadVersion = useRef(0)
   const inputId = useId()
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  const load = useCallback(
+    (requestKey: string, signal?: AbortSignal) => {
+      const version = ++loadVersion.current
+      getComments(postId, signal)
+        .then((list) => {
+          if (version === loadVersion.current) setLoaded({ key: requestKey, comments: list.comments })
+        })
+        .catch((err: unknown) => {
+          if (signal?.aborted || version !== loadVersion.current) return
+          setLoaded({ key: requestKey, error: err instanceof ApiError ? err.message : commentMessages.failed })
+        })
+    },
+    [postId],
+  )
+
   // 로그인 상태가 바뀌면 다시 읽는다 (삭제할 수 있는 댓글이 달라진다)
   useEffect(() => {
     if (viewer === null) return
     const controller = new AbortController()
-    const requestKey = `${postId}:${viewer}`
-    getComments(postId, controller.signal)
-      .then((list) => setLoaded({ key: requestKey, comments: list.comments }))
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return
-        setLoaded({ key: requestKey, error: err instanceof ApiError ? err.message : commentMessages.failed })
-      })
+    load(`${postId}:${viewer}`, controller.signal)
     return () => controller.abort()
-  }, [postId, viewer])
+  }, [postId, viewer, load])
 
   const current = loaded?.key === key ? loaded : null
   const comments = current && 'comments' in current ? current.comments : null
@@ -71,8 +82,13 @@ export default function CommentSection({ postId, initialCount }: Props) {
     setError(null)
     try {
       const created = await writeComment(postId, body)
-      setLoaded((prev) => (prev && 'comments' in prev ? { ...prev, comments: [...prev.comments, created] } : prev))
+      // 등록은 끝났다. 목록이 있으면 맨 아래에 붙이고, 아직 없거나 읽기에 실패했으면 다시 읽는다 (그 실패는 등록 실패가 아니다)
       setBody('')
+      if (comments) {
+        setLoaded((prev) => (prev?.key === key && 'comments' in prev ? { ...prev, comments: [...prev.comments, created] } : prev))
+      } else {
+        load(key)
+      }
     } catch (err) {
       setError(err instanceof ApiError ? (err.messageFor('body') ?? err.message) : commentMessages.failed)
     } finally {
