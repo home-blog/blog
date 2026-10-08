@@ -1,0 +1,166 @@
+/* 글 상세: 원고지 종이 위 제목과 본문. 본문은 명조 계열, 줄 간격 넉넉하게 */
+@import '../blog/blog.css';
+
+.post-status {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.post {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.post-head {
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--grid-strong);
+}
+
+.post-meta-top {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.post-blog {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.post-blog:hover {
+  text-decoration: underline;
+}
+
+.post-topic {
+  margin-left: 0.35rem;
+  padding: 0 0.5rem;
+  border-radius: var(--radius-button);
+  background: color-mix(in srgb, var(--grid) 35%, transparent);
+  color: var(--ink);
+}
+
+.post-title {
+  margin: 0.5rem 0 0.25rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.post-times {
+  margin: 0;
+}
+
+.post-owner-actions {
+  margin: 1rem 0 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.post-owner-actions [aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 도구를 불러오는 동안 잠깐 보이는 원문 */
+.post-content-raw {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-letter);
+  line-height: 2;
+}
+
+.markdown {
+  font-family: var(--font-letter);
+  font-size: 1.05rem;
+  line-height: 2;
+  overflow-wrap: anywhere;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  line-height: 1.4;
+  margin: 2rem 0 0.75rem;
+}
+
+.markdown a {
+  color: var(--accent);
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--grid-strong);
+  color: var(--ink-soft);
+}
+
+.markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  background: color-mix(in srgb, var(--grid) 25%, transparent);
+  border-radius: 4px;
+}
+
+.markdown pre {
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+  line-height: 1.5;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown th,
+.markdown td {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--grid);
+}
+
+.post-nav {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--grid);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-nav > :last-child {
+  justify-self: end;
+}
+
+.post-nav > :first-child {
+  justify-self: start;
+}

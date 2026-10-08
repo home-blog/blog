@@ -39,3 +39,28 @@ export function getPostForm(signal?: AbortSignal): Promise<PostForm> {
 export function createPost(input: PostInput, requestKey: string): Promise<{ postId: number }> {
   return api<{ postId: number }>('/api/posts', { method: 'POST', body: { ...input, requestKey } })
 }
+
+export interface PostDetail {
+  postId: number
+  blogId: number
+  blogName: string
+  category: { categoryId: number; name: string; visibility: Visibility }
+  topic: { topicId: number; name: string }
+  title: string
+  /** 마크다운 원문. MarkdownView로만 그린다 */
+  content: string
+  visibility: Visibility
+  createdAt: string
+  /** 수정한 적이 없으면 null */
+  updatedAt: string | null
+  /** 같은 블로그의 공개 분류의 공개 글 중 바로 앞에 쓴 글. 없으면 null */
+  prevPostId: number | null
+  /** 바로 뒤에 쓴 글. 없으면 null */
+  nextPostId: number | null
+  /** 화면이 수정·삭제 버튼을 보일지만 정한다. 실제 권한은 서버가 다시 본다 */
+  isOwner: boolean
+}
+
+export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetail> {
+  return api<PostDetail>(`/api/posts/${postId}`, { signal })
+}
