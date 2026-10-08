@@ -115,6 +115,10 @@ class PostTagTest {
                 .andExpect(jsonPath("$.fieldErrors[0].code").value("TAG_INVALID"))
                 .andExpect(jsonPath("$.fieldErrors[0].message").value("※ 태그는 공백과 쉼표 없이 1~15자로 입력해 주세요"))
                 .andExpect(jsonPath("$.fieldErrors[2].field").value("tags[2]"));
+        // 소문자로 바꾸면 길어지는 글자(İ → i̇, 두 글자): 15자를 넣어도 바꾼 값이 16자가 넘으면 거절 (DB 칸 15)
+        write(body(owner.defaultCategoryId(), "public", List.of("İ".repeat(15))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].code").value("TAG_INVALID"));
         String fifteen = t + "가".repeat(9);
         Long postId = create(owner.defaultCategoryId(), "public", List.of(fifteen, "#" + t + "나".repeat(9)));
         mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.tags.length()").value(2));
