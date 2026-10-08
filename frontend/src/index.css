@@ -1,17 +1,67 @@
+/* MyBlog 화면 공통 토큰 — "원고지" 방향: 종이 위 초록 원고지 선, 먹색 글자 */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --paper: #f6f8f4;        /* 원고지 종이 */
+  --paper-raised: #ffffff; /* 입력 칸 바탕 */
+  --ink: #1d2721;          /* 먹색 글자 */
+  --ink-soft: #55635a;     /* 보조 글자 */
+  --grid: #a9c8b2;         /* 원고지 칸 선 */
+  --grid-strong: #6f9c7e;  /* 굵은 칸 선, 테두리 */
+  --accent: #2c6a4d;       /* 버튼, 강조 */
+  --accent-ink: #ffffff;
+  --ok: #2c6a4d;
+  --error: #b3261e;
+  --focus: #1f5fbf;
+
+  --font-ui: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --font-letter: 'Gowun Batang', 'Nanum Myeongjo', serif;
+
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.75rem;
+
+  --radius-field: 6px;
+  --radius-button: 999px;
+
+  color-scheme: light;
+  font-family: var(--font-ui);
+  font-size: 100%;
   line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
+  background: var(--paper);
 }
 
-.placeholder {
-  text-align: center;
-  padding: 2rem;
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

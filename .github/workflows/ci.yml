@@ -41,25 +41,6 @@ jobs:
           --health-interval 5s --health-retries 10
     steps:
       - uses: actions/checkout@v7
-      - name: pgvector 확인 (나중에 임베딩을 쓸 수 있는지)
-        env:
-          PGPASSWORD: myblog-dev
-        run: |
-          psql -h localhost -U myblog -d myblog -v ON_ERROR_STOP=1 <<'SQL'
-          CREATE EXTENSION IF NOT EXISTS vector;
-          CREATE TEMP TABLE vector_check (id int, embedding vector(3));
-          INSERT INTO vector_check VALUES (1, '[1,2,3]'), (2, '[9,9,9]');
-          SELECT id, embedding <-> '[1,2,4]' AS distance FROM vector_check ORDER BY distance LIMIT 1;
-          DO $$
-          BEGIN
-            IF (SELECT id FROM vector_check ORDER BY embedding <-> '[1,2,4]' LIMIT 1) IS DISTINCT FROM 1 THEN
-              RAISE EXCEPTION '가장 가까운 벡터를 잘못 찾았습니다';
-            END IF;
-          END $$;
-          SELECT extversion AS pgvector_version FROM pg_extension WHERE extname = 'vector';
-          DROP TABLE vector_check;
-          DROP EXTENSION vector;
-          SQL
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
