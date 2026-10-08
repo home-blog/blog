@@ -26,10 +26,7 @@ server:
   servlet:
     session:
       timeout: 7d   # 마지막 사용 후 7일 (CF-02-10)
-      cookie:
-        max-age: 7d       # 쿠키도 7일. 쓸 때마다 다시 내려 보내 뒤로 민다 (SessionLifetimeFilter, research R-1)
-        http-only: true   # 화면의 스크립트가 세션 쿠키를 읽지 못하게 (NF-10)
-        same-site: lax    # 다른 사이트에서 보낸 요청에는 쿠키를 싣지 않게
+      # 세션 쿠키(이름, 7일, HttpOnly, SameSite)는 user/config/SessionConfig.java에서 정한다. Secure는 prod 설정에서 켠다
 
 management:
   endpoints:

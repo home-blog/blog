@@ -44,8 +44,6 @@ import org.springframework.session.web.http.CookieSerializer;
 @Configuration
 public class SecurityConfig {
 
-    private static final String SESSION_COOKIE = "SESSION";
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
             CookieSerializer cookieSerializer, AuthProperties properties, Clock clock) throws Exception {
@@ -66,7 +64,7 @@ public class SecurityConfig {
                         .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .deleteCookies(SESSION_COOKIE)
+                        .deleteCookies(SessionConfig.COOKIE_NAME)
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(unauthenticated())
