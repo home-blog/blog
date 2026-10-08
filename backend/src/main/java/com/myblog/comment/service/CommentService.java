@@ -1,5 +1,6 @@
 package com.myblog.comment.service;
 
+import com.myblog.blog.CommentReadMarks;
 import com.myblog.comment.config.CommentProperties;
 import com.myblog.comment.controller.dto.CommentRequests;
 import com.myblog.comment.domain.Comment;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>같은 회원의 댓글은 min-interval(5초) 간격으로만 받는다. 마지막 댓글 시각을 DB에서 읽고, 같은 회원의 요청은
  *       트랜잭션 잠금(pg_advisory_xact_lock)으로 한 줄로 세워 거의 동시에 온 요청도 하나만 통과한다 (D-2, Redis 안 씀).</li>
  *   <li>작성자가 탈퇴했으면 번호·닉네임 없이 withdrawn만 참이다 (D-9).</li>
+ *   <li>작성 시각은 그 블로그의 댓글 읽음 처리(specs/006)와 블로그 줄 잠금으로 줄을 선 뒤에 정한다 (R-4).</li>
  *   <li>삭제는 댓글 작성자와 그 글의 블로그 주인만. 그 밖의 사람에게는 없는 댓글과 같은 COMMENT_NOT_FOUND (contracts 3).</li>
  * </ul>
  */
@@ -47,16 +49,18 @@ public class CommentService {
     private final CommentProperties properties;
     private final Validator validator;
     private final JdbcTemplate jdbc;
+    private final CommentReadMarks readMarks;
     private final Clock clock;
 
     public CommentService(CommentRepository comments, PostLookup postLookup, MemberNames memberNames,
-            CommentProperties properties, Validator validator, JdbcTemplate jdbc, Clock clock) {
+            CommentProperties properties, Validator validator, JdbcTemplate jdbc, CommentReadMarks readMarks, Clock clock) {
         this.comments = comments;
         this.postLookup = postLookup;
         this.memberNames = memberNames;
         this.properties = properties;
         this.validator = validator;
         this.jdbc = jdbc;
+        this.readMarks = readMarks;
         this.clock = clock;
     }
 
@@ -79,6 +83,8 @@ public class CommentService {
             throw new ConstraintViolationException(violations);
         }
         jdbc.query(MEMBER_LOCK_SQL, IGNORE, "comment:" + memberId);
+        // 블로그 주인의 읽음 처리와 줄을 선 뒤에 작성 시각을 정한다: 새 댓글이 보지도 못하고 읽음이 되지 않게 (specs/006 R-4)
+        readMarks.holdForComment(post.blogId());
         Instant now = Instant.now(clock);
         Optional<Instant> last = comments.findLastCreatedAt(memberId);
         if (last.isPresent() && now.isBefore(last.get().plus(properties.minInterval()))) {

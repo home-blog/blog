@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -31,6 +32,23 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from Comment c where c.postId = :postId")
     int deleteByPostId(@Param("postId") Long postId);
+
+    /* 006 블로그 관리: 내 블로그 글들의 댓글 (ManageCommentQueryService, NewCommentCounterService) */
+
+    /** 글 번호들의 댓글, 최신순 (같은 시각이면 번호가 큰 것이 위). 쪽은 Pageable로. */
+    @Query("select c from Comment c where c.postId in :postIds order by c.createdAt desc, c.id desc")
+    List<Comment> findByPostIdsNewestFirst(@Param("postIds") Collection<Long> postIds, Pageable pageable);
+
+    long countByPostIdIn(Collection<Long> postIds);
+
+    /** 새 댓글: 주인이 쓰지 않았고 since보다 늦은 것. */
+    @Query("select count(c) from Comment c where c.postId in :postIds and c.memberId <> :ownerId and c.createdAt > :since")
+    long countNewSince(@Param("postIds") Collection<Long> postIds, @Param("ownerId") Long ownerId,
+            @Param("since") Instant since);
+
+    /** 한 번도 열지 않았을 때의 새 댓글: 주인이 쓰지 않은 모든 댓글. */
+    @Query("select count(c) from Comment c where c.postId in :postIds and c.memberId <> :ownerId")
+    long countNotBy(@Param("postIds") Collection<Long> postIds, @Param("ownerId") Long ownerId);
 
     interface PostCount {
 

@@ -59,6 +59,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByCategoryIdInAndVisibility(Collection<Long> categoryIds, String visibility, Pageable pageable);
 
+    /* 006 블로그 관리 (PostSummaryQueryAdapter) */
+
+    @Query("select p.id from Post p where p.categoryId in :categoryIds")
+    List<Long> findIdsByCategoryIdIn(@Param("categoryIds") Collection<Long> categoryIds);
+
+    @Query("select p.id as id, p.title as title from Post p where p.id in :postIds")
+    List<PostTitle> findTitlesByIdIn(@Param("postIds") Collection<Long> postIds);
+
+    interface PostTitle {
+
+        Long getId();
+
+        String getTitle();
+    }
+
     interface CategoryCount {
 
         Long getCategoryId();

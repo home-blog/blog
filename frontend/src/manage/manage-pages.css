@@ -124,3 +124,31 @@
     justify-content: flex-start;
   }
 }
+
+/* 댓글 관리 (specs/006 US4·US5) */
+.manage-row-author {
+  flex: none;
+  font-weight: 600;
+}
+
+.manage-comment-preview {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.manage-row-link {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.new-mark {
+  flex: none;
+  padding: 0 0.35rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: var(--radius-field);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}

@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
+import NewBadge from '../manage/NewBadge'
+import { useNewCommentCount } from '../manage/newCommentCount'
 import './site-header.css'
 
 /** 로그인해야 볼 수 있는 화면. 여기서 로그아웃하면 첫 화면으로 보낸다 (FR-031). 기능이 생기면 더한다. */
@@ -10,6 +12,7 @@ const MEMBER_ONLY_PREFIXES = ['/manage', '/write', '/mypage', '/me/']
 
 export default function SiteHeader() {
   const { member, logout } = useAuth()
+  const { count: newCommentCount } = useNewCommentCount()
   const location = useLocation()
   const navigate = useNavigate()
   const [logoutError, setLogoutError] = useState(false)
@@ -50,6 +53,7 @@ export default function SiteHeader() {
             {/* 블로그 관리와 마이페이지는 따로 둔다 (specs/006 FR-004, BM-01-3 확인 필요: 원본대로) */}
             <Link to="/manage" className="site-link">
               블로그 관리
+              <NewBadge count={newCommentCount} />
             </Link>
             <Link to="/mypage" className="site-link">
               마이페이지

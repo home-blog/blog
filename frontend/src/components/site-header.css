@@ -56,3 +56,19 @@
   text-decoration: none;
   display: inline-block;
 }
+
+/* 새 댓글 수 (specs/006 FR-028): 사용자 메뉴의 블로그 관리 옆, 관리 화면 메뉴의 댓글 관리 옆 */
+.new-badge {
+  display: inline-block;
+  min-width: 1.35rem;
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: var(--radius-button);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
