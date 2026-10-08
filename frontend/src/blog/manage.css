@@ -108,3 +108,7 @@
   min-height: 1.5em;
   margin-top: 0.75rem;
 }
+
+.manage-head a {
+  color: var(--accent);
+}

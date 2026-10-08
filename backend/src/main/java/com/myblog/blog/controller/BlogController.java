@@ -1,13 +1,18 @@
 package com.myblog.blog.controller;
 
+import com.myblog.blog.controller.dto.BlogRequests;
 import com.myblog.blog.service.BlogQueryService;
 import com.myblog.blog.service.BlogQueryService.BlogView;
 import com.myblog.blog.service.BlogQueryService.CategoryView;
+import com.myblog.blog.service.BlogSettingsService;
 import com.myblog.user.LoggedInMember;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -20,16 +25,25 @@ public class BlogController {
 
     private final LoggedInMember loggedInMember;
     private final BlogQueryService queryService;
+    private final BlogSettingsService settingsService;
 
-    public BlogController(LoggedInMember loggedInMember, BlogQueryService queryService) {
+    public BlogController(LoggedInMember loggedInMember, BlogQueryService queryService, BlogSettingsService settingsService) {
         this.loggedInMember = loggedInMember;
         this.queryService = queryService;
+        this.settingsService = settingsService;
     }
 
     /** 내 블로그 (contracts 3). */
     @GetMapping("/api/me/blog")
     public MyBlogResponse myBlog(Authentication authentication) {
         BlogView blog = queryService.myBlog(loggedInMember.requireIdOf(authentication));
+        return new MyBlogResponse(blog.blogId(), blog.name(), blog.intro());
+    }
+
+    /** 내 블로그 이름·소개 고치기 (contracts 4). 블로그 삭제 주소는 없다 (FR-007). */
+    @PutMapping("/api/me/blog")
+    public MyBlogResponse changeProfile(Authentication authentication, @Valid @RequestBody BlogRequests.UpdateProfile request) {
+        BlogView blog = settingsService.changeProfile(loggedInMember.requireIdOf(authentication), request.name(), request.intro());
         return new MyBlogResponse(blog.blogId(), blog.name(), blog.intro());
     }
 
