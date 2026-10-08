@@ -1,5 +1,6 @@
 // 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /mypage 마이페이지, /mypage/password 비밀번호 변경, /mypage/withdrawal 회원 탈퇴(로그인 필요)
-// /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기·/manage/categories 분류 관리·/manage/blog 블로그 설정(로그인 필요) — specs/003
+// /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기(로그인 필요) — specs/003
+// /manage 블로그 관리(로그인 필요, specs/006): 대시보드, /manage/posts 글, /manage/categories 분류(003 화면), /manage/comments 댓글, /manage/stats 통계, /manage/blog 설정(003 화면)
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
 // 005: /tags/:tagName 같은 태그의 공개 글(누구나)
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
@@ -12,6 +13,8 @@ import RequireLogin from './auth/RequireLogin'
 import BlogSettingsPage from './blog/BlogSettingsPage'
 import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
+import ManageLayout from './manage/ManageLayout'
+import ManagePlaceholder from './manage/ManagePlaceholder'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -115,20 +118,20 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/manage/categories',
+        path: '/manage',
         element: (
           <RequireLogin>
-            <CategoryManagePage />
+            <ManageLayout />
           </RequireLogin>
         ),
-      },
-      {
-        path: '/manage/blog',
-        element: (
-          <RequireLogin>
-            <BlogSettingsPage />
-          </RequireLogin>
-        ),
+        children: [
+          { index: true, element: <ManagePlaceholder title="대시보드" /> },
+          { path: 'posts', element: <ManagePlaceholder title="글 관리" /> },
+          { path: 'categories', element: <CategoryManagePage /> },
+          { path: 'comments', element: <ManagePlaceholder title="댓글 관리" /> },
+          { path: 'stats', element: <ManagePlaceholder title="통계" /> },
+          { path: 'blog', element: <BlogSettingsPage /> },
+        ],
       },
       { path: '*', element: <HomePage /> },
     ],

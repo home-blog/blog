@@ -1,4 +1,4 @@
-// 블로그 설정 화면 /manage/blog (specs/003 US7, T050): 이름과 소개
+// 블로그 설정 화면 /manage/blog (specs/003 US7, T050): 이름과 소개. 006 블로그 관리 화면 틀 안의 `설정` (specs/006 T038)
 // - 바뀐 것이 없으면 저장을 잠근다. 저장하면 블로그 화면에 바로 새 값이 보인다 (캐시 없음, SC-010)
 // - 블로그를 지우는 버튼은 없다 (FR-007)
 import { useEffect, useState, type FormEvent } from 'react'
@@ -8,6 +8,7 @@ import { ApiError } from '../api/client'
 import { countChars } from '../auth/rules'
 import '../pages/auth-layout.css'
 import '../pages/mypage.css'
+import { useManageBlog } from '../manage/manageBlog'
 import { getMyBlog, updateMyBlog, type MyBlog } from './blogApi'
 import './blog.css'
 import './manage.css'
@@ -19,6 +20,7 @@ interface FieldErrors {
 }
 
 export default function BlogSettingsPage() {
+  const { refresh } = useManageBlog()
   const [saved, setSaved] = useState<MyBlog | null>(null)
   const [name, setName] = useState('')
   const [intro, setIntro] = useState('')
@@ -77,6 +79,8 @@ export default function BlogSettingsPage() {
       setName(res.name)
       setIntro(res.intro)
       setDone(true)
+      // 관리 화면 위쪽 이름을 바로 바꾼다 (specs/006 T038, FR-040). 실패해도 저장은 끝났다
+      refresh().catch(() => {})
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
         setErrors({ name: err.messageFor('name'), intro: err.messageFor('intro') })

@@ -17,9 +17,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
@@ -107,6 +109,24 @@ public class GlobalExceptionHandler {
     /** multipart 모양이 아닌 요청 등 파일을 읽을 수 없는 요청. */
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<ErrorResponse> handleMultipart(MultipartException e) {
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
+    }
+
+    /**
+     * 꼭 있어야 하는 물음표 뒤의 값이 없는 경우 (specs/006 T007, NF-06).
+     * 서버 오류(500)가 아니라 입력값이 틀린 것이다. 내부 정보 없이 400 VALIDATION_FAILED.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleBadParameter(MissingServletRequestParameterException e) {
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
+    }
+
+    /** 주소에 온 값이 값 검사(@Min 등)에 걸리면 400. 서버가 돌려줄 값이 검사에 걸린 것이면 서버 오류(500)다. */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException e) {
+        if (e.isForReturnValue()) {
+            return handleUnexpected(e);
+        }
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 

@@ -123,6 +123,27 @@ community:
     disk:
       directory: ${IMAGE_DISK_DIRECTORY:./data/images}
 
+# 블로그 관리·통계 (specs/006 plan.md 설정값 목록). 값은 docs의 상세/06 기본값 표와 같다
+manage:
+  page-size: 10            # 글 관리·댓글 관리 한 쪽 (FR-012, FR-023)
+  comment:
+    preview-length: 50     # 댓글 관리의 앞부분 글자 수 (FR-024)
+  dashboard:
+    popular-days: 7        # 인기 글은 최근 7일 조회수로 (D-6)
+    popular-size: 5
+    recent-size: 5
+    chart-days: 30         # 대시보드 그래프 (FR-007)
+  stats:
+    period-options: [7, 30]
+    period-default: 30
+stats:
+  day-zone: Asia/Seoul     # 하루를 나누는 시간대 (FR-036)
+  view:
+    dedupe-window: 30m     # 같은 사람·같은 글은 30분에 한 번 (FR-033)
+  visitor:
+    cookie-name: MYBLOG_VISITOR
+    cookie-max-age: 365d   # 비회원 방문자 쿠키 (D-2, 가안)
+
 myblog:
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다

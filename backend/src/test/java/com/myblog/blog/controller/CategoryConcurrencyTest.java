@@ -49,12 +49,15 @@ class CategoryConcurrencyTest {
     private MockMvc mvc;
     private Member owner;
     private MockHttpSession session;
+    private MockHttpSession otherSession;
 
     @BeforeEach
     void setUp() throws Exception {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         owner = members.register("q");
         session = members.login(mvc, owner);
+        // 같은 회원의 두 번째 로그인: 동시에 보내는 두 요청이 테스트용 세션 객체 하나를 함께 고치지 않게 한다
+        otherSession = members.login(mvc, owner);
     }
 
     @AfterEach
@@ -67,8 +70,7 @@ class CategoryConcurrencyTest {
 
     @Test
     void S10_4_같은_이름을_동시에_두_번_추가하면_하나만_생긴다() throws Exception {
-        // 요청 만들기 도구는 스레드끼리 함께 쓰면 안 되어(ConcurrentModificationException) 하나씩 따로 만든다
-        List<Integer> statuses = together(addDaily(), addDaily());
+        List<Integer> statuses = together(add(session), add(otherSession));
         assertThat(statuses).containsExactlyInAnyOrder(201, 409);
         assertThat(jdbc.queryForObject("select count(*) from category where blog_id = ? and lower(name) = 'daily'",
                 Long.class, owner.blogId())).isOne();
@@ -80,7 +82,7 @@ class CategoryConcurrencyTest {
         for (int round = 0; round < 5; round++) {
             Long categoryId = members.addCategory(owner.blogId(), "잠깐" + round, "public", 10 + round);
             RequestBuilder remove = delete("/api/me/blog/categories/{id}", categoryId).with(csrf()).session(session);
-            RequestBuilder write = post("/api/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+            RequestBuilder write = post("/api/posts").with(csrf()).session(otherSession).contentType(MediaType.APPLICATION_JSON)
                     .content(TestJson.of("title", "글", "content", "본문", "categoryId", categoryId, "topicId", topicId));
             List<Integer> statuses = together(remove, write);
             // 둘 다 성공하는 일은 없다: 삭제가 먼저면 글쓰기는 INVALID_CATEGORY(400), 글이 먼저면 삭제는 CATEGORY_HAS_POSTS(409)
@@ -90,8 +92,8 @@ class CategoryConcurrencyTest {
                 + " where c.category_id is null", Long.class)).isZero();
     }
 
-    private RequestBuilder addDaily() {
-        return post("/api/me/blog/categories").with(csrf()).session(session)
+    private static RequestBuilder add(MockHttpSession on) {
+        return post("/api/me/blog/categories").with(csrf()).session(on)
                 .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "daily"));
     }
 
