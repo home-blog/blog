@@ -28,7 +28,8 @@ public interface BlogDirectory {
     /** 블로그의 공개 분류 번호. 이전·다음 글을 찾을 때 쓴다 (FR-024, FR-048). */
     List<Long> publicCategoryIds(Long blogId);
 
-    record BlogInfo(Long blogId, Long ownerId, String name) {
+    /** intro는 비어 있으면 "" (data-model 1). */
+    record BlogInfo(Long blogId, Long ownerId, String name, String intro) {
     }
 
     /** visibility는 "public" / "private" (common.Visibility의 글자). */

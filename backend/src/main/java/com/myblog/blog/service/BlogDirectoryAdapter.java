@@ -30,12 +30,12 @@ public class BlogDirectoryAdapter implements BlogDirectory {
 
     @Override
     public Optional<BlogInfo> myBlog(Long memberId) {
-        return blogs.findByOwnerId(memberId).map(blog -> new BlogInfo(blog.getId(), blog.getOwnerId(), blog.getName()));
+        return blogs.findByOwnerId(memberId).map(BlogDirectoryAdapter::toInfo);
     }
 
     @Override
     public Optional<BlogInfo> blog(Long blogId) {
-        return blogs.findById(blogId).map(blog -> new BlogInfo(blog.getId(), blog.getOwnerId(), blog.getName()));
+        return blogs.findById(blogId).map(BlogDirectoryAdapter::toInfo);
     }
 
     @Override
@@ -66,6 +66,10 @@ public class BlogDirectoryAdapter implements BlogDirectory {
                 .filter(category -> Visibility.isPublic(category.getVisibility()))
                 .map(Category::getId)
                 .toList();
+    }
+
+    private static BlogInfo toInfo(Blog blog) {
+        return new BlogInfo(blog.getId(), blog.getOwnerId(), blog.getName(), blog.getIntro() == null ? "" : blog.getIntro());
     }
 
     private static CategoryInfo toInfo(Category category, Blog blog) {

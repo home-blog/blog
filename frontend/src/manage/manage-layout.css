@@ -1,0 +1,104 @@
+/* 블로그 관리 화면 틀: 왼쪽 메뉴 + 오른쪽 내용. 좁은 화면에서는 메뉴가 위로 (specs/006 NF-03) */
+.manage-shell {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 2rem;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 4vw, 2.5rem) 4rem;
+}
+
+.manage-side {
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+  padding: 1rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+}
+
+.manage-blog-name {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.manage-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.manage-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px dashed var(--grid);
+}
+
+.manage-menu-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.5rem;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.manage-menu-link:hover {
+  background: var(--paper);
+}
+
+.manage-menu-link.active {
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* 안쪽 화면(분류 관리·설정 등)은 틀이 여백을 가진다 */
+.manage-main .manage {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manage-status {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+@media (max-width: 48rem) {
+  .manage-shell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  .manage-side {
+    position: static;
+  }
+
+  .manage-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-top: 0;
+  }
+
+  .manage-menu-link {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--grid);
+    border-radius: var(--radius-button);
+  }
+
+  .manage-menu-link.active {
+    box-shadow: none;
+    border-color: var(--accent);
+  }
+}

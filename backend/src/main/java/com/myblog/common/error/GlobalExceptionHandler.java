@@ -17,9 +17,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -89,6 +91,15 @@ public class GlobalExceptionHandler {
         if (e.getParameter().hasParameterAnnotation(PathVariable.class)) {
             return respond(ErrorCode.NOT_FOUND);
         }
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
+    }
+
+    /**
+     * 꼭 있어야 하는 물음표 뒤의 값이 없거나, 값 검사(@Min 등)에 걸린 경우 (specs/006 T007, NF-06).
+     * 서버 오류(500)가 아니라 입력값이 틀린 것이다. 내부 정보 없이 400 VALIDATION_FAILED.
+     */
+    @ExceptionHandler({MissingServletRequestParameterException.class, HandlerMethodValidationException.class})
+    public ResponseEntity<ErrorResponse> handleBadParameter(Exception e) {
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 
