@@ -92,7 +92,9 @@ export default function MyPage() {
             </Link>
           </li>
           <li>
-            <span className="mypage-soon">회원 탈퇴</span> <span className="hint">다음 단계에서 열립니다</span>
+            <Link to="/mypage/withdrawal" className="mypage-link mypage-link-quiet">
+              회원 탈퇴
+            </Link>
           </li>
         </ul>
       </section>
