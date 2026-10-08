@@ -52,3 +52,41 @@
 .like-count {
   font-variant-numeric: tabular-nums;
 }
+
+.report {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.report-reasons {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.report-reasons legend {
+  margin-bottom: 0.5rem;
+}
+
+.report-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.report-detail {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.report-detail .comment-length {
+  align-self: flex-end;
+}
