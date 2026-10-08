@@ -81,6 +81,11 @@ public class User {
         this.intro = intro == null || intro.isEmpty() ? null : intro;
     }
 
+    /** 비밀번호를 바꾼다. 원문은 받지 않고 BCrypt로 바꾼 값만 받는다 (CF-01-8, 002 FR-019). */
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
