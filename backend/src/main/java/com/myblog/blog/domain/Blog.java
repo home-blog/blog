@@ -46,6 +46,16 @@ public class Blog {
         return new Blog(ownerId, DEFAULT_NAME_FORMAT.formatted(nickname));
     }
 
+    /**
+     * 이름과 소개 고치기 (FR-004, FR-005). 둘 다 앞뒤 공백을 지운다. 빈 소개는 비어 있음(null)으로 저장하고
+     * 응답에서는 ""로 준다 (data-model 1: 하나로 정해 저장).
+     */
+    public void changeProfile(String name, String intro) {
+        this.name = name.strip();
+        String stripped = intro == null ? "" : intro.strip();
+        this.intro = stripped.isEmpty() ? null : stripped;
+    }
+
     public Long getId() {
         return id;
     }
