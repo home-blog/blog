@@ -1,4 +1,5 @@
 // 내 정보 수정 (specs/002 US1, T018): 닉네임·소개. 이메일은 고칠 수 없다 (FR-005)
+// 저장하는 동안은 칸도 잠근다: 그사이 고친 값이 늦게 온 응답에 덮이지 않게
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import { countChars, INTRO_MAX, isValidNickname, messages } from '../auth/rules'
@@ -80,6 +81,7 @@ export default function ProfileForm({ nickname: savedNickname, intro: savedIntro
           id="profile-nickname"
           autoComplete="nickname"
           value={nickname}
+          disabled={busy}
           onChange={(e) => {
             setNickname(e.target.value)
             setDone(false)
@@ -104,6 +106,7 @@ export default function ProfileForm({ nickname: savedNickname, intro: savedIntro
           id="profile-intro"
           rows={3}
           value={intro}
+          disabled={busy}
           onChange={(e) => {
             setIntro(e.target.value)
             setDone(false)

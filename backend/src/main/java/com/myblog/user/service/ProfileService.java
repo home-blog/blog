@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProfileService {
 
+    private static final String NICKNAME_CONSTRAINT = "uq_users_nickname_active";
+
     private final UserRepository users;
     private final MemberBlogLookup blogLookup;
 
@@ -48,7 +50,11 @@ public class ProfileService {
         try {
             users.flush();
         } catch (DataIntegrityViolationException e) {
-            throw nicknameTaken();
+            // 닉네임 중복 불가만 "이미 사용 중"으로 바꾼다. 그 밖의 거절은 숨기지 않고 그대로 올린다
+            if (String.valueOf(e.getMostSpecificCause().getMessage()).contains(NICKNAME_CONSTRAINT)) {
+                throw nicknameTaken();
+            }
+            throw e;
         }
         return member;
     }
