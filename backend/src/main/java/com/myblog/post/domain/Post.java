@@ -76,6 +76,28 @@ public class Post {
         return post;
     }
 
+    /**
+     * 글 수정 (FR-020, research B-7, R-2). 정리한 값을 지금 값과 하나씩 비교해 <b>하나라도 다를 때만</b> 바꾸고
+     * 수정 시각을 now로 넣는다. 바뀌었는지를 돌려준다. 작성 시각은 바꾸는 방법이 없다.
+     */
+    public boolean update(Long categoryId, Long topicId, String title, String content, String visibility, Instant now) {
+        String newTitle = normalizeTitle(title);
+        String newContent = normalizeContent(content);
+        String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        boolean changed = !this.categoryId.equals(categoryId) || !this.topicId.equals(topicId) || !this.title.equals(newTitle)
+                || !this.content.equals(newContent) || !this.visibility.equals(newVisibility);
+        if (!changed) {
+            return false;
+        }
+        this.categoryId = categoryId;
+        this.topicId = topicId;
+        this.title = newTitle;
+        this.content = newContent;
+        this.visibility = newVisibility;
+        this.updatedAt = now;
+        return true;
+    }
+
     /** 제목은 앞뒤 공백을 지운다. 없으면 빈 글자. */
     public static String normalizeTitle(String title) {
         return title == null ? "" : title.strip();

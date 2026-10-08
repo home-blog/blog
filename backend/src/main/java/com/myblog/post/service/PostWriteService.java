@@ -5,11 +5,8 @@ import com.myblog.blog.BlogDirectory.BlogInfo;
 import com.myblog.blog.BlogDirectory.CategoryInfo;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
-import com.myblog.common.error.ErrorResponse.FieldErrorItem;
 import com.myblog.post.domain.Post;
 import com.myblog.post.repository.PostRepository;
-import com.myblog.post.repository.TopicRepository;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -32,14 +29,14 @@ public class PostWriteService {
 
     private final BlogDirectory blogDirectory;
     private final PostRepository posts;
-    private final TopicRepository topics;
+    private final PostInputChecks checks;
     private final TransactionTemplate transaction;
 
-    public PostWriteService(BlogDirectory blogDirectory, PostRepository posts, TopicRepository topics,
+    public PostWriteService(BlogDirectory blogDirectory, PostRepository posts, PostInputChecks checks,
             PlatformTransactionManager transactionManager) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
-        this.topics = topics;
+        this.checks = checks;
         this.transaction = new TransactionTemplate(transactionManager);
     }
 
@@ -56,8 +53,8 @@ public class PostWriteService {
                 return new Created(existing.get(), false);
             }
         }
-        checkCategory(categoryId, blog);
-        checkTopic(topicId);
+        checks.checkCategory(categoryId, blog.blogId());
+        checks.checkTopic(topicId);
         try {
             Long postId = transaction.execute(status ->
                     posts.saveAndFlush(Post.create(categoryId, topicId, title, content, visibility, requestKey)).getId());
@@ -70,7 +67,7 @@ public class PostWriteService {
                     return new Created(existing.get(), false);
                 }
             }
-            throw invalidCategory();
+            throw PostInputChecks.invalidCategory();
         }
     }
 
@@ -85,24 +82,5 @@ public class PostWriteService {
             return Optional.of(post.get().getId());
         }
         throw new ApiException(ErrorCode.VALIDATION_FAILED);
-    }
-
-    void checkCategory(Long categoryId, BlogInfo blog) {
-        Optional<CategoryInfo> category = blogDirectory.category(categoryId);
-        if (category.isEmpty() || !category.get().blogId().equals(blog.blogId())) {
-            throw invalidCategory();
-        }
-    }
-
-    void checkTopic(Long topicId) {
-        if (topicId == null || !topics.existsById(topicId)) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, ErrorCode.VALIDATION_FAILED.message(),
-                    List.of(new FieldErrorItem("topicId", ErrorCode.TOPIC_REQUIRED.name(), ErrorCode.TOPIC_REQUIRED.message())));
-        }
-    }
-
-    private static ApiException invalidCategory() {
-        return new ApiException(ErrorCode.INVALID_CATEGORY, ErrorCode.INVALID_CATEGORY.message(),
-                List.of(new FieldErrorItem("categoryId", ErrorCode.INVALID_CATEGORY.name(), ErrorCode.INVALID_CATEGORY.message())));
     }
 }

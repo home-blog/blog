@@ -27,4 +27,16 @@ public final class PostRequests {
             @ValidVisibility String visibility,
             @Size(max = 36, message = "VALIDATION_FAILED") String requestKey) {
     }
+
+    /**
+     * 글 수정 (contracts 13). 컨트롤러에서 @Valid로 검사하지 않는다: 남의 글이면 형식 오류보다 먼저 404로 답해야 하므로
+     * 서비스가 주인을 확인한 <b>뒤에</b> 검사한다 (contracts `요청 검사 순서`).
+     */
+    public record Update(
+            @ValidTitle String title,
+            @ValidContent String content,
+            @NotNull(message = "CATEGORY_REQUIRED") Long categoryId,
+            @NotNull(message = "TOPIC_REQUIRED") Long topicId,
+            @ValidVisibility String visibility) {
+    }
 }
