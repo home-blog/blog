@@ -66,7 +66,8 @@ public class PostReadService {
             prev = first(posts.findPreviousIds(openCategoryIds, post.getCreatedAt(), post.getId(), FIRST));
             next = first(posts.findNextIds(openCategoryIds, post.getCreatedAt(), post.getId(), FIRST));
         }
-        long commentCount = commentCounter.getIfAvailable(() -> id -> 0L).count(post.getId());
+        PostCommentCounter counter = commentCounter.getIfAvailable();
+        long commentCount = counter == null ? 0 : counter.count(post.getId());
         LikeSummary likes = likeSummary.getIfAvailable(() -> (id, viewer) -> LikeSummary.NONE).summary(post.getId(), viewerId);
         return new PostDetail(post.getId(), category.blogId(), category.blogName(),
                 new CategoryRef(category.categoryId(), category.name(), category.visibility()),
