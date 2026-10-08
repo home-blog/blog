@@ -82,13 +82,14 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 | 항목 | 내용 | 상태 |
 |---|---|---|
 | 서버 구조 | 단일 서버, 안은 기능별 모듈. MSA 안 씀 | 확정 |
-| 서버 / 화면 / DB | Java 21 + Spring Boot 4.1.1 + **Maven** / React 19 + Vite 8 + TypeScript / PostgreSQL 18 | 가안 (2026-10-08 버전 결정) |
+| 서버 / 화면 / DB | Java 21 + Spring Boot 4.1.1 + **Maven** / React 19 + Vite 8 + TypeScript / PostgreSQL 18 (**pgvector 이미지**, 확장은 아직 안 켬) | 가안 (2026-10-08 버전 결정) |
 | 로그인 | 서버 세션(쿠키), 세션은 PostgreSQL(Spring Session JDBC). JWT 안 씀 | 확정 |
 | Redis | **잃어도 되는 짧은 값만**: 이메일 인증 흐름 값(확정), 조회수 중복 방지·오늘 방문(가안) | 헌법 1.1.0 |
 | 인증 메일 | SMTP, **기다렸다 보낸다**(실패를 바로 알림). 계정은 미정 | 가안 |
 | 글 본문 | 마크다운 문법만 그리고 HTML은 글자 그대로, 위험한 링크 차단 | 가안 |
 | 이미지 저장 | MinIO 또는 서버 디스크 | 미정 |
 | 메시지 큐 | 안 씀. `@Async`, `@Scheduled` | 확정 |
+| Crowfoot DB | 발급받은 PostgreSQL(`cf_u6_d2`, 문서 668에 연결)은 **ERD 확인용**. 실제 개발 DB는 내 컴퓨터 Docker, 표의 원본은 Flyway. Crowfoot에서 DB로 반영하지 않는다 | 확정 (2026-10-08) |
 | 배포 | | 미정 |
 
 **탈퇴**: 회원 줄은 남기고(soft delete) 이메일·비밀번호·닉네임·소개는 알아볼 수 없게 바꾼다 (2026-10-08, `002` D-2).
@@ -118,10 +119,10 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 
 ## 7. 다음 할 일
 
-1. 아카데미 인프라 쓰임 정하기(사용자 확인 대기): SonarQube는 아카데미 서버(확정), 이미지 저장은 MinIO(추천), 배포 때 Redis는 아카데미 서버(DB 번호 = 학번 끝 두 자리, 키 앞에 `myblog:`), RabbitMQ는 안 씀, Elasticsearch·Ollama·InfluxDB는 추후 확장 후보.
+1. 아카데미 인프라 쓰임 정하기(사용자 확인 대기): SonarQube는 아카데미 서버(확정), 이미지 저장은 MinIO(추천), 배포 때 Redis는 아카데미 서버(DB 번호 = 학번 끝 두 자리, 키 앞에 `myblog:`), RabbitMQ는 안 씀, Elasticsearch·InfluxDB는 추후 확장 후보. 임베딩 기능(pgvector + Ollama)도 추후 확장 후보(DB는 준비해 둠).
 2. 사용자가 `docs/3-설계/ERD-변경-요청.md`를 팀에 공유하고 T-1~T-3 답을 받는다.
 3. 001 구현 계속: T006(팀 ERD 확인), T007(회원 표 `V2__auth_tables.sql`)부터. 화면은 가입·로그인부터 트렌드에 맞게 디자인한다.
 4. 002~006의 남은 결정 17개(추천안 목록은 2026-10-08 대화)를 사용자가 확인하면 반영하고 `/speckit-tasks`로 작업 목록을 만든다.
 5. 개인 기능(주제별 화면, 커뮤니티, 오늘의 이슈, 인기 검색어)을 명세할지 정한다.
 6. `docs/3-설계/아키텍처-그림.md`의 그림을 최신 결정에 맞게 고친다.
-7. Crowfoot에 PostgreSQL을 연결할 때: 표 구조의 원본은 Flyway 파일이다. Crowfoot에서 DB로 반영(apply_migration)하지 않고, DB → 문서 동기화(plan_sync)로 확인만 한다(사용자 확인 필요).
+7. Crowfoot DB(문서 668에 연결됨, 지금 빈 DB): 표를 넣을 때는 서버(Flyway)를 그 DB에 붙여 만들고, Crowfoot은 DB → 문서 동기화(plan_sync)로 확인만 한다. 빈 DB 상태에서 apply_sync를 하지 않는다(문서 표가 지워지는 쪽으로 계산됨). 666(내 확장)으로 연결을 옮길지는 사용자 확인 필요.

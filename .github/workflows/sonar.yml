@@ -22,7 +22,7 @@ jobs:
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
     services:
       postgres:
-        image: postgres:18
+        image: pgvector/pgvector:pg18   # docker-compose와 같은 DB
         env:
           POSTGRES_DB: myblog
           POSTGRES_USER: myblog
