@@ -33,9 +33,13 @@ public interface PostImageRepository extends JpaRepository<PostImage, Long> {
     @Query("update PostImage i set i.postId = :postId where i.id in :ids and i.postId is null")
     int link(@Param("ids") Collection<Long> ids, @Param("postId") Long postId);
 
-    /** 정리 시간보다 오래된 연결 전 이미지 (D-3). */
-    @Query("select i from PostImage i where i.postId is null and i.createdAt < :before")
-    List<PostImage> findUnlinkedBefore(@Param("before") Instant before);
+    /**
+     * 정리 시간보다 오래된 연결 전 이미지의 기록을 지우고, 실제로 지운 것의 파일 이름을 돌려준다 (D-3).
+     * 고르기와 지우기가 한 문장이라, 그사이 글 저장이 연결한 이미지(post_id가 채워진 것)는 지우지 않는다.
+     */
+    @Query(value = "delete from post_image where post_id is null and created_at < :before returning storage_key",
+            nativeQuery = true)
+    List<String> deleteUnlinkedBefore(@Param("before") Instant before);
 
     /** 받은 이름 중 기록이 있는 것 (저장소에만 남은 파일 찾기, D-5). */
     @Query("select i.storageKey from PostImage i where i.storageKey in :keys")

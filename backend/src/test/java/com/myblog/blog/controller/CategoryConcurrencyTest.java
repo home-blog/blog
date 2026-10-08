@@ -67,9 +67,8 @@ class CategoryConcurrencyTest {
 
     @Test
     void S10_4_같은_이름을_동시에_두_번_추가하면_하나만_생긴다() throws Exception {
-        RequestBuilder add = post("/api/me/blog/categories").with(csrf()).session(session)
-                .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "daily"));
-        List<Integer> statuses = together(add, add);
+        // 요청 만들기 도구는 스레드끼리 함께 쓰면 안 되어(ConcurrentModificationException) 하나씩 따로 만든다
+        List<Integer> statuses = together(addDaily(), addDaily());
         assertThat(statuses).containsExactlyInAnyOrder(201, 409);
         assertThat(jdbc.queryForObject("select count(*) from category where blog_id = ? and lower(name) = 'daily'",
                 Long.class, owner.blogId())).isOne();
@@ -89,6 +88,11 @@ class CategoryConcurrencyTest {
         }
         assertThat(jdbc.queryForObject("select count(*) from post p left join category c using (category_id)"
                 + " where c.category_id is null", Long.class)).isZero();
+    }
+
+    private RequestBuilder addDaily() {
+        return post("/api/me/blog/categories").with(csrf()).session(session)
+                .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "daily"));
     }
 
     private List<Integer> together(RequestBuilder first, RequestBuilder second) throws Exception {

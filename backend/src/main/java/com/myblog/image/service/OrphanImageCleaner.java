@@ -58,11 +58,10 @@ public class OrphanImageCleaner {
     public void cleanUp() {
         Instant before = Instant.now(clock).minus(properties.orphanTtl());
         transaction.executeWithoutResult(status -> {
-            List<PostImage> old = images.findUnlinkedBefore(before);
-            if (!old.isEmpty()) {
-                images.deleteAllInBatch(old);
-                events.publishEvent(new ImageFilesReleased(old.stream().map(PostImage::getStorageKey).toList()));
-                log.info("글에 연결되지 않은 이미지 {}개를 지웁니다", old.size());
+            List<String> removed = images.deleteUnlinkedBefore(before);
+            if (!removed.isEmpty()) {
+                events.publishEvent(new ImageFilesReleased(removed));
+                log.info("글에 연결되지 않은 이미지 {}개를 지웁니다", removed.size());
             }
         });
         try {

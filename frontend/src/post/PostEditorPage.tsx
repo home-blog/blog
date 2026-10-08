@@ -7,7 +7,7 @@
 // - 글자 수는 입력한 원문 그대로 센다 (D-2). 최종 판단은 서버가 한다
 // - 태그 0~5개 (specs/005 US5, TagInput). 서버의 tags / tags[n] 오류는 태그 칸에 보여 준다
 // - 이미지 올리기 (specs/005 US4): 받은 주소를 본문의 커서 자리에 ![](주소)로 넣는다
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
 import { ApiError } from '../api/client'
@@ -58,6 +58,16 @@ export default function PostEditorPage() {
   const sending = useRef(false)
   const [confirmPublic, setConfirmPublic] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
+  /** 이미지를 넣은 뒤 커서를 둘 자리. 본문이 화면에 반영된 뒤에 옮긴다(여러 장을 이어 올려도 차례대로 들어가게) */
+  const pendingCaret = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    const area = contentRef.current
+    if (area && pendingCaret.current !== null) {
+      area.setSelectionRange(pendingCaret.current, pendingCaret.current)
+      pendingCaret.current = null
+    }
+  }, [input.content])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -181,14 +191,19 @@ export default function PostEditorPage() {
   /** 본문의 커서 자리(없으면 끝)에 이미지 문법을 넣는다. 글과 붙지 않게 빈 줄로 띄워 문단 하나로 둔다 */
   function insertImage(url: string) {
     const area = contentRef.current
-    setInput((prev) => {
-      const at = area ? area.selectionStart : prev.content.length
-      const before = prev.content.slice(0, at)
-      const after = prev.content.slice(area ? area.selectionEnd : at)
-      const lead = before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n'
-      const tail = after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n'
-      return { ...prev, content: `${before}${lead}![](${url})${tail}${after}` }
-    })
+    if (!area) {
+      setInput((prev) => ({ ...prev, content: `${prev.content}\n\n![](${url})\n\n` }))
+      return
+    }
+    // 입력 칸의 지금 값(화면에 반영된 본문)과 커서로 새 본문과 넣은 뒤의 커서 자리를 함께 계산한다
+    const current = area.value
+    const before = current.slice(0, area.selectionStart)
+    const after = current.slice(area.selectionEnd)
+    const lead = before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n'
+    const tail = after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n'
+    const inserted = `${before}${lead}![](${url})${tail}`
+    pendingCaret.current = inserted.length
+    setInput((prev) => ({ ...prev, content: `${inserted}${after}` }))
   }
 
   return (

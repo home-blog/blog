@@ -96,11 +96,12 @@ public class GlobalExceptionHandler {
 
     /**
      * 파일이 업로드 크기 설정(community.image.max-size)을 넘으면 프레임워크가 우리 코드보다 먼저 거절한다.
-     * 그때도 서비스가 직접 거절할 때와 같은 400 INVALID_IMAGE로 답한다 (specs/005 R-6).
+     * 그때도 서비스가 직접 거절할 때와 같은 400 INVALID_IMAGE와 같은 문구(설정값에 맞춘 것)로 답한다 (specs/005 R-6).
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException e) {
-        return respond(ErrorCode.INVALID_IMAGE);
+        ErrorCode code = ErrorCode.INVALID_IMAGE;
+        return ResponseEntity.status(code.status()).body(ErrorResponse.of(code, messageFor(code)));
     }
 
     /** multipart 모양이 아닌 요청 등 파일을 읽을 수 없는 요청. */

@@ -70,7 +70,8 @@ public class S3ImageStorage implements ImageStorage {
             try {
                 ResponseInputStream<GetObjectResponse> stream = client.getObject(request -> request.bucket(bucket).key(key));
                 return Optional.of(new StoredFile(stream, stream.response().contentLength()));
-            } catch (NoSuchKeyException | NoSuchBucketException e) {
+            } catch (NoSuchKeyException e) {
+                // 기록이 있는 파일만 열기 때문에 버킷이 없으면 설정이 틀린 것이다: 없는 파일(404)이 아니라 503으로 둔다
                 return Optional.empty();
             }
         });

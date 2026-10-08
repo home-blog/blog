@@ -175,6 +175,16 @@ class ImageCleanupTest {
     }
 
     @Test
+    void 글에_연결된_이미지는_오래돼도_정리_작업이_지우지_않는다() throws Exception {
+        String url = upload(session);
+        Long postId = write("![](" + url + ")");
+        jdbc.update("update post_image set created_at = now() - interval '25 hours' where storage_key = ?", key(url));
+        cleaner.cleanUp();
+        assertThat(postIdOf(url)).isEqualTo(postId);
+        assertThat(storage.has(key(url))).isTrue();
+    }
+
+    @Test
     void 저장소가_꺼져_있어도_정리_작업은_멈추지_않는다() {
         storage.failAll = true;
         cleaner.cleanUp();

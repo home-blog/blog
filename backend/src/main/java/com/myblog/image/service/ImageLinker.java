@@ -46,7 +46,7 @@ public class ImageLinker {
         if (linkable.size() > properties.maxPerPost()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, ErrorCode.VALIDATION_FAILED.message(), List.of(
                     new FieldErrorItem("content", ErrorCode.IMAGE_LIMIT_EXCEEDED.name(),
-                            ImageUploadService.limitMessage(properties.maxPerPost()))));
+                            ImageErrorMessages.limit(properties.maxPerPost()))));
         }
         List<Long> toLink = linkable.stream().filter(image -> image.getPostId() == null).map(PostImage::getId).toList();
         if (!toLink.isEmpty()) {

@@ -76,7 +76,7 @@ public class ImageUploadService {
             jdbc.query(MEMBER_LOCK_SQL, IGNORE, "image:" + memberId);
             long count = images.countUnlinked(memberId) + (postId == null ? 0 : images.countByPostId(postId));
             if (count >= properties.maxPerPost()) {
-                throw new ApiException(ErrorCode.IMAGE_LIMIT_EXCEEDED, limitMessage(properties.maxPerPost()));
+                throw new ApiException(ErrorCode.IMAGE_LIMIT_EXCEEDED, ImageErrorMessages.limit(properties.maxPerPost()));
             }
             PostImage image = PostImage.uploaded(memberId, fileName, Instant.now(clock));
             try (InputStream content = file.getInputStream()) {
@@ -105,13 +105,7 @@ public class ImageUploadService {
     }
 
     private ApiException invalidImage() {
-        String types = String.join(", ", properties.allowedTypes());
-        return new ApiException(ErrorCode.INVALID_IMAGE,
-                "이미지는 %dMB 이하의 %s만 올릴 수 있습니다".formatted(properties.maxSize().toMegabytes(), types));
-    }
-
-    static String limitMessage(int maxPerPost) {
-        return "※ 이미지는 글 하나에 %d장까지 올릴 수 있습니다".formatted(maxPerPost);
+        return new ApiException(ErrorCode.INVALID_IMAGE, ImageErrorMessages.invalidImage(properties));
     }
 
     /** url은 본문에 넣을 우리 서버 주소다 (D-4). */
