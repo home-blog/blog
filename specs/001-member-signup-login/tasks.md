@@ -48,16 +48,16 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 사용자 이야기 작업을 시작하지 않는다
 
-- [ ] T006 **팀 ERD 확인**: 팀 공통 ERD는 그대로 쓰고, 이 기능에 필요한 칸과 인덱스는 **내 확장**으로 더한다 (`docs/3-설계/ERD-변경-요청.md`의 E-1 실패 횟수·잠금 시각, E-2 탈퇴하지 않은 회원 + 소문자 비교 중복 불가). 팀에 요청한 T-1 ~ T-3의 답도 확인한다. E-1을 Redis로 옮길지는 이때 다시 정하고 research.md D-3에 적는다
-- [ ] T007 DB 표를 만드는 파일 `BE-RES/db/migration/V2__auth_tables.sql`(Flyway, 가안)을 쓴다. `users`: `users_id` BIGINT 자동 증가 기본키, `email` "VARCHAR(255), NOT NULL", `password` "VARCHAR(255), NOT NULL", `nickname` "VARCHAR(20), NOT NULL", `intro` "VARCHAR(100), NULL", `created_at` "TIMESTAMPTZ, NOT NULL", `deleted_at` "TIMESTAMPTZ, NULL", `failed_login_count` "INT, NOT NULL, 기본 0", `locked_until` "TIMESTAMPTZ, NULL". 중복 불가는 "소문자로 맞춘 값이 같은 탈퇴하지 않은 회원은 둘 이상 없다"를 `lower(email)`, `lower(nickname)`과 `WHERE deleted_at IS NULL`인 부분 인덱스로 건다. 가입에 필요한 `blog`, `category`의 최소 칸도 팀 ERD대로 만든다 (칸과 규칙은 `003`이 정함)
+- [x] T006 **팀 ERD 확인**: 팀 공통 ERD는 그대로 쓰고, 이 기능에 필요한 칸과 인덱스는 **내 확장**으로 더한다 (`docs/3-설계/ERD-변경-요청.md`의 E-1 실패 횟수·잠금 시각, E-2 탈퇴하지 않은 회원 + 소문자 비교 중복 불가). 팀에 요청한 T-1 ~ T-3의 답도 확인한다. E-1을 Redis로 옮길지는 이때 다시 정하고 research.md D-3에 적는다
+- [x] T007 DB 표를 만드는 파일 `BE-RES/db/migration/V2__auth_tables.sql`(Flyway, 가안)을 쓴다. `users`: `users_id` BIGINT 자동 증가 기본키, `email` "VARCHAR(255), NOT NULL", `password` "VARCHAR(255), NOT NULL", `nickname` "VARCHAR(20), NOT NULL", `intro` "VARCHAR(100), NULL", `created_at` "TIMESTAMPTZ, NOT NULL", `deleted_at` "TIMESTAMPTZ, NULL", `failed_login_count` "INT, NOT NULL, 기본 0", `locked_until` "TIMESTAMPTZ, NULL". 중복 불가는 "소문자로 맞춘 값이 같은 탈퇴하지 않은 회원은 둘 이상 없다"를 `lower(email)`, `lower(nickname)`과 `WHERE deleted_at IS NULL`인 부분 인덱스로 건다. 가입에 필요한 `blog`, `category`의 최소 칸도 팀 ERD대로 만든다 (칸과 규칙은 `003`이 정함)
 - [x] T008 세션 표를 Spring Session JDBC가 정한 모양으로 만든다 (`BE-RES/db/migration/V1__spring_session.sql`). 자동 생성(`initialize-schema`)은 모든 환경에서 끈다 (2026-10-08, 첫 PR 리뷰 반영)
-- [ ] T009 [P] 설정값 묶음 `BE/user/config/AuthProperties.java`를 만들어 `application.yml`의 `auth.*` 13개 값을 읽는다. 값은 plan.md `설정값 목록`과 같다: 닉네임 2~10, 비밀번호 8~20, 허용 특수문자 `! @ # $ % ^ & * ( ) _ + - =`, 인증번호 6자리, 유효 10분, 다시 받기 1분, 하루 5번, 틀린 횟수 5, 인증됨 30분, 로그인 실패 5, 잠금 10분, 세션 7일, 최대 30일
-- [ ] T010 [P] 공통 오류 응답 `BE/common/error/ErrorResponse.java`(`code`, `message`, `fieldErrors`)와 `BE/common/error/GlobalExceptionHandler.java`를 만든다. 응답에 예외 이름, 쿼리, 경로를 넣지 않는다 (FR-035, contracts `공통 약속`)
-- [ ] T011 보안 설정 `BE/user/config/SecurityConfig.java`: CSRF 토큰을 쓰고(화면이 헤더로 보냄), 세션 쿠키는 `HttpOnly`, `SameSite=Lax`, `prod`에서만 `Secure`. 로그인할 때 세션 ID를 새로 만든다(FR-032). 로그인하지 않은 회원 전용 요청에는 `401` + `{"code":"UNAUTHENTICATED"}`를 돌려준다 (contracts 9)
-- [ ] T012 `GET /api/auth/csrf`를 `BE/user/controller/CsrfController.java`에 만든다 (contracts 1)
-- [ ] T013 [P] 회원 `BE/user/domain/User.java`와 `BE/user/repository/UserRepository.java`를 만든다. 이메일은 "앞뒤 공백을 지우고 소문자로 맞춰" 저장·조회하고, 조회는 `deleted_at`이 비어 있는 회원만 대상으로 한다
-- [ ] T014 [P] 입력 규칙 검사 `BE/user/validation/`을 만든다: 이메일 형식, 닉네임 "2~10자, 한글·영문·숫자만. 공백·특수문자 불가", 비밀번호 정규식 `^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=])[A-Za-z\d!@#$%^&*()_+\-=]{8,20}$`, 비밀번호 확인 일치. 숫자는 `AuthProperties`에서 읽는다 (FR-003, 005 ~ 007, FR-034)
-- [ ] T015 [P] 화면의 요청 도구 `FE/api/client.js`: 처음에 CSRF 토큰을 받아 모든 POST 헤더에 싣고, `401 UNAUTHENTICATED`를 받으면 "로그인 필요" 신호를 낸다 (US4에서 씀)
+- [x] T009 [P] 설정값 묶음 `BE/user/config/AuthProperties.java`를 만들어 `application.yml`의 `auth.*` 13개 값을 읽는다. 값은 plan.md `설정값 목록`과 같다: 닉네임 2~10, 비밀번호 8~20, 허용 특수문자 `! @ # $ % ^ & * ( ) _ + - =`, 인증번호 6자리, 유효 10분, 다시 받기 1분, 하루 5번, 틀린 횟수 5, 인증됨 30분, 로그인 실패 5, 잠금 10분, 세션 7일, 최대 30일
+- [x] T010 [P] 공통 오류 응답 `BE/common/error/ErrorResponse.java`(`code`, `message`, `fieldErrors`)와 `BE/common/error/GlobalExceptionHandler.java`를 만든다. 응답에 예외 이름, 쿼리, 경로를 넣지 않는다 (FR-035, contracts `공통 약속`)
+- [x] T011 보안 설정 `BE/user/config/SecurityConfig.java`: CSRF 토큰을 쓰고(화면이 헤더로 보냄), 세션 쿠키는 `HttpOnly`, `SameSite=Lax`, `prod`에서만 `Secure`. 로그인할 때 세션 ID를 새로 만든다(FR-032). 로그인하지 않은 회원 전용 요청에는 `401` + `{"code":"UNAUTHENTICATED"}`를 돌려준다 (contracts 9)
+- [x] T012 `GET /api/auth/csrf`를 `BE/user/controller/CsrfController.java`에 만든다 (contracts 1)
+- [x] T013 [P] 회원 `BE/user/domain/User.java`와 `BE/user/repository/UserRepository.java`를 만든다. 이메일은 "앞뒤 공백을 지우고 소문자로 맞춰" 저장·조회하고, 조회는 `deleted_at`이 비어 있는 회원만 대상으로 한다
+- [x] T014 [P] 입력 규칙 검사 `BE/user/validation/`을 만든다: 이메일 형식, 닉네임 "2~10자, 한글·영문·숫자만. 공백·특수문자 불가", 비밀번호 정규식 `^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=])[A-Za-z\d!@#$%^&*()_+\-=]{8,20}$`, 비밀번호 확인 일치. 숫자는 `AuthProperties`에서 읽는다 (FR-003, 005 ~ 007, FR-034)
+- [x] T015 [P] 화면의 요청 도구 `FE/api/client.ts`: 처음에 CSRF 토큰을 받아 모든 POST 헤더에 싣고, `401 UNAUTHENTICATED`를 받으면 "로그인 필요" 신호를 낸다 (US4에서 씀)
 
 **Checkpoint**: 서버가 뜨고, `GET /api/auth/csrf`가 토큰을 주며, 표가 만들어진다
 
