@@ -1,11 +1,16 @@
 package com.myblog.user.verification;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.List;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
@@ -25,7 +30,9 @@ import org.springframework.stereotype.Component;
  *
  * 인증 증표는 "인증번호를 받은 그 사람"이 확인·이메일 변경·가입을 하는지 확인하는 데 쓴다.
  * 남이 같은 이메일로 먼저 가입하거나(선점) 인증을 취소해 방해하는 것을 막는다.
- * 인증번호와 증표는 원문 대신 SHA-256 해시로 저장한다 (Redis 값을 읽어도 그대로 쓸 수 없게).
+ * 인증번호와 증표는 원문 대신 <b>서버 비밀키로 만든 HMAC-SHA-256</b>으로 저장한다. 인증번호는 6자리라 경우의 수가 적어서,
+ * 비밀키 없는 해시는 Redis 값을 읽은 사람이 하나씩 대입해 맞힐 수 있다 (2026-10-08 리뷰 반영).
+ * 비밀키는 환경 변수 VERIFICATION_SECRET(myblog.verification.secret)로 넣는다. 개발에서 비어 있으면 켤 때마다 새로 만든다.
  */
 @Component
 public class EmailVerificationStore {
@@ -88,10 +95,23 @@ public class EmailVerificationStore {
     /** 인증번호 확인 결과 */
     public enum ConfirmResult { NO_CODE, MATCH, MISMATCH, ATTEMPTS_EXCEEDED }
 
-    private final StringRedisTemplate redis;
+    private static final Logger log = LoggerFactory.getLogger(EmailVerificationStore.class);
+    private static final String HMAC = "HmacSHA256";
 
-    public EmailVerificationStore(StringRedisTemplate redis) {
+    private final StringRedisTemplate redis;
+    private final SecretKeySpec secretKey;
+
+    public EmailVerificationStore(StringRedisTemplate redis, @Value("${myblog.verification.secret:}") String secret) {
         this.redis = redis;
+        byte[] keyBytes;
+        if (secret == null || secret.isBlank()) {
+            keyBytes = new byte[32];
+            new SecureRandom().nextBytes(keyBytes);
+            log.warn("myblog.verification.secret이 비어 있어 임시 비밀키를 만들었습니다. 서버를 다시 켜면 진행 중인 이메일 인증은 처음부터 해야 합니다");
+        } else {
+            keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        }
+        this.secretKey = new SecretKeySpec(keyBytes, HMAC);
     }
 
     /**
@@ -171,12 +191,14 @@ public class EmailVerificationStore {
         return result != null && result == 1L;
     }
 
-    static String hash(String value) {
+    /** 서버 비밀키로 HMAC-SHA-256을 낸다 (16진수 64자). 비밀키가 없으면 Redis 값만으로는 원래 번호를 맞혀 볼 수 없다. */
+    String hash(String value) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256을 쓸 수 없습니다", e);
+            Mac mac = Mac.getInstance(HMAC);
+            mac.init(secretKey);
+            return HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("HMAC-SHA-256을 쓸 수 없습니다", e);
         }
     }
 
