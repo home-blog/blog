@@ -38,6 +38,9 @@ export default function SiteHeader() {
               </span>
             )}
             <span className="site-member">{member.nickname}님</span>
+            <Link to="/write" className="site-link">
+              글쓰기
+            </Link>
             <Link to="/me/blog" className="site-link">
               내 블로그
             </Link>
