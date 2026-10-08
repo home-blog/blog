@@ -47,6 +47,10 @@ export default function SiteHeader() {
             <Link to="/me/blog" className="site-link">
               내 블로그
             </Link>
+            {/* 블로그 관리와 마이페이지는 따로 둔다 (specs/006 FR-004, BM-01-3 확인 필요: 원본대로) */}
+            <Link to="/manage" className="site-link">
+              블로그 관리
+            </Link>
             <Link to="/mypage" className="site-link">
               마이페이지
             </Link>
