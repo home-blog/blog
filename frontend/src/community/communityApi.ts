@@ -15,3 +15,13 @@ export function likePost(postId: number): Promise<LikeState> {
 export function unlikePost(postId: number): Promise<LikeState> {
   return api<LikeState>(`/api/posts/${postId}/like`, { method: 'DELETE' })
 }
+
+export type ReportReason = 'SPAM' | 'ABUSE' | 'ADULT' | 'OTHER'
+
+/** detail은 OTHER일 때만 저장된다 (다른 사유면 서버가 버린다) */
+export function reportPost(postId: number, reason: ReportReason, detail: string): Promise<{ message: string }> {
+  return api<{ message: string }>(`/api/posts/${postId}/reports`, {
+    method: 'POST',
+    body: reason === 'OTHER' ? { reason, detail } : { reason },
+  })
+}
