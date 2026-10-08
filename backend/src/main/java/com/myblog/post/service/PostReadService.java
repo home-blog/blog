@@ -39,16 +39,18 @@ public class PostReadService {
     private final PostVisibility visibility;
     private final ObjectProvider<PostCommentCounter> commentCounter;
     private final ObjectProvider<PostLikeSummary> likeSummary;
+    private final PostTagService tagService;
 
     public PostReadService(PostRepository posts, TopicRepository topics, BlogDirectory blogDirectory,
             PostVisibility visibility, ObjectProvider<PostCommentCounter> commentCounter,
-            ObjectProvider<PostLikeSummary> likeSummary) {
+            ObjectProvider<PostLikeSummary> likeSummary, PostTagService tagService) {
         this.posts = posts;
         this.topics = topics;
         this.blogDirectory = blogDirectory;
         this.visibility = visibility;
         this.commentCounter = commentCounter;
         this.likeSummary = likeSummary;
+        this.tagService = tagService;
     }
 
     /** viewerId는 로그인하지 않았으면 null. */
@@ -72,7 +74,8 @@ public class PostReadService {
                 new CategoryRef(category.categoryId(), category.name(), category.visibility()),
                 new TopicRef(topic.getId(), topic.getName()),
                 post.getTitle(), post.getContent(), post.getVisibility(), post.getCreatedAt(), post.getUpdatedAt(),
-                prev, next, visibility.isOwner(category, viewerId), commentCount, likes.likeCount(), likes.likedByMe());
+                prev, next, visibility.isOwner(category, viewerId), commentCount, likes.likeCount(), likes.likedByMe(),
+                tagService.tagsOf(post.getId()));
     }
 
     /** 없는 글과 볼 수 없는 글은 상태 코드·본문이 같아야 한다 (FR-026). */
@@ -86,7 +89,7 @@ public class PostReadService {
 
     public record PostDetail(Long postId, Long blogId, String blogName, CategoryRef category, TopicRef topic, String title,
             String content, String visibility, Instant createdAt, Instant updatedAt, Long prevPostId, Long nextPostId,
-            boolean isOwner, long commentCount, long likeCount, boolean likedByMe) {
+            boolean isOwner, long commentCount, long likeCount, boolean likedByMe, List<String> tags) {
     }
 
     public record CategoryRef(Long categoryId, String name, String visibility) {

@@ -2,6 +2,7 @@
 // /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기(로그인 필요) — specs/003
 // /manage 블로그 관리(로그인 필요, specs/006): 대시보드, /manage/posts 글, /manage/categories 분류(003 화면), /manage/comments 댓글, /manage/stats 통계, /manage/blog 설정(003 화면)
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
+// 005: /tags/:tagName 같은 태그의 공개 글(누구나)
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
 import { createBrowserRouter, Outlet, RouterProvider, useNavigate, useParams } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
@@ -23,6 +24,7 @@ import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
 import SearchPage from './pages/SearchPage'
 import SignupPage from './pages/SignupPage'
+import TagPostsPage from './pages/TagPostsPage'
 
 /** 글 번호마다 화면을 새로 만든다: 다른 글로 옮겨 가면 이전 글의 입력·확인 창 상태가 남지 않는다 */
 function PostDetailRoute() {
@@ -89,6 +91,7 @@ const router = createBrowserRouter([
       },
       { path: '/blog/:blogId', element: <BlogHomePage /> },
       { path: '/search', element: <SearchPage /> },
+      { path: '/tags/:tagName', element: <TagPostsPage /> },
       {
         path: '/me/blog',
         element: (
