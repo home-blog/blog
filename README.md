@@ -3,7 +3,7 @@
 > 티스토리 같은 블로그를 **기획부터 설계, 배포까지** 만들어 보는 프로젝트의 문서 모음입니다. (이름은 임시로 MyBlog)
 > 여러 사람이 각자 블로그를 운영하고, 방문자는 한곳에서 둘러보는 멀티 블로그 서비스를 목표로 합니다.
 
-문서는 **2026-10-08 기준**입니다. 기술 내용의 확정 여부는 각 문서의 상태 표기(`확정` / `가안` / `미정`)를 따릅니다. 코드는 별도 저장소에 있습니다.
+문서는 **2026-10-08 기준**입니다. 기술 내용의 확정 여부는 각 문서의 상태 표기(`확정` / `가안` / `미정`)를 따릅니다. **문서와 코드가 이 저장소에 함께 있습니다** (코드: `backend/`, `frontend/`).
 
 > Claude로 작업할 때는 [CLAUDE.md](CLAUDE.md)(작업 지침, 지금 상태, 다음 할 일)와 [프로젝트 원칙](.specify/memory/constitution.md)부터 읽습니다.
 
@@ -21,6 +21,9 @@ docs/
 └── 4-가이드/     처음 개발하는 팀원을 위한 쉬운 기술 설명
 specs/            Spec Kit 명세·기술 계획·작업 목록 (기능별 001~006)
 .specify/memory/  프로젝트 원칙(헌법)
+backend/          서버 코드 (Java 21, Spring Boot 4.1, Maven)
+frontend/         화면 코드 (React 19, Vite 8, TypeScript)
+docker-compose.yml  개발용 PostgreSQL, Redis
 ```
 
 ## 문서 지도
@@ -89,3 +92,25 @@ specs/            Spec Kit 명세·기술 계획·작업 목록 (기능별 001~0
 - 요구사항 문서에는 **"무엇을 할 수 있어야 하는가"만** 적습니다. 기술은 `상세`의 `구현 방식`과 `기술스택-아키텍처`에만 적습니다.
 - 정해지지 않은 항목은 임의로 정하지 않고, 선택지와 추천안을 함께 적습니다.
 - 상세 문서의 요구사항을 고치면 `specs/`의 해당 명세도 같이 확인합니다.
+
+## 코드 실행하기
+
+```bash
+# 1. 개발용 DB와 Redis 띄우기
+docker compose up -d
+
+# 2. 서버 (http://localhost:8080) — IntelliJ에서 MyBlogApplication 실행해도 됩니다
+cd backend && mvn spring-boot:run
+
+# 3. 화면 (http://localhost:5173) — /api 요청은 서버로 넘어갑니다
+cd frontend && npm install && npm run dev
+```
+
+서버 상태 확인: http://localhost:8080/actuator/health
+
+### 코드 작업 방식
+
+- `main`에 직접 올리지 않고, 브랜치를 만들어 PR로 올립니다.
+- PR마다 자동 검사가 돕니다: **CI**(서버 빌드·테스트, 화면 린트·빌드), **CodeRabbit**(1차 코드 리뷰, 한국어), **SonarQube**(품질·커버리지, 아카데미 서버). 문서만 바꾼 PR에서는 CI와 SonarQube가 돌지 않습니다.
+- CI가 통과해야 merge합니다.
+- 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않고 환경 변수나 GitHub Secrets로 넣습니다. (`docker-compose.yml`과 `application.yml`의 기본값은 개발 전용입니다)

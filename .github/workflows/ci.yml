@@ -1,0 +1,69 @@
+# PR과 main에 올라온 코드를 자동으로 검사한다.
+# 서버: Maven 빌드 + 테스트 (PostgreSQL, Redis를 함께 띄움) / 화면: 린트 + 타입 검사 + 빌드
+name: CI
+
+# 문서만 바뀐 PR에서는 돌리지 않는다
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ["docs/**", "specs/**", ".specify/**", "**/*.md"]
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "specs/**", ".specify/**", "**/*.md"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 서버 (Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: myblog
+          POSTGRES_USER: myblog
+          POSTGRES_PASSWORD: myblog-dev
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U myblog -d myblog"
+          --health-interval 5s --health-retries 10
+      redis:
+        image: redis:8
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: 빌드와 테스트
+        run: mvn -B -ntp verify
+
+  frontend:
+    name: 화면 (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: 린트
+        run: npm run lint
+      - name: 타입 검사와 빌드
+        run: npm run build
