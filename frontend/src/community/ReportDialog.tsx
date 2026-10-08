@@ -1,7 +1,7 @@
 // 글 신고 (specs/005 US6, T039): 신고 버튼 → 창에서 사유 넷 중 하나, 기타일 때만 설명(0~200자)
 // - 접수되면 "신고가 접수되었습니다", 이미 신고했으면 서버 문구("이미 신고한 글입니다")를 보여 준다
 // - 자기 글에서는 버튼을 숨긴다 (서버도 막는다, FR-017). 로그인하지 않았으면 로그인 창
-// - 취소하거나 창을 닫으면 아무것도 보내지 않는다
+// - 취소하거나 창을 닫으면 아무것도 보내지 않는다. 보내는 중에는 닫을 수 없다
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
@@ -95,7 +95,16 @@ export default function ReportDialog({ postId }: { postId: number }) {
           {done}
         </p>
       )}
-      <dialog ref={ref} className="confirm-dialog" aria-labelledby={`${id}-title`} onClose={() => setOpen(false)}>
+      <dialog
+        ref={ref}
+        className="confirm-dialog"
+        aria-labelledby={`${id}-title`}
+        onCancel={(event) => {
+          // 보내는 중에는 Esc로 닫지 않는다 (실패 문구가 창 안에 나오므로)
+          if (busy) event.preventDefault()
+        }}
+        onClose={() => setOpen(false)}
+      >
         <form onSubmit={submit} noValidate>
           <h2 id={`${id}-title`} className="confirm-title">
             글 신고
@@ -145,7 +154,7 @@ export default function ReportDialog({ postId }: { postId: number }) {
             </p>
           )}
           <div className="confirm-actions">
-            <button type="button" className="btn btn-quiet" onClick={() => setOpen(false)}>
+            <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => setOpen(false)}>
               취소
             </button>
             <button type="submit" className="btn btn-danger" disabled={busy}>
