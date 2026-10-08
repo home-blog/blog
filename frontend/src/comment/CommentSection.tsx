@@ -4,7 +4,7 @@
 // - 로그인하지 않았으면 입력칸 대신 안내와 로그인 버튼. 로그인하면 이 글로 돌아온다 (FR-001)
 // - 등록 중에는 버튼을 잠근다. 실패 문구는 서버 것 그대로 보여 준다
 // - 지울 수 있는 댓글(canDelete)에만 삭제 버튼. 확인 창에서 취소하면 요청을 보내지 않는다 (US2, FR-004). 고치기 버튼은 없다 (FR-005)
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useLoginPrompt } from '../auth/loginPrompt'
@@ -61,9 +61,13 @@ export default function CommentSection({ postId, initialCount }: Props) {
     [postId],
   )
 
+  // 그리기가 끝나자마자 지금 화면의 key를 적어 둔다 (그 뒤에 끝난 등록이 새 key를 보게)
+  useLayoutEffect(() => {
+    currentKey.current = key
+  }, [key])
+
   // 로그인 상태가 바뀌면 다시 읽는다 (삭제할 수 있는 댓글이 달라진다)
   useEffect(() => {
-    currentKey.current = key
     if (viewer === null) return
     const controller = new AbortController()
     load(key, controller.signal)
@@ -86,14 +90,15 @@ export default function CommentSection({ postId, initialCount }: Props) {
     try {
       const created = await writeComment(postId, body)
       // 등록은 끝났다. 목록이 있으면 맨 아래에 붙이고, 아직 없거나 읽기에 실패했으면 다시 읽는다 (그 실패는 등록 실패가 아니다)
-      setBody('')
       if (currentKey.current !== key) return
+      setBody('')
       if (comments) {
         setLoaded((prev) => (prev?.key === key && 'comments' in prev ? { ...prev, comments: [...prev.comments, created] } : prev))
       } else {
         load(key)
       }
     } catch (err) {
+      if (currentKey.current !== key) return
       setError(err instanceof ApiError ? (err.messageFor('body') ?? err.message) : commentMessages.failed)
     } finally {
       busyRef.current = false
