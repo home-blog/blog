@@ -69,6 +69,10 @@ public enum ErrorCode {
     CATEGORY_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "※ 분류 이름을 입력해 주세요"),
     CATEGORY_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 분류 이름은 20자 이하로 입력해 주세요"),
 
+    // 글 탐색 (specs/004 contracts 2). 숫자는 설정값(explore.search.*)에 따라 PostSearchService가 채운다
+    SEARCH_KEYWORD_TOO_SHORT(HttpStatus.BAD_REQUEST, "검색어를 %d자 이상 입력해 주세요"),
+    SEARCH_KEYWORD_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 %d자까지 입력할 수 있습니다"),
+
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),

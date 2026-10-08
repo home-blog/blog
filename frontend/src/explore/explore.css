@@ -132,3 +132,70 @@ a.pagination-step:hover {
 .post-empty p {
   margin: 0;
 }
+
+/* 머리글 검색창 (specs/004 US5) */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 14rem;
+  max-width: 24rem;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-button);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--step--1);
+}
+
+.search-input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.search-error {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0.75rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* 검색 결과 화면 */
+.search-page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.search-title {
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--grid-strong);
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+}
+
+.search-keyword {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .site-header {
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    order: 3;
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}

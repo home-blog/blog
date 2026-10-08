@@ -1,4 +1,5 @@
-// 첫 화면. 지금은 로그인 상태만 보여 준다. 글 목록·주제별 탐색은 specs/004에서 만든다.
+// 첫 화면. 지금은 로그인 상태만 보여 준다. 블로그 글 목록·검색은 specs/004(블로그 화면, /search),
+// 주제별 화면은 개인 기능이라 아직 명세가 없다.
 import { Link, useLocation } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import ManuscriptSheet from './ManuscriptSheet'

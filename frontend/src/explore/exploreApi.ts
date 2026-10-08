@@ -40,3 +40,31 @@ export function getBlogPosts(
   const query = params.toString()
   return api<PostListPage>(`/api/blogs/${blogId}/posts${query ? `?${query}` : ''}`, { signal })
 }
+
+/** 검색 결과 한 줄. 항상 공개 글이라 visibility가 없다 */
+export interface SearchResult {
+  postId: number
+  blogId: number
+  blogName: string
+  title: string
+  categoryId: number
+  categoryName: string
+  createdAt: string
+  preview: string
+}
+
+export interface SearchPage {
+  /** 실제로 찾은 값 (앞뒤 공백을 지운 값) */
+  keyword: string
+  totalCount: number
+  page: number
+  totalPages: number
+  pageSize: number
+  results: SearchResult[]
+}
+
+export function searchPosts(q: string, page: number, signal?: AbortSignal): Promise<SearchPage> {
+  const params = new URLSearchParams({ q })
+  if (page > 1) params.set('page', String(page))
+  return api<SearchPage>(`/api/search/posts?${params.toString()}`, { signal })
+}
