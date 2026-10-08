@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.myblog.user.domain.User;
 import com.myblog.user.service.MemberRegistration;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -64,10 +66,15 @@ public class TestMembers {
                 + " values (?, ?, ?, false, ?, now()) returning category_id", Long.class, blogId, name, visibility, sortOrder);
     }
 
-    /** 글을 표에 바로 넣는다 (글쓰기 주소가 생기기 전의 준비용). 주제는 첫 번째 주제. */
+    /** 글을 표에 바로 넣는다 (준비용). 주제는 첫 번째 주제, 작성 시각은 지금. */
     public Long addPost(Long categoryId, String title, String visibility) {
+        return addPost(categoryId, title, visibility, Instant.now());
+    }
+
+    /** 작성 시각을 정해 글을 넣는다 (이전·다음 글 순서 확인용). */
+    public Long addPost(Long categoryId, String title, String visibility, Instant createdAt) {
         return jdbc.queryForObject("insert into post (category_id, topic_id, title, content, visibility, created_at)"
-                + " values (?, (select min(topic_id) from topic), ?, '본문', ?, now()) returning post_id",
-                Long.class, categoryId, title, visibility);
+                + " values (?, (select min(topic_id) from topic), ?, '본문', ?, ?) returning post_id",
+                Long.class, categoryId, title, visibility, Timestamp.from(createdAt));
     }
 }

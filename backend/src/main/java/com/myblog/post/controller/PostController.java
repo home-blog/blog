@@ -3,6 +3,7 @@ package com.myblog.post.controller;
 import com.myblog.post.controller.dto.PostRequests;
 import com.myblog.post.service.PostFormService;
 import com.myblog.post.service.PostFormService.PostForm;
+import com.myblog.post.service.PostReadService;
 import com.myblog.post.service.PostWriteService;
 import com.myblog.user.LoggedInMember;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,11 +26,14 @@ public class PostController {
     private final LoggedInMember loggedInMember;
     private final PostFormService formService;
     private final PostWriteService writeService;
+    private final PostReadService readService;
 
-    public PostController(LoggedInMember loggedInMember, PostFormService formService, PostWriteService writeService) {
+    public PostController(LoggedInMember loggedInMember, PostFormService formService, PostWriteService writeService,
+            PostReadService readService) {
         this.loggedInMember = loggedInMember;
         this.formService = formService;
         this.writeService = writeService;
+        this.readService = readService;
     }
 
     /** 글쓰기 화면의 기본값 (contracts 9). */
@@ -46,6 +51,12 @@ public class PostController {
                 request.title(), request.content(), request.visibility(), request.requestKey());
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(new PostIdResponse(result.postId()));
+    }
+
+    /** 글 상세 (contracts 11). 누구나 부른다. 볼 수 없는 글은 없는 글과 같은 404. */
+    @GetMapping("/api/posts/{postId}")
+    public PostReadService.PostDetail read(@PathVariable Long postId, Authentication authentication) {
+        return readService.read(postId, loggedInMember.idOf(authentication).orElse(null));
     }
 
     public record PostIdResponse(Long postId) {
