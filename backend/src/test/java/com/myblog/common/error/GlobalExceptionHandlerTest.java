@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * 저장소(DB, Redis)가 응답하지 않으면 500이 아니라 503 SERVICE_UNAVAILABLE로 답한다 (quickstart S-10).
@@ -38,6 +40,16 @@ class GlobalExceptionHandlerTest {
         var response = handler.handleUnavailable(new QueryTimeoutException("Redis command timed out"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(response.getBody().code()).isEqualTo(ErrorCode.SERVICE_UNAVAILABLE.name());
+    }
+
+    @Test
+    void 프레임워크가_막은_큰_파일도_설정값에_맞춘_문구로_400() {
+        FieldErrorMessages image = code -> code == ErrorCode.INVALID_IMAGE
+                ? Optional.of("이미지는 3MB 이하의 png만 올릴 수 있습니다") : Optional.empty();
+        var response = new GlobalExceptionHandler(List.of(image)).handleTooLarge(new MaxUploadSizeExceededException(1));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.INVALID_IMAGE.name());
+        assertThat(response.getBody().message()).isEqualTo("이미지는 3MB 이하의 png만 올릴 수 있습니다");
     }
 
     @Test

@@ -27,6 +27,7 @@ public class TestComments {
         jdbc.update("delete from comment where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_report where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_like where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
+        jdbc.update("delete from post_image where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_tag where post_id in (" + postsOfBlog + ")", member.blogId());
         // 006: 글을 읽으면 생기는 일별 통계 줄 (블로그·글을 가리킨다)
         jdbc.update("delete from post_daily_stat where post_id in (" + postsOfBlog + ")", member.blogId());
