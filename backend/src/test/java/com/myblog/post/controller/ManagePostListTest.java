@@ -1,6 +1,7 @@
 package com.myblog.post.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -10,6 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.myblog.common.error.ApiException;
+import com.myblog.common.error.ErrorCode;
+import com.myblog.post.service.ManagePostQueryService;
 import com.myblog.support.TestJson;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
@@ -49,6 +53,9 @@ class ManagePostListTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private ManagePostQueryService queryService;
 
     private MockMvc mvc;
     private Member owner;
@@ -179,6 +186,13 @@ class ManagePostListTest {
                     .andReturn().getResponse().getContentAsString();
             assertThat(body).doesNotContain("Exception", "select", "com.myblog");
         }
+    }
+
+    @Test
+    void 서비스를_바로_불러도_1보다_작은_쪽은_VALIDATION_FAILED() {
+        assertThatThrownBy(() -> queryService.list(owner.id(), "all", null, 0))
+                .isInstanceOfSatisfying(ApiException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
     }
 
     @Test
