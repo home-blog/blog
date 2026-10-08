@@ -100,7 +100,12 @@ export default function WithdrawalPage() {
               autoComplete="current-password"
               value={password}
               disabled={busy}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                // 고친 칸의 오류는 지운다. 다시 낼 때 서버가 새로 판단한다
+                setPasswordError(null)
+                setFormError(null)
+              }}
               aria-invalid={Boolean(passwordError)}
               aria-describedby={passwordError ? 'withdrawal-password-error' : undefined}
             />
