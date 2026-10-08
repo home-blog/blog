@@ -1,10 +1,13 @@
 // 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /mypage 마이페이지(로그인 필요)
+// /blog/:blogId 블로그(누구나), /me/blog 내 블로그로 가기(로그인 필요) — specs/003
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
 import { createBrowserRouter, Outlet, RouterProvider, useNavigate } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { LoginModalProvider } from './auth/LoginModal'
 import RequireLogin from './auth/RequireLogin'
+import MyBlogRedirect from './blog/MyBlogRedirect'
 import SiteHeader from './components/SiteHeader'
+import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
@@ -43,6 +46,15 @@ const router = createBrowserRouter([
         element: (
           <RequireLogin>
             <MyPage />
+          </RequireLogin>
+        ),
+      },
+      { path: '/blog/:blogId', element: <BlogHomePage /> },
+      {
+        path: '/me/blog',
+        element: (
+          <RequireLogin>
+            <MyBlogRedirect />
           </RequireLogin>
         ),
       },
