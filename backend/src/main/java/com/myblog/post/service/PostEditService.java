@@ -8,6 +8,7 @@ import com.myblog.post.domain.Post;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.service.PostFormService.CategoryOption;
 import com.myblog.post.service.PostFormService.TopicOption;
+import com.myblog.post.tag.TagNormalizer;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -33,16 +34,21 @@ public class PostEditService {
     private final PostInputChecks checks;
     private final PostFormService formService;
     private final Validator validator;
+    private final TagNormalizer tagNormalizer;
+    private final PostTagService tagService;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public PostEditService(PostRepository posts, BlogDirectory blogDirectory, PostInputChecks checks,
-            PostFormService formService, Validator validator, ApplicationEventPublisher events, Clock clock) {
+            PostFormService formService, Validator validator, TagNormalizer tagNormalizer, PostTagService tagService,
+            ApplicationEventPublisher events, Clock clock) {
         this.posts = posts;
         this.blogDirectory = blogDirectory;
         this.checks = checks;
         this.formService = formService;
         this.validator = validator;
+        this.tagNormalizer = tagNormalizer;
+        this.tagService = tagService;
         this.events = events;
         this.clock = clock;
     }
@@ -53,10 +59,14 @@ public class PostEditService {
         Owned owned = findMine(memberId, postId);
         Post post = owned.post();
         return new EditView(post.getId(), post.getTitle(), post.getContent(), post.getCategoryId(), post.getTopicId(),
-                post.getVisibility(), formService.categoryOptions(owned.category().blogId()), formService.topicOptions());
+                post.getVisibility(), tagService.tagsOf(post.getId()), formService.categoryOptions(owned.category().blogId()),
+                formService.topicOptions());
     }
 
-    /** 글 수정 (contracts 13). 바뀐 것이 없으면 아무것도 저장하지 않고 원래 수정 시각을 돌려준다 (SC-009). */
+    /**
+     * 글 수정 (contracts 13). 바뀐 것이 없으면 아무것도 저장하지 않고 원래 수정 시각을 돌려준다 (SC-009).
+     * 태그(005)는 보낸 목록이 새 전체 목록이다. 태그만 바꿔도 수정 시각을 넣는다 (2026-10-08 가안, 003 FR-020과 같은 판단).
+     */
     public Updated update(Long memberId, Long postId, PostRequests.Update request) {
         Owned owned = findMine(memberId, postId);
         Set<ConstraintViolation<PostRequests.Update>> violations = validator.validate(request);
@@ -65,9 +75,15 @@ public class PostEditService {
         }
         checks.checkCategory(request.categoryId(), owned.category().blogId());
         checks.checkTopic(request.topicId());
+        List<String> tags = tagNormalizer.normalize(request.tags());
         Post post = owned.post();
+        Instant now = Instant.now(clock);
         boolean changed = post.update(request.categoryId(), request.topicId(), request.title(), request.content(),
-                request.visibility(), Instant.now(clock));
+                request.visibility(), now);
+        if (tagService.replaceTags(post.getId(), tags) && !changed) {
+            post.markUpdated(now);
+            changed = true;
+        }
         if (changed) {
             posts.flush();
         }
@@ -75,7 +91,7 @@ public class PostEditService {
     }
 
     /**
-     * 글 삭제 (contracts 14). 딸린 것(댓글·좋아요·태그 연결·이미지 기록·신고)을 가진 모듈이 PostDeletingEvent를 듣고
+     * 글 삭제 (contracts 14). 딸린 것(댓글·좋아요·태그 연결·이미지 기록·신고)을 가진 모듈(태그는 이 모듈의 PostTagService)이 PostDeletingEvent를 듣고
      * 같은 트랜잭션에서 먼저 지운 뒤 글을 지운다. 하나라도 실패하면 모두 취소된다 (FR-022, SC-007).
      */
     public void delete(Long memberId, Long postId) {
@@ -98,7 +114,7 @@ public class PostEditService {
     }
 
     public record EditView(Long postId, String title, String content, Long categoryId, Long topicId, String visibility,
-            List<CategoryOption> categories, List<TopicOption> topics) {
+            List<String> tags, List<CategoryOption> categories, List<TopicOption> topics) {
     }
 
     /** updatedAt은 바뀌지 않았으면 원래 값(수정한 적 없으면 null). */

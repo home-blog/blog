@@ -102,6 +102,11 @@ community:
     min-interval: 5s   # 같은 회원의 댓글 사이 최소 간격 (CF-18-7)
   report:
     detail-max-length: 200   # 기타 사유의 설명 (CF-21-2)
+  tag:
+    max-per-post: 5   # 글 하나에 붙일 수 있는 태그 수 (CF-20-1)
+    min-length: 1
+    max-length: 15    # tag.name 칸(15)보다 길게 정하면 서버가 켜지지 않는다
+    page-size: 10     # 태그별 글 목록 한 페이지 (004 목록과 같은 값, CF-10-2)
 
 # 블로그 관리·통계 (specs/006 plan.md 설정값 목록). 값은 docs의 상세/06 기본값 표와 같다
 manage:
