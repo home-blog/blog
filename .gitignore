@@ -3,4 +3,8 @@
 
 # Spec Kit 로컬 작업 파일 (이 레포에는 올리지 않음)
 .claude/
-.specify/
+.specify/*
+# 헌법(프로젝트 원칙)만 올린다. 다른 세션도 읽을 수 있게
+!.specify/memory/
+.specify/memory/*
+!.specify/memory/constitution.md
