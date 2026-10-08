@@ -95,11 +95,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 꼭 있어야 하는 물음표 뒤의 값이 없거나, 값 검사(@Min 등)에 걸린 경우 (specs/006 T007, NF-06).
+     * 꼭 있어야 하는 물음표 뒤의 값이 없는 경우 (specs/006 T007, NF-06).
      * 서버 오류(500)가 아니라 입력값이 틀린 것이다. 내부 정보 없이 400 VALIDATION_FAILED.
      */
-    @ExceptionHandler({MissingServletRequestParameterException.class, HandlerMethodValidationException.class})
-    public ResponseEntity<ErrorResponse> handleBadParameter(Exception e) {
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleBadParameter(MissingServletRequestParameterException e) {
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
+    }
+
+    /** 주소에 온 값이 값 검사(@Min 등)에 걸리면 400. 서버가 돌려줄 값이 검사에 걸린 것이면 서버 오류(500)다. */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException e) {
+        if (e.isForReturnValue()) {
+            return handleUnexpected(e);
+        }
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 

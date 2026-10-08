@@ -1,6 +1,8 @@
 package com.myblog.common.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
@@ -57,6 +60,19 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().code()).isEqualTo(ErrorCode.VALIDATION_FAILED.name());
         assertThat(response.getBody().message()).doesNotContain("page", "Integer");
+    }
+
+    @Test
+    void 값_검사는_들어온_값이면_400이고_돌려줄_값이면_500() {
+        HandlerMethodValidationException input = mock(HandlerMethodValidationException.class);
+        when(input.isForReturnValue()).thenReturn(false);
+        assertThat(handler.handleMethodValidation(input).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+        HandlerMethodValidationException output = mock(HandlerMethodValidationException.class);
+        when(output.isForReturnValue()).thenReturn(true);
+        var response = handler.handleMethodValidation(output);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().code()).isEqualTo(ErrorCode.INTERNAL_ERROR.name());
     }
 
     private static MethodArgumentTypeMismatchException mismatch(int parameterIndex) throws Exception {
