@@ -101,7 +101,7 @@
 | 9 | `category` | 내 블로그의 분류 모두 (`미분류` 포함) | 삭제되는 것: 분류 | |
 | 10 | `blog_daily_stat` | 내 블로그의 일별 통계 | (블로그 삭제의 결과) | `006` |
 | 11 | `blog` | 내 블로그 | 삭제되는 것: 내 블로그 | CF-04-4 |
-| 12 | `users` | `deleted_at = 지금` (줄은 남긴다) | — | `D-1`, `D-2` |
+| 12 | `users` | `deleted_at = 지금` (줄은 남긴다). `email` = `deleted-{users_id}@deleted.invalid`, `password` = `!deleted`(맞을 수 없는 값), `nickname` = `탈퇴한사용자{users_id}`, `intro` = NULL | — | `D-1`, `D-2`, FR-030 |
 | 13 | 세션 표 | 내 세션 모두 | FR-027 | 위 2번 |
 
 **남기는 것**

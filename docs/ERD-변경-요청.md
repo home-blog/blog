@@ -52,7 +52,7 @@ ALTER TABLE comment_report ADD CONSTRAINT ck_comment_report_reason CHECK (reason
 | # | 표 | 더하는 것 | 왜 | 관련 |
 |---|---|---|---|---|
 | E-1 | `users` | `failed_login_count`(INT, 기본 0), `locked_until`(TIMESTAMPTZ, NULL) | 로그인 5회 실패 10분 잠금. **Redis로 옮길지는 구현 때 다시 정한다** | `001` FR-027, D-3 |
-| E-2 | `users` | 기존 `UNIQUE` 대신 "탈퇴하지 않은 회원 + 소문자 비교" 인덱스 | 탈퇴 후 재가입(CF-15-21), `Kim`과 `kim`은 같은 닉네임 | `001` D-4 |
+| E-2 | `users` | 기존 `UNIQUE` 대신 소문자 비교 인덱스 ("탈퇴하지 않은 회원" 조건은 있어도 되고 없어도 된다) | `Kim`과 `kim`은 같은 닉네임. 재가입은 탈퇴 때 이메일·닉네임을 바꾸므로 평범한 `UNIQUE`로도 된다 | `001` D-4, `002` D-2 |
 | E-3 | `category` | 이름 소문자 비교 인덱스, `color_index`(SMALLINT) | "Java"와 "java"는 같은 분류, 분류 색 | `003` D-5, `006` D-9 |
 | E-4 | `post` | `request_key`(VARCHAR(36), NULL, 중복 불가) | 저장을 여러 번 눌러도 한 번만 저장 | `003` D-6 |
 | E-5 | **새 표** `post_daily_stat` | `post_id`, `stat_date`, `views` | 최근 7일 인기 글 | `006` D-6 |
@@ -87,13 +87,13 @@ CREATE TABLE post_daily_stat (
 ALTER TABLE blog ADD COLUMN comments_read_at TIMESTAMPTZ NULL;
 ```
 
-> E-2와 E-3은 기존 `UNIQUE`를 **더 좁은 규칙으로 바꾸는** 것이라, 공통 ERD의 `UNIQUE`를 그대로 두면 탈퇴 후 재가입이 막힙니다. 재가입은 제 규칙이므로 제 저장소에서만 바꿉니다.
+> E-2와 E-3은 기존 `UNIQUE`를 **대소문자 무시 비교로 바꾸는** 것입니다. 탈퇴 후 재가입은 탈퇴 때 이메일·닉네임을 바꾸므로(2026-10-08) 공통 ERD의 `UNIQUE` 그대로도 됩니다.
 
 ## 3. 바꾸지 않는 것 (공유만)
 
 | 표 | 내용 | 이유 |
 |---|---|---|
-| `users` | 탈퇴해도 줄을 지우지 않고 `deleted_at`만 넣는다. 그 사람의 댓글은 "탈퇴한 사용자"로 보인다 | 지금 ERD 그대로 (`002` D-1) |
+| `users` | 탈퇴해도 줄을 지우지 않고 `deleted_at`을 넣되, **개인정보는 알아볼 수 없게 바꾼다**: 이메일 `deleted-{번호}@deleted.invalid`, 비밀번호 해시 삭제(맞을 수 없는 값), 닉네임 `탈퇴한사용자{번호}`, 소개 비움. 그 사람의 댓글은 "탈퇴한 사용자"로 보인다 | 2026-10-08 ERD 피드백 반영. 칸 변경 없이 탈퇴 처리 코드로 한다 (`002` D-1, D-2) |
 | `blog` | `users_id` `UNIQUE`(회원 1명 = 블로그 1개) 그대로 | 이번 범위는 1인 1블로그 (`003` D-4) |
 | `post` | `topic_id` 그대로. 주제는 글마다 고른다 | 2026-10-07 결정 (`003` D-3) |
 | `category` | `visibility` 그대로. 비공개 분류의 글은 주인만 본다 | 2026-10-07 팀 답변 (`003` D-5) |
