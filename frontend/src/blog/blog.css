@@ -1,0 +1,99 @@
+/* 블로그 화면: 원고지 종이 위 머리(이름·소개)와 왼쪽 분류, 오른쪽 글 자리 */
+.blog-status {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.blog-home {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.blog-head {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--grid-strong);
+}
+
+.blog-name {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* 소개의 HTML은 글자 그대로 보인다 (React가 이스케이프). 줄바꿈은 살린다 */
+.blog-intro {
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.blog-owner-actions {
+  margin: 1rem 0 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.blog-owner-actions [aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.blog-body {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 40rem) {
+  .blog-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.blog-side-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.blog-categories ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.blog-category {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--grid) 45%, transparent);
+}
+
+.blog-category-name {
+  overflow-wrap: anywhere;
+}
+
+.blog-category-count {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.blog-badge {
+  padding: 0 0.4rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}

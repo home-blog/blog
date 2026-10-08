@@ -5,7 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import './site-header.css'
 
 /** 로그인해야 볼 수 있는 화면. 여기서 로그아웃하면 첫 화면으로 보낸다 (FR-031). 기능이 생기면 더한다. */
-const MEMBER_ONLY_PREFIXES = ['/manage', '/write', '/mypage']
+const MEMBER_ONLY_PREFIXES = ['/manage', '/write', '/mypage', '/me/']
 
 export default function SiteHeader() {
   const { member, logout } = useAuth()
@@ -38,6 +38,9 @@ export default function SiteHeader() {
               </span>
             )}
             <span className="site-member">{member.nickname}님</span>
+            <Link to="/me/blog" className="site-link">
+              내 블로그
+            </Link>
             <Link to="/mypage" className="site-link">
               마이페이지
             </Link>

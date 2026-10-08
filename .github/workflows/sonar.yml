@@ -1,5 +1,5 @@
 # SonarQube 품질 분석 (버그, 취약점, 중복, 테스트 커버리지) — 아카데미 SonarQube 서버 사용
-# 준비: Repository secret SONAR_TOKEN, Repository variable SONAR_HOST_URL (예 http://s4.java21.net:9000)
+# 준비: Repository secret SONAR_TOKEN, Repository variable SONAR_HOST_URL (예 http://<SonarQube 서버>:9000)
 # 프로젝트 키는 sonar-project.properties에 있다.
 # 토큰이 아직 없으면 이 작업은 건너뛴다.
 name: SonarQube

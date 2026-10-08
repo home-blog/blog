@@ -42,6 +42,31 @@ public enum ErrorCode {
     /** 문구의 횟수·분은 설정값에 따라 서비스가 채운다 (LoginService). */
     ACCOUNT_LOCKED(HttpStatus.LOCKED, "로그인 시도가 %d회 실패해 잠겼습니다. %d분 뒤에 다시 시도해 주세요"),
 
+    // 블로그·분류·글 (specs/003 contracts). ※는 상세/03 안내 문구 표에 아직 없는 제안 문구다
+    /** 없는 글, 남의 비공개 글, 남의 글의 수정·삭제가 모두 같은 응답이다 (FR-019, FR-026). */
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 글입니다"),
+    BLOG_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 블로그입니다"),
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 분류입니다"),
+    INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "※ 분류를 다시 골라 주세요"),
+    CATEGORY_NAME_DUPLICATED(HttpStatus.CONFLICT, "이미 있는 분류입니다"),
+    DEFAULT_CATEGORY_NOT_DELETABLE(HttpStatus.CONFLICT, "※ 미분류는 삭제할 수 없습니다"),
+    /** 문구의 글 개수는 서비스가 채운다. */
+    CATEGORY_HAS_POSTS(HttpStatus.CONFLICT, "이 분류에 글이 %d개 있어 삭제할 수 없습니다. 글을 다른 분류로 옮긴 뒤 삭제해 주세요"),
+    INVALID_CATEGORY_ORDER(HttpStatus.BAD_REQUEST, "※ 분류 목록이 바뀌었습니다. 새로 고친 뒤 다시 시도해 주세요"),
+    /** 아래 칸별 문구의 숫자는 설정값에 따라 BlogFieldErrorMessages, PostFieldErrorMessages가 채운다. */
+    TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "제목을 입력해 주세요"),
+    TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 제목은 100자 이하로 입력해 주세요"),
+    CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "본문을 입력해 주세요"),
+    CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 본문은 10,000자 이하로 입력해 주세요"),
+    CATEGORY_REQUIRED(HttpStatus.BAD_REQUEST, "※ 분류를 골라 주세요"),
+    TOPIC_REQUIRED(HttpStatus.BAD_REQUEST, "주제를 골라 주세요"),
+    VISIBILITY_INVALID(HttpStatus.BAD_REQUEST, "※ 공개 여부를 다시 골라 주세요"),
+    BLOG_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "※ 블로그 이름을 입력해 주세요"),
+    BLOG_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 블로그 이름은 30자 이하로 입력해 주세요"),
+    BLOG_INTRO_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 소개는 200자 이하로 입력해 주세요"),
+    CATEGORY_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "※ 분류 이름을 입력해 주세요"),
+    CATEGORY_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 분류 이름은 20자 이하로 입력해 주세요"),
+
     // 계정 관리 (specs/002 contracts 2 ~ 4)
     /** 401이 아니다. 401은 화면이 로그인 창을 띄우는 약속이다 (002 research B-2). */
     CURRENT_PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "현재 비밀번호가 올바르지 않습니다"),

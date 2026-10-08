@@ -14,7 +14,9 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -57,6 +59,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException e) {
         return respond(ErrorCode.NOT_FOUND);
+    }
+
+    /**
+     * 숫자 자리에 글자가 온 경우. 주소 안의 번호(/api/blogs/abc)면 그런 주소가 없는 것이므로 404,
+     * 물음표 뒤의 값(?page=abc)이면 입력값이 틀린 것이므로 400 VALIDATION_FAILED.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        if (e.getParameter().hasParameterAnnotation(PathVariable.class)) {
+            return respond(ErrorCode.NOT_FOUND);
+        }
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

@@ -65,6 +65,26 @@ account:
     min-length: 0
     max-length: 100
 
+# 블로그·분류·글 (specs/003 plan.md 설정값 목록). 글자는 코드 포인트로 센다
+blog:
+  name:
+    min-length: 1
+    max-length: 30
+  intro:
+    min-length: 0
+    max-length: 200
+category:
+  name:
+    min-length: 1
+    max-length: 20
+post:
+  title:
+    min-length: 1
+    max-length: 100
+  content:
+    min-length: 1
+    max-length: 10000
+
 myblog:
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
