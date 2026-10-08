@@ -94,11 +94,11 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] 로그인 `BE/user/service/LoginService.java`: 이메일을 소문자로 맞추고, 탈퇴하지 않은 회원에서 찾고, 이메일이 없든 비밀번호가 틀리든 **같은 응답** `INVALID_CREDENTIALS`를 준다. 성공하면 세션을 만들고 회원을 찾는 이름표(principal)에 `users_id`를 넣는다 (FR-024, 026, data-model 4)
-- [ ] T027 [US2] 세션 유지 `BE/user/config/SessionConfig.java`: 마지막 사용 후 7일, 쿠키도 7일. "로그인한 때부터 30일"은 요청마다 세션을 만든 시각을 확인하는 `BE/user/security/SessionAbsoluteTimeoutFilter.java`로 지킨다 (FR-030, research R-2)
-- [ ] T028 [US2] `AuthController`에 `POST /api/auth/login`, `POST /api/auth/logout`(세션 삭제 + 쿠키 만료, 이미 로그아웃이어도 204), `GET /api/auth/me`를 더한다 (contracts 6 ~ 8, FR-031)
-- [ ] T029 [US2] **쿠키 연장 확인 (research R-1)**: 요청을 계속할 때 브라우저 쿠키의 만료 시각도 뒤로 밀리는지 quickstart S-6의 4번으로 확인하고, 안 밀리면 요청 때 쿠키를 다시 내려 주는 장치를 `SessionConfig`에 더한다. 결과를 research.md R-1에 적는다
-- [ ] T030 [US2] 화면 `FE/auth/AuthContext.jsx`(처음 열 때 `GET /api/auth/me`로 로그인 상태 확인)와 `FE/pages/LoginPage.jsx`(성공하면 이전 화면, 로그인 화면에서 직접 왔으면 첫 화면), 로그아웃 버튼(로그인이 필요한 화면이면 첫 화면으로)을 만든다 (FR-025, 031)
+- [x] T026 [US2] 로그인 `BE/user/service/LoginService.java`: 이메일을 소문자로 맞추고, 탈퇴하지 않은 회원에서 찾고, 이메일이 없든 비밀번호가 틀리든 **같은 응답** `INVALID_CREDENTIALS`를 준다. 성공하면 세션을 만들고 회원을 찾는 이름표(principal)에 `users_id`를 넣는다 (FR-024, 026, data-model 4)
+- [x] T027 [US2] 세션 유지 `BE/user/config/SessionConfig.java`: 마지막 사용 후 7일, 쿠키도 7일. "로그인한 때부터 30일"은 요청마다 세션을 만든 시각을 확인하는 `BE/user/security/SessionAbsoluteTimeoutFilter.java`로 지킨다 (FR-030, research R-2)
+- [x] T028 [US2] `AuthController`에 `POST /api/auth/login`, `POST /api/auth/logout`(세션 삭제 + 쿠키 만료, 이미 로그아웃이어도 204), `GET /api/auth/me`를 더한다 (contracts 6 ~ 8, FR-031)
+- [x] T029 [US2] **쿠키 연장 확인 (research R-1)**: 요청을 계속할 때 브라우저 쿠키의 만료 시각도 뒤로 밀리는지 quickstart S-6의 4번으로 확인하고, 안 밀리면 요청 때 쿠키를 다시 내려 주는 장치를 `SessionConfig`에 더한다. 결과를 research.md R-1에 적는다
+- [x] T030 [US2] 화면 `FE/auth/AuthContext.tsx`(처음 열 때 `GET /api/auth/me`로 로그인 상태 확인)와 `FE/pages/LoginPage.tsx`(성공하면 이전 화면, 로그인 화면에서 직접 왔으면 첫 화면), 로그아웃 버튼(로그인이 필요한 화면이면 첫 화면으로)을 만든다 (FR-025, 031)
 
 **Checkpoint**: S-5, S-6이 통과하고 US1도 그대로 동작한다
 
@@ -112,9 +112,9 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 ### Implementation for User Story 3
 
-- [ ] T031 [P] [US3] `UserRepository`에 실패 횟수를 **DB에서 바로 +1** 하는 쿼리와 0으로 되돌리는 쿼리, 잠금 시각을 넣는 쿼리를 더한다. 값은 파라미터로 넘기고 문자열을 이어 붙이지 않는다 (헌법 IV, data-model 1 `로그인 잠금의 상태 변화`)
-- [ ] T032 [US3] `LoginService`에 잠금을 더한다: 잠겨 있으면 비밀번호를 비교하지 않고 `423 ACCOUNT_LOCKED` + `retryAfterSeconds`, 잠금 시각이 지났으면 횟수를 0으로 되돌리고 진행, 틀리면 +1 하고 5번째면 `locked_until` = 지금 + 10분과 잠금 문구, 성공하면 0, 없는 이메일은 기록하지 않음, 남은 횟수는 어디에도 넣지 않음 (FR-027 ~ 029) — T031 다음
-- [ ] T033 [US3] `FE/pages/LoginPage.jsx`에 잠금 문구 "로그인 시도가 5회 실패해 잠겼습니다. {N}분 뒤에 다시 시도해 주세요"를 넣고, `{N}`은 `retryAfterSeconds`를 올림한 분으로 보여 준다
+- [x] T031 [P] [US3] `UserRepository`에 실패 횟수를 **DB에서 바로 +1** 하는 쿼리와 0으로 되돌리는 쿼리, 잠금 시각을 넣는 쿼리를 더한다. 값은 파라미터로 넘기고 문자열을 이어 붙이지 않는다 (헌법 IV, data-model 1 `로그인 잠금의 상태 변화`)
+- [x] T032 [US3] `LoginService`에 잠금을 더한다: 잠겨 있으면 비밀번호를 비교하지 않고 `423 ACCOUNT_LOCKED` + `retryAfterSeconds`, 잠금 시각이 지났으면 횟수를 0으로 되돌리고 진행, 틀리면 +1 하고 5번째면 `locked_until` = 지금 + 10분과 잠금 문구, 성공하면 0, 없는 이메일은 기록하지 않음, 남은 횟수는 어디에도 넣지 않음 (FR-027 ~ 029) — T031 다음
+- [x] T033 [US3] `FE/pages/LoginPage.tsx`에 잠금 문구 "로그인 시도가 5회 실패해 잠겼습니다. {N}분 뒤에 다시 시도해 주세요"를 넣고, `{N}`은 `retryAfterSeconds`를 올림한 분으로 보여 준다
 
 **Checkpoint**: S-7이 통과하고 US1, US2도 그대로 동작한다
 
@@ -128,8 +128,8 @@ description: "001 회원 가입과 로그인 작업 목록"
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] 로그인 창 `FE/auth/LoginModal.jsx`와 회원 전용 화면 감싸개 `FE/auth/RequireLogin.jsx`: `client.js`의 "로그인 필요" 신호를 받으면 하려던 주소를 기억하고 로그인 창을 띄우며, 성공하면 그 주소로 돌아간다 (FR-033)
-- [ ] T035 [US4] `SecurityConfig`의 회원 전용 주소 규칙을 다른 기능이 따라 쓸 수 있게 주석과 `contracts/auth-api.md` 9번에 같은 내용을 맞춘다
+- [x] T034 [US4] 로그인 창 `FE/auth/LoginModal.tsx`와 회원 전용 화면 감싸개 `FE/auth/RequireLogin.tsx`: `client.ts`의 "로그인 필요" 신호를 받으면 하려던 주소를 기억하고 로그인 창을 띄우며, 성공하면 그 주소로 돌아간다 (FR-033)
+- [x] T035 [US4] `SecurityConfig`의 회원 전용 주소 규칙을 다른 기능이 따라 쓸 수 있게 주석과 `contracts/auth-api.md` 9번에 같은 내용을 맞춘다
 
 **Checkpoint**: S-8의 1번(`401`)과 로그인 창 동작이 통과한다. 글쓰기 버튼은 `003`이 만들어진 뒤 다시 확인한다
 

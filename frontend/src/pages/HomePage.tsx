@@ -1,0 +1,23 @@
+// 첫 화면. 지금은 로그인 상태만 보여 준다. 글 목록·주제별 탐색은 specs/004에서 만든다.
+import { Link } from 'react-router'
+import { useAuth } from '../auth/useAuth'
+import ManuscriptSheet from './ManuscriptSheet'
+import './home.css'
+
+export default function HomePage() {
+  const { member } = useAuth()
+  return (
+    <div className="home">
+      <ManuscriptSheet lines={['', member ? `${member.nickname}님,` : '오늘은', member ? '어서 오세요.' : '무엇을 쓸까요.']} rows={4} />
+      {member ? (
+        <p className="home-lead">
+          <strong>{member.nickname}의 블로그</strong>가 만들어져 있습니다. 글쓰기와 블로그 관리는 다음 단계에서 열립니다.
+        </p>
+      ) : (
+        <p className="home-lead">
+          가입하면 내 블로그가 바로 생깁니다. <Link to="/signup">회원 가입</Link> 또는 <Link to="/login">로그인</Link>
+        </p>
+      )}
+    </div>
+  )
+}

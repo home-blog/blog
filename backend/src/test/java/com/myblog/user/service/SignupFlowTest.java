@@ -215,7 +215,7 @@ class SignupFlowTest {
         sendCode(nickname, "bad").andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_EMAIL"));
         sendCode("철!", email).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_NICKNAME"));
 
-        users.saveAndFlush(User.create(email, "hash", nickname, java.time.Instant.now()));
+        users.saveAndFlush(User.create(email, "hash", nickname));
         sendCode("other" + nickname.substring(1, 5), email.toUpperCase())
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"));

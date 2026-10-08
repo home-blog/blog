@@ -1,0 +1,23 @@
+.home {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+  padding: clamp(2rem, 8vh, 5rem) 1rem 3rem;
+  text-align: center;
+}
+
+.home-lead {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.home-lead strong {
+  color: var(--accent);
+}
+
+.home-lead a {
+  color: var(--accent);
+  font-weight: 600;
+}
+

@@ -2,12 +2,15 @@ package com.myblog.user.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Locale;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * 회원 (users 표, specs/001 data-model.md 1).
@@ -15,6 +18,7 @@ import java.util.Locale;
  */
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
@@ -41,7 +45,8 @@ public class User {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
-    @Column(name = "created_at", nullable = false)
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(name = "deleted_at")
@@ -50,17 +55,16 @@ public class User {
     protected User() {
     }
 
-    private User(String email, String passwordHash, String nickname, Instant createdAt) {
+    private User(String email, String passwordHash, String nickname) {
         this.email = normalizeEmail(email);
         this.passwordHash = passwordHash;
         this.nickname = nickname.strip();
-        this.createdAt = createdAt;
         this.failedLoginCount = 0;
     }
 
-    /** 새 회원. passwordHash는 이미 BCrypt로 바꾼 값이어야 한다. */
-    public static User create(String email, String passwordHash, String nickname, Instant now) {
-        return new User(email, passwordHash, nickname, now);
+    /** 새 회원. passwordHash는 이미 BCrypt로 바꾼 값이어야 한다. 가입 시각은 저장할 때 자동으로 채워진다. */
+    public static User create(String email, String passwordHash, String nickname) {
+        return new User(email, passwordHash, nickname);
     }
 
     /** 이메일을 저장·비교하는 모양으로 맞춘다: 앞뒤 공백 제거, 소문자. */

@@ -10,6 +10,7 @@ public class ApiException extends RuntimeException {
     private final ErrorCode errorCode;
     private final String responseMessage;
     private final List<ErrorResponse.FieldErrorItem> fieldErrors;
+    private final Long retryAfterSeconds;
 
     public ApiException(ErrorCode errorCode) {
         this(errorCode, errorCode.message(), List.of());
@@ -24,6 +25,16 @@ public class ApiException extends RuntimeException {
         this.errorCode = errorCode;
         this.responseMessage = responseMessage;
         this.fieldErrors = List.copyOf(fieldErrors);
+        this.retryAfterSeconds = null;
+    }
+
+    /** "몇 초 뒤에 다시 시도"를 함께 알린다 (예: 로그인 잠금 ACCOUNT_LOCKED). */
+    public ApiException(ErrorCode errorCode, String responseMessage, long retryAfterSeconds) {
+        super(errorCode.name());
+        this.errorCode = errorCode;
+        this.responseMessage = responseMessage;
+        this.fieldErrors = List.of();
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     public ErrorCode errorCode() {
@@ -31,6 +42,6 @@ public class ApiException extends RuntimeException {
     }
 
     public ErrorResponse toResponse() {
-        return new ErrorResponse(errorCode.name(), responseMessage, fieldErrors);
+        return new ErrorResponse(errorCode.name(), responseMessage, fieldErrors, retryAfterSeconds);
     }
 }

@@ -65,3 +65,10 @@ body {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* 회원 전용 화면을 로그인 없이 열었을 때 (RequireLogin) */
+.require-login {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--ink-soft);
+}

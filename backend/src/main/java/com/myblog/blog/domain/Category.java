@@ -2,15 +2,20 @@ package com.myblog.blog.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /** 분류 (category 표). 한 블로그 안에서 주인이 만들고, 비공개로 할 수 있다. 칸과 규칙은 specs/003이 정한다. */
 @Entity
 @Table(name = "category")
+@EntityListeners(AuditingEntityListener.class)
 public class Category {
 
     /** 가입할 때 함께 만드는 기본 분류 (003 FR-003). */
@@ -42,9 +47,11 @@ public class Category {
     @Column(name = "color_index", nullable = false)
     private short colorIndex;
 
-    @Column(name = "created_at", nullable = false)
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @LastModifiedDate
     @Column(name = "updated_at")
     private Instant updatedAt;
 
@@ -52,7 +59,7 @@ public class Category {
     }
 
     /** 기본 분류 "미분류": 공개, 맨 앞, 기본 분류 표시. */
-    public static Category defaultFor(Long blogId, Instant now) {
+    public static Category defaultFor(Long blogId) {
         Category category = new Category();
         category.blogId = blogId;
         category.name = DEFAULT_NAME;
@@ -60,7 +67,6 @@ public class Category {
         category.defaultCategory = true;
         category.sortOrder = 0;
         category.colorIndex = 0;
-        category.createdAt = now;
         return category;
     }
 
