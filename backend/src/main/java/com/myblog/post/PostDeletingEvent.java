@@ -9,7 +9,7 @@ package com.myblog.post;
  *   <li>comment: 이 글의 댓글 (CommentPostCleaner). 댓글 신고는 쓰지 않는다 (005 D-8)</li>
  *   <li>community: 좋아요 (LikeCleaner), 글 신고 (ReportCleaner, D-11)</li>
  *   <li>post: 태그 연결 (PostTagService, 태그 자체는 남긴다)</li>
- *   <li>image: 이미지 기록. 이미지 파일은 트랜잭션이 끝난 뒤 지운다 (research R-1)</li>
+ *   <li>image: 이미지 기록 (ImagePostCleaner). 이미지 파일은 트랜잭션이 끝난 뒤 지운다 (005 D-5)</li>
  * </ul>
  * 탈퇴할 때도 그 회원의 글마다 이 이벤트가 온다 (PostBlogClosingCleaner).
  */

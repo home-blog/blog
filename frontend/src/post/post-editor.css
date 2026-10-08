@@ -180,3 +180,33 @@
   outline: none;
   box-shadow: none;
 }
+
+/* 본문 칸 위: 이름과 이미지 올리기 버튼 (specs/005 US4) */
+.editor-content-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.image-upload {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.image-upload label {
+  cursor: pointer;
+}
+
+.image-upload .is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.image-upload input:focus-visible + label {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

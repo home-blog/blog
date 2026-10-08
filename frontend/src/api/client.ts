@@ -2,6 +2,7 @@
 // - 변경 요청(POST, PUT, PATCH, DELETE)에는 CSRF 토큰을 헤더에 싣는다. 토큰은 처음 한 번 GET /api/auth/csrf로 받는다.
 // - 401 UNAUTHENTICATED를 받으면 "로그인 필요" 신호를 낸다. (로그인 창 띄우기는 US4에서 이 신호를 받아 처리)
 // - 오류는 서버의 공통 오류 모양(code, message, fieldErrors)을 그대로 ApiError로 넘긴다.
+// - 본문이 FormData면(이미지 올리기, specs/005) JSON으로 바꾸지 않고 그대로 보낸다. 경계 글자가 든 Content-Type은 브라우저가 붙인다.
 
 export interface FieldErrorItem {
   field: string
@@ -102,7 +103,8 @@ export interface RequestOptions {
 export async function api<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase()
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = options.body instanceof FormData
+  if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (UNSAFE_METHODS.has(method)) {
     const { headerName, token } = await getCsrfToken()
     headers[headerName] = token
@@ -111,7 +113,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   const res = await fetch(path, {
     method,
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
     credentials: 'same-origin',
     signal: options.signal,
   })
