@@ -57,6 +57,9 @@ public class ManagePostQueryService {
      * @param page       1부터
      */
     public ManagePostPage list(Long memberId, String visibility, Long categoryId, int page) {
+        if (page < 1) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED);
+        }
         Optional<Visibility> only = visibilityFilter(visibility);
         BlogInfo blog = blogDirectory.myBlog(memberId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));
         List<CategoryInfo> mine = blogDirectory.categoriesOf(blog.blogId());
