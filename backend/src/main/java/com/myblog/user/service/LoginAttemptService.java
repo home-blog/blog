@@ -1,5 +1,7 @@
 package com.myblog.user.service;
 
+import com.myblog.common.error.ApiException;
+import com.myblog.common.error.ErrorCode;
 import com.myblog.user.config.AuthProperties;
 import com.myblog.user.domain.User;
 import com.myblog.user.repository.UserRepository;
@@ -48,6 +50,17 @@ public class LoginAttemptService {
     @Transactional
     public void recordSuccess(Long memberId) {
         users.resetLoginFailures(memberId);
+    }
+
+    /**
+     * 잠금 응답 (423 ACCOUNT_LOCKED + retryAfterSeconds). 로그인과 현재 비밀번호 확인(002)이 함께 쓴다.
+     * messageTemplate의 두 %d는 실패 횟수(설정값)와 남은 분(올림)이다. 남은 횟수는 어디에도 넣지 않는다.
+     */
+    public ApiException lockedError(String email, String messageTemplate) {
+        long seconds = lockedForSeconds(email).orElse(properties.login().lockDuration().toSeconds());
+        long minutes = Math.max(1, (seconds + 59) / 60);
+        return new ApiException(ErrorCode.ACCOUNT_LOCKED,
+                messageTemplate.formatted(properties.login().maxFailedAttempts(), minutes), seconds);
     }
 
     /** 잠겨 있다면 남은 시간(초, 올림). 잠겨 있지 않으면 비어 있다. */

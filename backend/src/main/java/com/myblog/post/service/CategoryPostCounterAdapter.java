@@ -33,9 +33,17 @@ public class CategoryPostCounterAdapter implements CategoryPostCounter {
     }
 
     @Override
+    public Map<Long, Long> countAll(Collection<Long> categoryIds) {
+        Map<Long, Long> counts = zeros(categoryIds);
+        if (!categoryIds.isEmpty()) {
+            posts.countAllByCategoryIds(categoryIds).forEach(row -> counts.put(row.getCategoryId(), row.getPostCount()));
+        }
+        return counts;
+    }
+
+    @Override
     public Map<Long, Long> countVisible(Collection<Long> categoryIds) {
-        Map<Long, Long> counts = new LinkedHashMap<>();
-        categoryIds.forEach(id -> counts.put(id, 0L));
+        Map<Long, Long> counts = zeros(categoryIds);
         // 비공개 분류의 글은 공개 글이어도 세지 않는다 (FR-048)
         List<Long> openCategoryIds = blogDirectory.categories(categoryIds).stream()
                 .filter(category -> visibility.isOpenToEveryone(Visibility.PUBLIC.value(), category.visibility()))
@@ -45,6 +53,12 @@ public class CategoryPostCounterAdapter implements CategoryPostCounter {
             posts.countPublicByCategoryIds(openCategoryIds)
                     .forEach(row -> counts.put(row.getCategoryId(), row.getPostCount()));
         }
+        return counts;
+    }
+
+    private static Map<Long, Long> zeros(Collection<Long> categoryIds) {
+        Map<Long, Long> counts = new LinkedHashMap<>();
+        categoryIds.forEach(id -> counts.put(id, 0L));
         return counts;
     }
 }

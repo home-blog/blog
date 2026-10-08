@@ -87,10 +87,14 @@ export default function MyPage() {
         <h2 id="security-title" className="mypage-card-title">계정</h2>
         <ul className="mypage-links">
           <li>
-            <span className="mypage-soon">비밀번호 변경</span> <span className="hint">다음 단계에서 열립니다</span>
+            <Link to="/mypage/password" className="mypage-link">
+              비밀번호 변경
+            </Link>
           </li>
           <li>
-            <span className="mypage-soon">회원 탈퇴</span> <span className="hint">다음 단계에서 열립니다</span>
+            <Link to="/mypage/withdrawal" className="mypage-link mypage-link-quiet">
+              회원 탈퇴
+            </Link>
           </li>
         </ul>
       </section>

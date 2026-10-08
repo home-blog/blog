@@ -52,6 +52,12 @@ public class User {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /** 탈퇴한 회원의 값 틀 (data-model 3의 12번, D-2). 이메일 .invalid는 메일이 갈 수 없는 이름이다. */
+    static final String WITHDRAWN_EMAIL = "deleted-%d@deleted.invalid";
+    /** BCrypt 모양이 아니라 어떤 비밀번호와도 맞지 않는다. */
+    static final String WITHDRAWN_PASSWORD = "!deleted";
+    static final String WITHDRAWN_NICKNAME = "탈퇴한사용자%d";
+
     protected User() {
     }
 
@@ -79,6 +85,23 @@ public class User {
     public void changeProfile(String nickname, String intro) {
         this.nickname = nickname.strip();
         this.intro = intro == null || intro.isEmpty() ? null : intro;
+    }
+
+    /** 비밀번호를 바꾼다. 원문은 받지 않고 BCrypt로 바꾼 값만 받는다 (CF-01-8, 002 FR-019). */
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    /**
+     * 탈퇴 (002 FR-030, D-1, D-2). 회원 줄은 지우지 않고(남는 댓글이 가리킨다) 탈퇴 시각을 남기며,
+     * 이메일·비밀번호·닉네임·소개를 알아볼 수 없는 값으로 바꾼다. 그래서 같은 이메일·닉네임으로 다시 가입할 수 있다.
+     */
+    public void withdraw(Instant now) {
+        this.deletedAt = now;
+        this.email = WITHDRAWN_EMAIL.formatted(id);
+        this.passwordHash = WITHDRAWN_PASSWORD;
+        this.nickname = WITHDRAWN_NICKNAME.formatted(id);
+        this.intro = null;
     }
 
     public boolean isDeleted() {
