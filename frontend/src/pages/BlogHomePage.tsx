@@ -1,11 +1,12 @@
 // 블로그 화면 (specs/003 US1, T016): 이름, 소개, 분류 목록과 글 개수
 // 누구나 본다. 주인에게만 비공개 분류와 "블로그 설정" 버튼이 보인다 (실제 권한은 서버가 다시 본다)
-// 글 목록 자리는 specs/004가 채운다
+// 글 목록은 specs/004의 BlogPostList가 그린다
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
+import BlogPostList from '../explore/BlogPostList'
 import './auth-layout.css'
 import '../blog/blog.css'
 
@@ -82,10 +83,7 @@ export default function BlogHomePage() {
           </ul>
         </nav>
 
-        <section className="blog-posts" aria-labelledby="posts-title">
-          <h2 id="posts-title" className="blog-side-title">글</h2>
-          <p className="hint">글 목록은 다음 단계에서 열립니다.</p>
-        </section>
+        <BlogPostList blogId={id} viewer={viewer ?? 'guest'} />
       </div>
     </div>
   )
