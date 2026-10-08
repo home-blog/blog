@@ -40,6 +40,14 @@ class UserRepositoryTest {
     }
 
     @Test
+    void 조회할_때도_앞뒤_공백을_지우고_찾는다() {
+        users.saveAndFlush(User.create("mina@example.com", "hash", " Mina ", Instant.now()));
+
+        assertThat(users.existsActiveByNickname(" mina ")).isTrue();
+        assertThat(users.findActiveByEmail("  MINA@example.com ")).isPresent();
+    }
+
+    @Test
     void 같은_이메일은_대소문자가_달라도_두_번_저장할_수_없다() {
         users.saveAndFlush(User.create("dup@example.com", "hash", "중복1", Instant.now()));
 
