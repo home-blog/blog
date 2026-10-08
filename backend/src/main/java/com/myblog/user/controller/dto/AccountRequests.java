@@ -5,6 +5,7 @@ import com.myblog.user.validation.PasswordConfirmed;
 import com.myblog.user.validation.ValidIntro;
 import com.myblog.user.validation.ValidNickname;
 import com.myblog.user.validation.ValidPassword;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 
 /** 계정 관리 요청 본문 (specs/002 contracts). 회원 번호 칸은 두지 않는다: 회원은 세션으로만 정한다 (FR-002). */
@@ -36,5 +37,13 @@ public final class AccountRequests {
         public String passwordConfirm() {
             return newPasswordConfirm;
         }
+    }
+
+    /**
+     * 회원 탈퇴 (contracts 4). agreed는 boolean이다: Boolean이면 비어 있을 때 @AssertTrue를 통과한다 (FR-025).
+     */
+    public record Withdraw(
+            @NotBlank(message = "PASSWORD_REQUIRED") String password,
+            @AssertTrue(message = "WITHDRAWAL_NOT_AGREED") boolean agreed) {
     }
 }

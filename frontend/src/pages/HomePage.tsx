@@ -1,13 +1,20 @@
 // 첫 화면. 지금은 로그인 상태만 보여 준다. 글 목록·주제별 탐색은 specs/004에서 만든다.
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import ManuscriptSheet from './ManuscriptSheet'
 import './home.css'
 
 export default function HomePage() {
   const { member } = useAuth()
+  // 탈퇴한 직후에는 서버가 준 "탈퇴가 완료되었습니다"를 보여 준다 (specs/002 FR-027)
+  const withdrawn = (useLocation().state as { withdrawn?: string } | null)?.withdrawn
   return (
     <div className="home">
+      {withdrawn && (
+        <p className="home-notice msg msg-ok" role="status">
+          {withdrawn}
+        </p>
+      )}
       <ManuscriptSheet lines={['', member ? `${member.nickname}님,` : '오늘은', member ? '어서 오세요.' : '무엇을 쓸까요.']} rows={4} />
       {member ? (
         <p className="home-lead">
