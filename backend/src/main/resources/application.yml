@@ -100,6 +100,8 @@ community:
     min-length: 1
     max-length: 500
     min-interval: 5s   # 같은 회원의 댓글 사이 최소 간격 (CF-18-7)
+  report:
+    detail-max-length: 200   # 기타 사유의 설명 (CF-21-2)
 
 myblog:
   verification:
