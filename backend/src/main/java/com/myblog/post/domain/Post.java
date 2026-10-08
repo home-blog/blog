@@ -81,21 +81,23 @@ public class Post {
      * 수정 시각을 now로 넣는다. 바뀌었는지를 돌려준다. 작성 시각은 바꾸는 방법이 없다.
      */
     public boolean update(Long categoryId, Long topicId, String title, String content, String visibility, Instant now) {
-        String newTitle = normalizeTitle(title);
-        String newContent = normalizeContent(content);
-        String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
-        boolean changed = !this.categoryId.equals(categoryId) || !this.topicId.equals(topicId) || !this.title.equals(newTitle)
-                || !this.content.equals(newContent) || !this.visibility.equals(newVisibility);
-        if (!changed) {
+        if (sameAs(categoryId, topicId, title, content, visibility)) {
             return false;
         }
         this.categoryId = categoryId;
         this.topicId = topicId;
-        this.title = newTitle;
-        this.content = newContent;
-        this.visibility = newVisibility;
+        this.title = normalizeTitle(title);
+        this.content = normalizeContent(content);
+        this.visibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
         this.updatedAt = now;
         return true;
+    }
+
+    /** 정리한 값이 지금 값과 모두 같은가 (같은 요청 번호로 다시 온 글쓰기가 처음과 같은지 볼 때). */
+    public boolean sameAs(Long categoryId, Long topicId, String title, String content, String visibility) {
+        String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        return this.categoryId.equals(categoryId) && this.topicId.equals(topicId) && this.title.equals(normalizeTitle(title))
+                && this.content.equals(normalizeContent(content)) && this.visibility.equals(newVisibility);
     }
 
     /** 제목은 앞뒤 공백을 지운다. 없으면 빈 글자. */
