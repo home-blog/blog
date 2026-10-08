@@ -13,6 +13,9 @@ public interface BlogDirectory {
     /** 이 회원의 블로그 (회원 한 명에 하나). */
     Optional<BlogInfo> myBlog(Long memberId);
 
+    /** 블로그와 그 주인. 글 목록이 "없는 블로그인가, 주인인가"를 묻는다 (specs/004 T006). */
+    Optional<BlogInfo> blog(Long blogId);
+
     /** 분류와 그 분류가 속한 블로그·주인. */
     Optional<CategoryInfo> category(Long categoryId);
 

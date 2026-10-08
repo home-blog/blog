@@ -34,6 +34,11 @@ public class BlogDirectoryAdapter implements BlogDirectory {
     }
 
     @Override
+    public Optional<BlogInfo> blog(Long blogId) {
+        return blogs.findById(blogId).map(blog -> new BlogInfo(blog.getId(), blog.getOwnerId(), blog.getName()));
+    }
+
+    @Override
     public Optional<CategoryInfo> category(Long categoryId) {
         return categories.findById(categoryId).flatMap(category ->
                 blogs.findById(category.getBlogId()).map(blog -> toInfo(category, blog)));

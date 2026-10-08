@@ -46,6 +46,19 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             + " where p.categoryId in :categoryIds and p.visibility = 'public' group by p.categoryId")
     List<CategoryCount> countPublicByCategoryIds(@Param("categoryIds") Collection<Long> categoryIds);
 
+    /*
+     * 004 글 목록 (T009): 분류 묶음 안의 글. 어느 분류·어떤 글을 읽을지는 PostVisibility.listScope가 정한다.
+     * 정렬과 건너뛸 수는 Pageable로 값으로 넘긴다 (작성 시각 내림차순, 같으면 큰 번호가 위).
+     */
+
+    long countByCategoryIdIn(Collection<Long> categoryIds);
+
+    long countByCategoryIdInAndVisibility(Collection<Long> categoryIds, String visibility);
+
+    List<Post> findByCategoryIdIn(Collection<Long> categoryIds, Pageable pageable);
+
+    List<Post> findByCategoryIdInAndVisibility(Collection<Long> categoryIds, String visibility, Pageable pageable);
+
     interface CategoryCount {
 
         Long getCategoryId();
