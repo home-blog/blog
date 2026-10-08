@@ -25,7 +25,8 @@ public final class TestJson {
         return sb.append('}').toString();
     }
 
-    private static String quote(String value) {
+    /** 글자 하나를 JSON 문자열(따옴표 포함)로 바꾼다. */
+    public static String quote(String value) {
         StringBuilder sb = new StringBuilder("\"");
         for (char c : value.toCharArray()) {
             switch (c) {
