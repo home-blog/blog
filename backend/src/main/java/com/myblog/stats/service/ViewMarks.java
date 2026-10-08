@@ -15,17 +15,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class ViewMarks {
 
-    /** 방문 표시는 다음 한국 자정까지. 서버·Redis 시계가 조금 달라도 그날 안에 지워지지 않게 여유를 둔다. */
-    private static final Duration VISIT_MARGIN = Duration.ofHours(1);
-
     private final StringRedisTemplate redis;
     private final ServiceDay serviceDay;
     private final Duration viewWindow;
+    private final Duration visitMargin;
 
     public ViewMarks(StringRedisTemplate redis, ServiceDay serviceDay, StatsProperties properties) {
         this.redis = redis;
         this.serviceDay = serviceDay;
         this.viewWindow = properties.view().dedupeWindow();
+        this.visitMargin = properties.visitor().visitMargin();
     }
 
     /** 이 사람이 이 글을 dedupe-window 안에 처음 열었으면 참. */
@@ -33,10 +32,13 @@ public class ViewMarks {
         return mark("stats:view:" + postId + ":" + visitorKey, viewWindow);
     }
 
-    /** 이 사람이 이 블로그에 이 한국 날짜에 처음 왔으면 참. */
+    /**
+     * 이 사람이 이 블로그에 이 한국 날짜에 처음 왔으면 참.
+     * 표시는 다음 한국 자정까지 + visit-margin. 서버·Redis 시계가 조금 달라도 그날 안에 지워지지 않게 여유를 둔다.
+     */
     public boolean firstVisit(Long blogId, LocalDate date, String visitorKey) {
         Duration untilTomorrow = Duration.between(serviceDay.now(), serviceDay.startOf(date.plusDays(1)));
-        Duration ttl = untilTomorrow.isNegative() ? VISIT_MARGIN : untilTomorrow.plus(VISIT_MARGIN);
+        Duration ttl = untilTomorrow.isNegative() ? visitMargin : untilTomorrow.plus(visitMargin);
         return mark("stats:visit:" + blogId + ":" + date + ":" + visitorKey, ttl);
     }
 

@@ -5,6 +5,8 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.myblog.blog.BlogVisitedEvent;
+import com.myblog.post.PostViewedEvent;
 import com.myblog.support.TestClock;
 import com.myblog.support.TestComments;
 import com.myblog.support.TestMembers;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
@@ -24,12 +27,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -39,7 +45,7 @@ import org.springframework.web.context.WebApplicationContext;
  * "30분"은 이 테스트에서 1초로 줄인다. 날짜 경계는 TestClock으로 만든다.
  */
 @SpringBootTest(properties = "stats.view.dedupe-window=1s")
-@Import({TestMembers.class, TestComments.class, TestStats.class, TestClock.Config.class})
+@Import({TestMembers.class, TestComments.class, TestStats.class, TestClock.Config.class, ViewCountingTest.TxProbe.class})
 class ViewCountingTest {
 
     @Autowired
@@ -56,6 +62,9 @@ class ViewCountingTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private TxProbe txProbe;
 
     private MockMvc mvc;
     private final List<Member> created = new ArrayList<>();
@@ -215,6 +224,14 @@ class ViewCountingTest {
         assertThat(blogViews(today())).isEqualTo(1);
     }
 
+    @Test
+    void 조회_방문_알림은_읽기_트랜잭션이_끝난_뒤에_온다_한_요청이_DB_연결_둘을_같이_쥐지_않는다() throws Exception {
+        txProbe.seen.clear();
+        open(postId, readerSession);
+        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
+        assertThat(txProbe.seen).containsExactly("post:false", "blog:false");
+    }
+
     private void open(Long id, MockHttpSession session) throws Exception {
         mvc.perform(get("/api/posts/{id}", id).session(session)).andExpect(status().isOk());
     }
@@ -246,5 +263,22 @@ class ViewCountingTest {
         Member member = members.register(prefix);
         created.add(member);
         return member;
+    }
+
+    /** 알림을 받을 때 트랜잭션이 열려 있는지 적어 둔다. */
+    @TestComponent
+    static class TxProbe {
+
+        final List<String> seen = new CopyOnWriteArrayList<>();
+
+        @EventListener
+        void on(PostViewedEvent event) {
+            seen.add("post:" + TransactionSynchronizationManager.isActualTransactionActive());
+        }
+
+        @EventListener
+        void on(BlogVisitedEvent event) {
+            seen.add("blog:" + TransactionSynchronizationManager.isActualTransactionActive());
+        }
     }
 }

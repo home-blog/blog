@@ -1,6 +1,5 @@
 package com.myblog.blog.service;
 
-import com.myblog.blog.BlogVisitedEvent;
 import com.myblog.blog.CategoryPostCounter;
 import com.myblog.blog.domain.Blog;
 import com.myblog.blog.domain.Category;
@@ -11,7 +10,6 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import java.util.List;
 import java.util.Map;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +24,11 @@ public class BlogQueryService {
     private final BlogRepository blogs;
     private final CategoryRepository categories;
     private final CategoryPostCounter postCounter;
-    private final ApplicationEventPublisher events;
 
-    public BlogQueryService(BlogRepository blogs, CategoryRepository categories, CategoryPostCounter postCounter,
-            ApplicationEventPublisher events) {
+    public BlogQueryService(BlogRepository blogs, CategoryRepository categories, CategoryPostCounter postCounter) {
         this.blogs = blogs;
         this.categories = categories;
         this.postCounter = postCounter;
-        this.events = events;
     }
 
     /** 내 블로그 (회원 번호는 세션에서). */
@@ -42,13 +37,9 @@ public class BlogQueryService {
         return BlogView.of(blog, true);
     }
 
-    /**
-     * 누구나 보는 블로그 정보. viewerId는 로그인하지 않았으면 null.
-     * 블로그 첫 화면·분류별 목록이 열 때마다 부르므로 여기서 방문을 알린다. 방문자는 통계 모듈이 센다 (specs/006 T056, D-5 B).
-     */
+    /** 누구나 보는 블로그 정보. viewerId는 로그인하지 않았으면 null. */
     public BlogView blog(Long blogId, Long viewerId) {
         Blog blog = find(blogId);
-        events.publishEvent(new BlogVisitedEvent(blog.getId(), blog.getOwnerId(), viewerId));
         return BlogView.of(blog, blog.getOwnerId().equals(viewerId));
     }
 

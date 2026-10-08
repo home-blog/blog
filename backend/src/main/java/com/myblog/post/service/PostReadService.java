@@ -7,7 +7,6 @@ import com.myblog.common.error.ErrorCode;
 import com.myblog.post.PostCommentCounter;
 import com.myblog.post.PostLikeSummary;
 import com.myblog.post.PostLikeSummary.LikeSummary;
-import com.myblog.post.PostViewedEvent;
 import com.myblog.post.domain.Post;
 import com.myblog.post.domain.Topic;
 import com.myblog.post.repository.PostRepository;
@@ -15,7 +14,6 @@ import com.myblog.post.repository.TopicRepository;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>이전·다음 글은 같은 블로그의 공개 분류의 공개 글 중 (작성 시각, 글 번호) 바로 앞·뒤. 주인이 봐도 공개 글만 (research B-5).</li>
  *   <li>블로그·분류 이름은 요청마다 표에서 읽는다 (FR-038).</li>
  *   <li>댓글 수·좋아요 수는 위 모듈(comment, community)이 채우는 틀로 묻는다 (005 T010). 채우는 쪽이 없으면 0.</li>
- *   <li>글을 보여 줄 때 PostViewedEvent를 낸다. 조회수·방문자는 통계 모듈이 센다 (specs/006 T051).</li>
  * </ul>
  */
 @Service
@@ -43,11 +40,10 @@ public class PostReadService {
     private final ObjectProvider<PostCommentCounter> commentCounter;
     private final ObjectProvider<PostLikeSummary> likeSummary;
     private final PostTagService tagService;
-    private final ApplicationEventPublisher events;
 
     public PostReadService(PostRepository posts, TopicRepository topics, BlogDirectory blogDirectory,
             PostVisibility visibility, ObjectProvider<PostCommentCounter> commentCounter,
-            ObjectProvider<PostLikeSummary> likeSummary, PostTagService tagService, ApplicationEventPublisher events) {
+            ObjectProvider<PostLikeSummary> likeSummary, PostTagService tagService) {
         this.posts = posts;
         this.topics = topics;
         this.blogDirectory = blogDirectory;
@@ -55,7 +51,6 @@ public class PostReadService {
         this.commentCounter = commentCounter;
         this.likeSummary = likeSummary;
         this.tagService = tagService;
-        this.events = events;
     }
 
     /** viewerId는 로그인하지 않았으면 null. */
@@ -76,15 +71,12 @@ public class PostReadService {
         PostCommentCounter counter = commentCounter.getIfAvailable();
         long commentCount = counter == null ? 0 : counter.count(post.getId());
         LikeSummary likes = likeSummary.getIfAvailable(() -> (id, viewer) -> LikeSummary.NONE).summary(post.getId(), viewerId);
-        PostDetail detail = new PostDetail(post.getId(), category.blogId(), category.blogName(),
+        return new PostDetail(post.getId(), category.blogId(), category.blogName(),
                 new CategoryRef(category.categoryId(), category.name(), category.visibility()),
                 new TopicRef(topic.getId(), topic.getName()),
                 post.getTitle(), post.getContent(), post.getVisibility(), post.getCreatedAt(), post.getUpdatedAt(),
                 prev, next, visibility.isOwner(category, viewerId), commentCount, likes.likeCount(), likes.likedByMe(),
                 tagService.tagsOf(post.getId()));
-        // 보여 줄 수 있는 글만 "읽혔다"고 알린다. 통계 모듈이 듣고 센다 (specs/006 T051, contracts 9)
-        events.publishEvent(new PostViewedEvent(post.getId(), category.blogId(), category.ownerId(), viewerId));
-        return detail;
     }
 
     /** 없는 글과 볼 수 없는 글은 상태 코드·본문이 같아야 한다 (FR-026). */

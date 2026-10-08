@@ -144,6 +144,7 @@ stats:
   visitor:
     cookie-name: MYBLOG_VISITOR
     cookie-max-age: 365d   # 비회원 방문자 쿠키 (D-2, 가안)
+    visit-margin: 1h       # "오늘 왔다" 표시를 다음 한국 자정보다 이만큼 더 둔다 (시계 차이 여유)
 
 myblog:
   verification:

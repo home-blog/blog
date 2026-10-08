@@ -38,7 +38,7 @@ public class ViewCountListener {
 
     @EventListener
     public void on(PostViewedEvent event) {
-        if (isOwner(event.ownerId(), event.viewerId())) {
+        if (event.byOwner()) {
             return;
         }
         try {
@@ -58,7 +58,7 @@ public class ViewCountListener {
 
     @EventListener
     public void on(BlogVisitedEvent event) {
-        if (isOwner(event.ownerId(), event.viewerId())) {
+        if (event.byOwner()) {
             return;
         }
         try {
@@ -75,9 +75,5 @@ public class ViewCountListener {
         if (marks.firstVisit(blogId, today, visitor)) {
             recorder.visit(blogId, today);
         }
-    }
-
-    private static boolean isOwner(Long ownerId, Long viewerId) {
-        return viewerId != null && viewerId.equals(ownerId);
     }
 }
