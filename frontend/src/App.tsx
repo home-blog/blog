@@ -13,9 +13,11 @@ import RequireLogin from './auth/RequireLogin'
 import BlogSettingsPage from './blog/BlogSettingsPage'
 import CategoryManagePage from './blog/CategoryManagePage'
 import MyBlogRedirect from './blog/MyBlogRedirect'
+import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
 import ManagePlaceholder from './manage/ManagePlaceholder'
 import ManagePostsPage from './manage/ManagePostsPage'
+import NewCommentCountProvider from './manage/NewCommentCountProvider'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -44,15 +46,17 @@ function SignupRoute() {
   return <SignupPage onSignedUp={() => navigate('/login', { replace: true, state: { signedUp: true } })} />
 }
 
-/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 머리글 */
+/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 새 댓글 수(006), 머리글 */
 function Layout() {
   return (
     <AuthProvider>
       <LoginModalProvider>
-        <SiteHeader />
-        <main>
-          <Outlet />
-        </main>
+        <NewCommentCountProvider>
+          <SiteHeader />
+          <main>
+            <Outlet />
+          </main>
+        </NewCommentCountProvider>
       </LoginModalProvider>
     </AuthProvider>
   )
@@ -129,7 +133,7 @@ const router = createBrowserRouter([
           { index: true, element: <ManagePlaceholder title="대시보드" /> },
           { path: 'posts', element: <ManagePostsPage /> },
           { path: 'categories', element: <CategoryManagePage /> },
-          { path: 'comments', element: <ManagePlaceholder title="댓글 관리" /> },
+          { path: 'comments', element: <ManageCommentsPage /> },
           { path: 'stats', element: <ManagePlaceholder title="통계" /> },
           { path: 'blog', element: <BlogSettingsPage /> },
         ],

@@ -56,6 +56,17 @@ public class Blog {
         this.intro = stripped.isEmpty() ? null : stripped;
     }
 
+    /**
+     * 댓글 관리를 연 시각을 적는다 (specs/006 T032, FR-029). 지금 값보다 이르면 바꾸지 않는다 (뒤로 가지 않음).
+     * 적힌 시각을 돌려준다.
+     */
+    public Instant markCommentsRead(Instant now) {
+        if (commentsReadAt == null || now.isAfter(commentsReadAt)) {
+            commentsReadAt = now;
+        }
+        return commentsReadAt;
+    }
+
     public Long getId() {
         return id;
     }

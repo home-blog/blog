@@ -10,6 +10,8 @@ export interface ManageHeader {
   intro: string
   /** "내 블로그 보기"가 갈 화면 주소 */
   blogPath: string
+  /** 메뉴 옆 새 댓글 수 (new-count와 같은 계산) */
+  newCommentCount: number
 }
 
 export function getManageHeader(signal?: AbortSignal): Promise<ManageHeader> {
@@ -46,4 +48,43 @@ export function getManagePosts(
   const params = new URLSearchParams({ visibility: query.visibility, page: String(query.page) })
   if (query.categoryId !== null) params.set('categoryId', String(query.categoryId))
   return api<ManagePostPage>(`/api/manage/posts?${params}`, { signal })
+}
+
+/** 댓글 관리를 열 때 먼저 보낸다 (contracts 5-1). previousReadAt은 처음이면 null */
+export function markCommentsRead(): Promise<{ previousReadAt: string | null; readAt: string }> {
+  return api('/api/manage/comments/read', { method: 'POST' })
+}
+
+/** 댓글 관리 한 줄 (contracts 5-2) */
+export interface ManageComment {
+  commentId: number
+  /** 탈퇴했으면 nickname이 null이고 withdrawn이 참 */
+  author: { nickname: string | null; withdrawn: boolean }
+  createdAt: string
+  /** 앞 50자, 글자 그대로 보여 준다 */
+  preview: string
+  post: { postId: number; title: string }
+  isNew: boolean
+}
+
+export interface ManageCommentPage {
+  items: ManageComment[]
+  page: number
+  pageSize: number
+  totalCount: number
+}
+
+/** "한 번도 연 적 없음"을 newSince에 실을 때 쓰는 값 (contracts 5-2, 가안) */
+export const NEVER_READ = 'never'
+
+/** 내 블로그 글의 모든 댓글, 최신순 (contracts 5-2). newSince는 읽음 처리의 previousReadAt (없으면 NEVER_READ) */
+export function getManageComments(page: number, newSince: string, signal?: AbortSignal): Promise<ManageCommentPage> {
+  const params = new URLSearchParams({ page: String(page), newSince })
+  return api<ManageCommentPage>(`/api/manage/comments?${params}`, { signal })
+}
+
+/** 새 댓글 수 (contracts 6). 메뉴 옆·대시보드와 같은 계산 */
+export async function getNewCommentCount(signal?: AbortSignal): Promise<number> {
+  const res = await api<{ count: number }>('/api/manage/comments/new-count', { signal })
+  return res.count
 }

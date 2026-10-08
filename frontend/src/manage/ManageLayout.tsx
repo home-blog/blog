@@ -8,13 +8,15 @@ import { ApiError } from '../api/client'
 import '../pages/auth-layout.css'
 import { getManageHeader, type ManageHeader } from './manageApi'
 import { ManageBlogContext } from './manageBlog'
+import NewBadge from './NewBadge'
+import { useNewCommentCount } from './newCommentCount'
 import './manage-layout.css'
 
 const MENU = [
   { to: '/manage', label: '대시보드', end: true },
   { to: '/manage/posts', label: '글 관리' },
   { to: '/manage/categories', label: '분류 관리' },
-  { to: '/manage/comments', label: '댓글 관리' },
+  { to: '/manage/comments', label: '댓글 관리', newCount: true },
   { to: '/manage/stats', label: '통계' },
   { to: '/manage/blog', label: '설정' },
 ]
@@ -22,21 +24,32 @@ const MENU = [
 export default function ManageLayout() {
   const [header, setHeader] = useState<ManageHeader | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { count: newCommentCount, setCount } = useNewCommentCount()
+
+  /** 머리 정보를 받으면 새 댓글 수도 같은 계산의 값으로 맞춘다 (FR-028) */
+  const apply = useCallback(
+    (next: ManageHeader) => {
+      setHeader(next)
+      setCount(next.newCommentCount)
+    },
+    [setCount],
+  )
 
   const refresh = useCallback(async () => {
-    setHeader(await getManageHeader())
-  }, [])
+    apply(await getManageHeader())
+  }, [apply])
 
   useEffect(() => {
     const controller = new AbortController()
     getManageHeader(controller.signal)
-      .then(setHeader)
+      .then(apply)
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
         setError(err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요')
       })
     return () => controller.abort()
-  }, [])
+    // 머리 정보는 화면을 열 때 한 번 읽는다 (apply는 로그인한 회원이 바뀔 때만 바뀐다)
+  }, [apply])
 
   const value = useMemo(() => (header ? { header, refresh } : null), [header, refresh])
 
@@ -68,6 +81,7 @@ export default function ManageLayout() {
                 <li key={item.to}>
                   <NavLink to={item.to} end={item.end} className="manage-menu-link">
                     {item.label}
+                    {item.newCount && <NewBadge count={newCommentCount} />}
                   </NavLink>
                 </li>
               ))}

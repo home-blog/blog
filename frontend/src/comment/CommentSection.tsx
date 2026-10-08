@@ -42,9 +42,15 @@ export default function CommentSection({ postId, initialCount }: Props) {
   // 지금 화면의 글·로그인 상태. 등록을 기다리는 사이 로그인한 사람이 바뀌면 끝난 등록의 결과를 화면에 넣지 않는다
   const currentKey = useRef(key)
   const inputId = useId()
+  const sectionRef = useRef<HTMLElement>(null)
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // 블로그 관리의 댓글 관리에서 글 제목을 눌러 오면(/posts/:id#comments) 댓글 자리로 옮겨 간다 (specs/006 FR-024)
+  useEffect(() => {
+    if (location.hash === '#comments') sectionRef.current?.scrollIntoView()
+  }, [location.hash])
 
   const load = useCallback(
     (requestKey: string, signal?: AbortSignal) => {
@@ -125,7 +131,7 @@ export default function CommentSection({ postId, initialCount }: Props) {
   }
 
   return (
-    <section className="comments" aria-labelledby={`${inputId}-title`}>
+    <section id="comments" ref={sectionRef} className="comments" aria-labelledby={`${inputId}-title`}>
       <h2 id={`${inputId}-title`} className="comments-title">
         댓글 <span className="comments-count">{count}</span>
       </h2>
