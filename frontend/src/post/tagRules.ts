@@ -12,10 +12,11 @@ export const tagMessages = {
   lowercase: '태그는 소문자로 보입니다',
 } as const
 
-/** 서버와 같게 다듬는다: 앞뒤 공백 → 앞의 # 지우기 → 1~15자, 공백·쉼표 없음 → 소문자. 맞지 않으면 null */
+/** 서버와 같게 다듬는다: 앞뒤 공백 → 앞의 # 지우기 → 소문자 → 1~15자, 공백·쉼표 없음. 맞지 않으면 null */
 export function normalizeTag(raw: string): string | null {
-  const name = raw.trim().replace(/^#+/, '')
+  // 소문자로 바꾸면 길어지는 글자가 있어 바꾼 뒤에 센다 (서버와 같음)
+  const name = raw.trim().replace(/^#+/, '').toLowerCase()
   const length = countChars(name)
   if (length < 1 || length > TAG_MAX_LENGTH || /[\s,]/u.test(name)) return null
-  return name.toLowerCase()
+  return name
 }

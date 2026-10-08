@@ -16,8 +16,8 @@ import org.springframework.stereotype.Component;
  * 글에 붙일 태그를 다듬고 검사한다 (specs/005 T043, research B-6, FR-013, FR-014).
  * <ol>
  *   <li>개수가 max-per-post(5)를 넘으면 tags 칸에 TAG_TOO_MANY.</li>
- *   <li>태그마다: 앞뒤 공백을 지우고 → 앞의 #을 모두 지우고 → 1~15자(코드 포인트)이고 공백·쉼표가 없어야 한다 (tags[n] TAG_INVALID).</li>
- *   <li><b>소문자로 바꾼다</b> (D-10 A). 그래서 Java와 java는 같은 태그다. 겹치면 조용히 합치지 않고 tags[n] TAG_DUPLICATED.</li>
+ *   <li>태그마다: 앞뒤 공백을 지우고 → 앞의 #을 모두 지우고 → <b>소문자로 바꾼</b>(D-10 A) 값이 1~15자(코드 포인트)이고 공백·쉼표가 없어야 한다 (tags[n] TAG_INVALID).</li>
+ *   <li>소문자로 바꾸므로 Java와 java는 같은 태그다. 겹치면 조용히 합치지 않고 tags[n] TAG_DUPLICATED.</li>
  * </ol>
  * 칸별 오류를 모아 VALIDATION_FAILED로 던진다 (모양은 @Valid와 같다).
  */
@@ -68,7 +68,8 @@ public class TagNormalizer {
         while (start < name.length() && name.charAt(start) == '#') {
             start++;
         }
-        name = name.substring(start);
+        // 길이는 소문자로 바꾼 뒤에 센다: 바꾸면 길어지는 글자가 있다 (예: İ → i̇, 두 글자). 저장하는 값이 칸을 넘지 않게
+        name = name.substring(start).toLowerCase(Locale.ROOT);
         int length = name.codePointCount(0, name.length());
         if (length < properties.minLength() || length > properties.maxLength()) {
             return Optional.empty();
@@ -76,7 +77,7 @@ public class TagNormalizer {
         if (name.chars().anyMatch(c -> Character.isWhitespace(c) || Character.isSpaceChar(c) || c == ',')) {
             return Optional.empty();
         }
-        return Optional.of(name.toLowerCase(Locale.ROOT));
+        return Optional.of(name);
     }
 
     private String tooManyMessage() {
