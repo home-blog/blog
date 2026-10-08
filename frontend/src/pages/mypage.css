@@ -97,6 +97,20 @@
   list-style: none;
 }
 
+.mypage-link {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mypage-back {
+  margin: 0 0 0.5rem;
+  font-size: var(--step--1);
+}
+
+.mypage-back a {
+  color: var(--ink-soft);
+}
+
 .mypage-soon {
   font-weight: 600;
   color: var(--ink-soft);
