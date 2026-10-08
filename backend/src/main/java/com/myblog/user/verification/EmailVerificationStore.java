@@ -52,6 +52,14 @@ public class EmailVerificationStore {
                     + "return 0",
             Long.class);
 
+    /** 새 흐름으로 한 번에 바꾼다: 이전 틀린 횟수·인증됨·증표를 지우고 새 번호와 증표를 같은 만료로 저장한다. */
+    private static final RedisScript<Long> START_FLOW = RedisScript.of(
+            "redis.call('DEL', KEYS[3], KEYS[4]) "
+                    + "redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[3]) "
+                    + "redis.call('SET', KEYS[2], ARGV[2], 'PX', ARGV[3]) "
+                    + "return 1",
+            Long.class);
+
     /** 인증번호 확인 결과 */
     public enum CodeCheck { NONE, MATCH, MISMATCH }
 
@@ -64,11 +72,12 @@ public class EmailVerificationStore {
     /**
      * 새 인증을 시작한다: 번호와 증표를 해시로 저장한다. 이전 번호·증표는 덮어써서 무효가 되고,
      * 틀린 횟수와 이전 인증의 "인증됨" 표시도 지운다 (FR-017. 이전 증표로 새 흐름을 건드릴 수 없게).
+     * 모두 Lua 한 번으로 실행해, 중간에 끊겨도 새 번호와 이전 증표가 섞여 남지 않는다.
      */
     public void startFlow(String email, String code, String token, Duration ttl) {
-        redis.delete(List.of(key("fail", email), key("verified", email)));
-        redis.opsForValue().set(key("code", email), hash(code), ttl);
-        redis.opsForValue().set(key("flow", email), hash(token), ttl);
+        redis.execute(START_FLOW,
+                List.of(key("code", email), key("flow", email), key("fail", email), key("verified", email)),
+                hash(code), hash(token), String.valueOf(ttl.toMillis()));
     }
 
     /** 넣은 번호가 저장한 번호와 같은지. 번호가 없으면(만료·폐기) NONE. */
