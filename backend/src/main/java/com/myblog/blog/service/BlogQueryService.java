@@ -51,7 +51,8 @@ public class BlogQueryService {
         Blog blog = find(blogId);
         List<Category> list = categories.findByBlogIdOrderBySortOrderAscIdAsc(blogId);
         if (blog.getOwnerId().equals(viewerId)) {
-            return list.stream().map(category -> CategoryView.of(category, postCounter.countAll(category.getId()))).toList();
+            Map<Long, Long> counts = postCounter.countAll(list.stream().map(Category::getId).toList());
+            return list.stream().map(category -> CategoryView.of(category, counts.getOrDefault(category.getId(), 0L))).toList();
         }
         List<Category> open = list.stream().filter(category -> Visibility.isPublic(category.getVisibility())).toList();
         Map<Long, Long> counts = postCounter.countVisible(open.stream().map(Category::getId).toList());
