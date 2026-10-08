@@ -16,6 +16,7 @@ import com.myblog.user.domain.User;
 import com.myblog.user.mail.MailSendFailedException;
 import com.myblog.user.mail.VerificationMailSender;
 import com.myblog.user.repository.UserRepository;
+import com.myblog.user.verification.EmailVerificationStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -79,6 +81,12 @@ class SignupFlowTest {
 
     @Autowired
     private CategoryRepository categories;
+
+    @Autowired
+    private EmailVerificationStore store;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     private MockMvc mvc;
     private String email;
@@ -158,6 +166,30 @@ class SignupFlowTest {
         cancel(email, "stolen").andExpect(status().isNoContent());
 
         signup(nickname, email, "abcd123!", "abcd123!", token).andExpect(status().isCreated());
+    }
+
+    @Test
+    void 예전_증표로는_새_인증을_취소할_수_없다() throws Exception {
+        String oldToken = sendAndGetToken(nickname, email);
+        confirm(email, mail.lastCode.get(email), oldToken).andExpect(status().isOk());
+        store.releaseCooldown(email); // 1분 기다린 셈 치고 다시 받는다
+        String newToken = sendAndGetToken(nickname, email);
+
+        cancel(email, oldToken).andExpect(status().isNoContent()); // 아무것도 지우지 않는다
+        confirm(email, mail.lastCode.get(email), newToken).andExpect(status().isOk());
+        // 새로 받으면 예전 인증은 무효: 예전 증표로는 가입할 수 없다
+        signup(nickname, email, "abcd123!", "abcd123!", oldToken).andExpect(status().isForbidden());
+        signup(nickname, email, "abcd123!", "abcd123!", newToken).andExpect(status().isCreated());
+    }
+
+    @Test
+    void 인증번호와_증표는_원문으로_저장하지_않는다() throws Exception {
+        String token = sendAndGetToken(nickname, email);
+        String savedCode = redis.opsForValue().get("emailauth:code:" + email);
+        String savedToken = redis.opsForValue().get("emailauth:flow:" + email);
+
+        assertThat(savedCode).isNotEqualTo(mail.lastCode.get(email)).hasSize(64);
+        assertThat(savedToken).isNotEqualTo(token).hasSize(64);
     }
 
     @Test

@@ -83,8 +83,7 @@ public class EmailVerificationService {
         // ⑤ 새 번호와 증표 저장 (이전 번호·증표 무효)  ⑥ 메일이 나갈 때까지 기다린다
         String code = generator.generate();
         String token = generator.newFlowToken();
-        store.saveCode(email, code, config.codeTtl());
-        store.saveFlowToken(email, token, config.codeTtl());
+        store.startFlow(email, code, token, config.codeTtl());
         try {
             mailSender.send(email, code, config.codeTtl());
         } catch (MailSendFailedException e) {
@@ -106,10 +105,12 @@ public class EmailVerificationService {
         if (email == null || email.isEmpty() || !store.isFlowToken(email, verificationToken)) {
             throw new ApiException(ErrorCode.CODE_EXPIRED);
         }
-        String saved = store.findCode(email).orElseThrow(() -> new ApiException(ErrorCode.CODE_EXPIRED));
         String input = rawCode == null ? "" : rawCode.strip().toUpperCase(Locale.ROOT);
-
-        if (saved.equals(input)) {
+        EmailVerificationStore.CodeCheck check = store.checkCode(email, input);
+        if (check == EmailVerificationStore.CodeCheck.NONE) {
+            throw new ApiException(ErrorCode.CODE_EXPIRED);
+        }
+        if (check == EmailVerificationStore.CodeCheck.MATCH) {
             store.deleteCode(email);
             store.markVerified(email, verificationToken, config.verifiedTtl());
             return;
@@ -131,9 +132,7 @@ public class EmailVerificationService {
         if (email == null || email.isEmpty()) {
             return;
         }
-        if (store.isFlowToken(email, verificationToken) || store.isVerified(email, verificationToken)) {
-            store.clearFlow(email);
-        }
+        store.cancelIfOwner(email, verificationToken);
     }
 
     private ApiException fieldError(ErrorCode code, String field) {
