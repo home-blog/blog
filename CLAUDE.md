@@ -100,7 +100,7 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 
 | 기능 | spec | plan | tasks | 남은 결정 (`research.md`) |
 |---|---|---|---|---|
-| 001 회원 가입·로그인 | ✅ | ✅ | ✅ 41개 (T001~T005, T008 완료 — PR #1 merge) | D-1 SMTP 계정, D-5 배포·HTTPS |
+| 001 회원 가입·로그인 | ✅ | ✅ | ✅ 41개 (T001~T015 완료 = Phase 1·2 끝, PR #1·#11. 다음은 US1 T016부터) | D-1 SMTP 계정, D-5 배포·HTTPS |
 | 002 계정 관리 | ✅ | ✅ | ❌ | D-3 ~ D-6 (4개) |
 | 003 블로그와 글 | ✅ | ✅ | ❌ | D-2 (1개) |
 | 004 탐색 | ✅ | ✅ | ❌ | D-1 ~ D-5 (5개) |
@@ -112,8 +112,8 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 - 팀 확인이 필요한 제안값: 가입 5분(001 SC-006), 글쓰기 3분(003 SC-011), 댓글 1분(005 SC-009), 대시보드 1분(006 SC-011). 006 원본의 `확인 필요` 4개(BM-01-3, BM-05-7, BM-06-5, BM-06-8).
 - 통합 API 명세서는 아직 없다. 기능별 초안이 `specs/*/contracts/`에 있다. ERD가 확정되면 합친다.
 
-- **코드 (2026-10-08)**: PR #1(뼈대 T001~T005, 세션 표 T008)을 merge했다. 자동 검사 3개가 모두 돈다: CI(서버 Maven 빌드·테스트, 화면 린트·빌드), CodeRabbit(한국어 리뷰, `.coderabbit.yaml`), SonarQube(**아카데미 서버**, 프로젝트 키 `myblog-jaeung`). 아카데미 인프라의 계정·비밀번호는 이 공개 저장소에 적지 않는다.
-- PR 흐름: 브랜치 push → REST로 PR 생성(`gh api repos/home-blog/myblog/pulls`, GraphQL인 `gh pr create`는 막힘) → CI·CodeRabbit 확인, 맞는 지적은 고침 → `gh api .../pulls/N/merge`. 원격 브랜치 삭제는 이 세션에서 막혀 있다.
+- **코드 (2026-10-08)**: PR #1(뼈대, 세션 표), #9(pgvector DB), #10(Dependabot 반영·묶기), #11(001 공통 바탕: 회원·블로그·분류 표, 설정값, 공통 오류, 보안·CSRF, 입력 규칙, 화면 요청 도구)을 merge했다. CSRF는 쿠키 `XSRF-TOKEN` + 헤더 `X-XSRF-TOKEN`. 자동 검사 3개가 모두 돈다: CI(서버 Maven 빌드·테스트, 화면 린트·빌드), CodeRabbit(한국어 리뷰, `.coderabbit.yaml`), SonarQube(**아카데미 서버**, 프로젝트 키 `myblog-jaeung`). 아카데미 인프라의 계정·비밀번호는 이 공개 저장소에 적지 않는다.
+- PR 흐름: 브랜치 push → REST로 PR 생성(`gh api repos/home-blog/myblog/pulls`, GraphQL인 `gh pr create`는 막힘) → CI·CodeRabbit 확인, 맞는 지적은 고침 → `gh api .../pulls/N/merge`. 원격 브랜치 삭제는 이 세션에서 막혀 있다. **Dependabot PR은 직접 merge하지 않는다**(안전장치가 막음). 같은 변경을 내 PR로 반영하면 Dependabot이 자기 PR을 닫는다.
 - 작업 공간과 Mac 셸 모두 Maven 저장소가 막혀 서버를 직접 컴파일할 수 없다. **서버 빌드는 PR의 CI로 확인한다.** npm은 된다.
 - 사용자는 IntelliJ로 작업을 지켜본다. 구현을 마치면 무엇을 만들었는지 **짧게 보고**한다.
 
@@ -121,7 +121,7 @@ MyBlog(임시 이름): 여러 사람이 각자 블로그를 운영하고, 방문
 
 1. 아카데미 인프라 쓰임 정하기(사용자 확인 대기): SonarQube는 아카데미 서버(확정), 이미지 저장은 MinIO(추천), 배포 때 Redis는 아카데미 서버(DB 번호 = 학번 끝 두 자리, 키 앞에 `myblog:`), RabbitMQ는 안 씀, Elasticsearch·InfluxDB는 추후 확장 후보. 임베딩 기능(pgvector + Ollama)도 추후 확장 후보(DB는 준비해 둠).
 2. 사용자가 `docs/3-설계/ERD-변경-요청.md`를 팀에 공유하고 T-1~T-3 답을 받는다.
-3. 001 구현 계속: T006(팀 ERD 확인), T007(회원 표 `V2__auth_tables.sql`)부터. 화면은 가입·로그인부터 트렌드에 맞게 디자인한다.
+3. 001 구현 계속: US1(이메일 인증 + 가입) T016부터. 화면은 가입·로그인부터 트렌드에 맞게 디자인한다(frontend-design 스킬).
 4. 002~006의 남은 결정 17개(추천안 목록은 2026-10-08 대화)를 사용자가 확인하면 반영하고 `/speckit-tasks`로 작업 목록을 만든다.
 5. 개인 기능(주제별 화면, 커뮤니티, 오늘의 이슈, 인기 검색어)을 명세할지 정한다.
 6. `docs/3-설계/아키텍처-그림.md`의 그림을 최신 결정에 맞게 고친다.
