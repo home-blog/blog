@@ -78,6 +78,8 @@ public class SecurityConfig {
                         // 누구나 읽는 블로그·글 (003 contracts 1, 2, 11). 비공개는 서비스가 주인인지 보고 거른다
                         .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}").permitAll()
+                        // 공개 글 검색 (004 contracts 2). 누가 검색하든 공개 분류의 공개 글만 찾는다
+                        .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();

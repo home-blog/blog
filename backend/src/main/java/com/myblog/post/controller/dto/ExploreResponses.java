@@ -2,6 +2,8 @@ package com.myblog.post.controller.dto;
 
 import com.myblog.post.service.PostListService.PostListView;
 import com.myblog.post.service.PostListService.PostRow;
+import com.myblog.post.service.PostSearchService.SearchRow;
+import com.myblog.post.service.PostSearchService.SearchView;
 import java.util.List;
 
 /** 글 목록·검색 응답 (specs/004 contracts 1, 2). 필드 이름은 계약 그대로다. */
@@ -16,6 +18,15 @@ public final class ExploreResponses {
         public static PostListResponse of(PostListView view) {
             return new PostListResponse(view.blogId(), view.isOwner(), view.categoryId(), view.totalCount(),
                     view.page(), view.totalPages(), view.pageSize(), view.posts());
+        }
+    }
+
+    public record PostSearchResponse(String keyword, long totalCount, int page, int totalPages, int pageSize,
+            List<SearchRow> results) {
+
+        public static PostSearchResponse of(SearchView view) {
+            return new PostSearchResponse(view.keyword(), view.totalCount(), view.page(), view.totalPages(),
+                    view.pageSize(), view.results());
         }
     }
 }
