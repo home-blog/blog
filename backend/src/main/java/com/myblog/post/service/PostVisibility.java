@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
  * 글 상세, 이전·다음 글, 분류별 글 개수가 모두 이 조건을 쓴다.
  * 004의 목록·검색도 이 조건을 그대로 쓴다. 단 검색은 주인이어도 비공개 글을 넣지 않고(contracts 15),
  * 주인의 목록에는 글마다 visibility를 담아 "비공개" 표시를 붙인다(FR-032).
+ * 006의 인기 글도 isOpenToEveryone으로 거른다: 비공개 분류에 든 공개 글은 넣지 않는다 (2026-10-08 정할 것 24번, T040).
  * 004 글 목록은 {@link #listScope}로 "어느 분류의 어떤 글을 읽나"를 정한다 (004 T009, D-6, D-7).
  */
 @Component

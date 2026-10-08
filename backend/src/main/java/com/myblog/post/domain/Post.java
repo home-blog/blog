@@ -76,6 +76,23 @@ public class Post {
         return post;
     }
 
+    /**
+     * 글 수정 (FR-020, research B-7, R-2). 정리한 값을 지금 값과 하나씩 비교해 <b>하나라도 다를 때만</b> 바꾸고
+     * 수정 시각을 now로 넣는다. 바뀌었는지를 돌려준다. 작성 시각은 바꾸는 방법이 없다.
+     */
+    public boolean update(Long categoryId, Long topicId, String title, String content, String visibility, Instant now) {
+        if (sameAs(categoryId, topicId, title, content, visibility)) {
+            return false;
+        }
+        this.categoryId = categoryId;
+        this.topicId = topicId;
+        this.title = normalizeTitle(title);
+        this.content = normalizeContent(content);
+        this.visibility = visibility == null ? Visibility.PUBLIC.value() : visibility;
+        this.updatedAt = now;
+        return true;
+    }
+
     /** 정리한 값이 지금 값과 모두 같은가 (같은 요청 번호로 다시 온 글쓰기가 처음과 같은지 볼 때). */
     public boolean sameAs(Long categoryId, Long topicId, String title, String content, String visibility) {
         String newVisibility = visibility == null ? Visibility.PUBLIC.value() : visibility;

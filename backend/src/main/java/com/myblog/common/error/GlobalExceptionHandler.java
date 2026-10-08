@@ -1,6 +1,10 @@
 package com.myblog.common.error;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -48,6 +52,21 @@ public class GlobalExceptionHandler {
         for (ObjectError globalError : e.getBindingResult().getGlobalErrors()) {
             items.add(toItem(globalError.getObjectName(), globalError.getDefaultMessage()));
         }
+        return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED, items));
+    }
+
+    /** 서비스가 직접 검사한 결과 (예: 주인 확인 뒤에 검사하는 글 수정, specs/003 contracts 13). 모양은 @Valid와 같다. */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
+        List<ErrorResponse.FieldErrorItem> items = new ArrayList<>();
+        for (ConstraintViolation<?> violation : e.getConstraintViolations()) {
+            String field = null;
+            for (Path.Node node : violation.getPropertyPath()) {
+                field = node.getName();
+            }
+            items.add(toItem(field, violation.getMessage()));
+        }
+        items.sort(Comparator.comparing(ErrorResponse.FieldErrorItem::field, Comparator.nullsLast(Comparator.naturalOrder())));
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED, items));
     }
 
