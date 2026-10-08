@@ -44,6 +44,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMember(null)
   }, [])
 
-  const value = useMemo(() => ({ member, login, logout }), [member, login, logout])
+  const refresh = useCallback(async () => {
+    const started = version.current
+    try {
+      const res = await api<{ member: Member }>('/api/auth/me', { notifyUnauthenticated: false })
+      if (started === version.current) setMember(res.member)
+    } catch (err) {
+      if (started === version.current && err instanceof ApiError && err.status === 401) setMember(null)
+      else throw err
+    }
+  }, [])
+
+  const signedOut = useCallback(() => {
+    resetCsrfToken()
+    version.current += 1
+    setMember(null)
+  }, [])
+
+  const value = useMemo(
+    () => ({ member, login, logout, refresh, signedOut }),
+    [member, login, logout, refresh, signedOut],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

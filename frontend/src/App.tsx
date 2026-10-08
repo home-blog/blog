@@ -1,10 +1,13 @@
-// 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입
-import { BrowserRouter, Route, Routes, useNavigate } from 'react-router'
+// 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /mypage 마이페이지(로그인 필요)
+// createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
+import { createBrowserRouter, Outlet, RouterProvider, useNavigate } from 'react-router'
 import { AuthProvider } from './auth/AuthContext'
 import { LoginModalProvider } from './auth/LoginModal'
+import RequireLogin from './auth/RequireLogin'
 import SiteHeader from './components/SiteHeader'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import MyPage from './pages/MyPage'
 import SignupPage from './pages/SignupPage'
 
 function SignupRoute() {
@@ -13,23 +16,41 @@ function SignupRoute() {
   return <SignupPage onSignedUp={() => navigate('/login', { replace: true, state: { signedUp: true } })} />
 }
 
-export default function App() {
+/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 머리글 */
+function Layout() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <LoginModalProvider>
-          <SiteHeader />
-          <main>
-            {/* 회원 전용 화면은 <RequireLogin>으로 감싼다 (예: 글쓰기, 블로그 관리 — 003, 006) */}
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupRoute />} />
-              <Route path="*" element={<HomePage />} />
-            </Routes>
-          </main>
-        </LoginModalProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <LoginModalProvider>
+        <SiteHeader />
+        <main>
+          <Outlet />
+        </main>
+      </LoginModalProvider>
+    </AuthProvider>
   )
+}
+
+// 회원 전용 화면은 <RequireLogin>으로 감싼다 (예: 마이페이지, 글쓰기, 블로그 관리 — 002, 003, 006)
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: '/', element: <HomePage /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/signup', element: <SignupRoute /> },
+      {
+        path: '/mypage',
+        element: (
+          <RequireLogin>
+            <MyPage />
+          </RequireLogin>
+        ),
+      },
+      { path: '*', element: <HomePage /> },
+    ],
+  },
+])
+
+export default function App() {
+  return <RouterProvider router={router} />
 }

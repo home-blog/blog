@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -63,9 +64,9 @@ public class GlobalExceptionHandler {
         return respond(ErrorCode.METHOD_NOT_ALLOWED);
     }
 
-    /** DB나 Redis에 연결할 수 없을 때. */
-    @ExceptionHandler(DataAccessResourceFailureException.class)
-    public ResponseEntity<ErrorResponse> handleUnavailable(DataAccessResourceFailureException e) {
+    /** DB나 Redis에 연결할 수 없거나, 연결된 채로 응답이 없을 때(Redis가 도중에 꺼지면 시간 초과로 온다, quickstart S-10). */
+    @ExceptionHandler({DataAccessResourceFailureException.class, QueryTimeoutException.class})
+    public ResponseEntity<ErrorResponse> handleUnavailable(Exception e) {
         log.error("저장소에 연결할 수 없습니다", e);
         return respond(ErrorCode.SERVICE_UNAVAILABLE);
     }

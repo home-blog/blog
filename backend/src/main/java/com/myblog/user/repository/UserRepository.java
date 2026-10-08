@@ -24,6 +24,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select count(u) > 0 from User u where lower(u.nickname) = lower(trim(:nickname)) and u.deletedAt is null")
     boolean existsActiveByNickname(@Param("nickname") String nickname);
 
+    // 계정 관리 (specs/002 T004)
+
+    @Query("select u from User u where u.id = :id and u.deletedAt is null")
+    Optional<User> findActiveById(@Param("id") Long id);
+
+    /** 나(id)를 빼고 같은 닉네임이 있는지. 내 닉네임 그대로나 대소문자만 바꾸는 것은 중복이 아니다 (002 FR-007). */
+    @Query("select count(u) > 0 from User u where lower(u.nickname) = lower(trim(:nickname)) and u.id <> :id"
+            + " and u.deletedAt is null")
+    boolean existsActiveByNicknameExcept(@Param("nickname") String nickname, @Param("id") Long id);
+
     // 로그인 연속 실패 (specs/001 T031, data-model 1 `로그인 잠금의 상태 변화`)
     // 동시에 여러 번 틀려도 정확히 하나씩 오르도록, 읽고 쓰지 않고 DB에서 바로 +1 한다.
 

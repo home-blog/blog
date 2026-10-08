@@ -11,6 +11,10 @@ export interface AuthState {
   member: Member | null | undefined
   login: (email: string, password: string) => Promise<Member>
   logout: () => Promise<void>
+  /** 로그인 상태를 서버에서 다시 읽는다 (닉네임을 바꾼 뒤 머리글용, specs/002 T007) */
+  refresh: () => Promise<void>
+  /** 서버에 로그아웃을 보내지 않고 화면만 로그아웃 상태로 (탈퇴 뒤처럼 서버가 이미 끝낸 경우) */
+  signedOut: () => void
 }
 
 export const AuthContext = createContext<AuthState | null>(null)
