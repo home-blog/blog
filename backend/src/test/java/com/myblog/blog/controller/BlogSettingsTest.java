@@ -112,6 +112,18 @@ class BlogSettingsTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void S10_2_소개_200자는_통과하고_저장_뒤_관리_화면_머리_이름도_새_값이다() throws Exception {
+        String intro = "가".repeat(199) + "😀";
+        save(TestJson.of("name", "새 이름", "intro", intro))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.intro").value(intro));
+        // specs/006 T037, FR-040: 관리 화면 위쪽 이름은 다음 요청부터 새 값
+        mvc.perform(get("/api/manage/blog").session(session))
+                .andExpect(jsonPath("$.name").value("새 이름"))
+                .andExpect(jsonPath("$.intro").value(intro));
+    }
+
     private ResultActions save(String json) throws Exception {
         return mvc.perform(put("/api/me/blog").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON).content(json));
     }

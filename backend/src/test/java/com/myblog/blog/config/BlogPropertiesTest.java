@@ -27,4 +27,11 @@ class BlogPropertiesTest {
         assertThatThrownBy(() -> new PostProperties.Title(1, 101)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new PostProperties.Content(10, 5)).isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    void 분류_색_개수는_1개_이상이어야_한다() {
+        CategoryProperties.Name name = new CategoryProperties.Name(1, 20);
+        assertThatCode(() -> new CategoryProperties(name, 6)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> new CategoryProperties(name, 0)).isInstanceOf(IllegalStateException.class);
+    }
 }

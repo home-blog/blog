@@ -19,6 +19,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             + " and (:excludeId is null or c.id <> :excludeId)")
     boolean existsSameName(@Param("blogId") Long blogId, @Param("name") String name, @Param("excludeId") Long excludeId);
 
+    long countByBlogId(Long blogId);
+
     @Query("select coalesce(max(c.sortOrder), 0) from Category c where c.blogId = :blogId")
     int maxSortOrder(@Param("blogId") Long blogId);
 

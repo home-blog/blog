@@ -1,4 +1,5 @@
 // 분류 관리 화면 /manage/categories (specs/003 US6, T046). 내 블로그는 서버가 세션으로 정한다
+// 006 블로그 관리 화면 틀(ManageLayout) 안에 들어간다 (specs/006 T024)
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
@@ -47,6 +48,10 @@ export default function CategoryManagePage() {
         </p>
       </header>
       <CategoryManager categories={categories} onChange={setCategories} />
+      {/* 항상 보이는 안내 (specs/006 FR-021) */}
+      <p className="hint category-notice">
+        글이 하나라도 있는 분류는 삭제할 수 없습니다. 글은 글 수정에서 다른 분류로 옮길 수 있습니다.
+      </p>
     </div>
   )
 }
