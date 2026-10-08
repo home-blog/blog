@@ -83,6 +83,9 @@ export default function PasswordChangePage() {
           onChange={(e) => {
             set(e.target.value)
             setDone(false)
+            // 고친 칸의 오류는 지운다. 다시 낼 때 서버가 새로 판단한다
+            setErrors((prev) => ({ ...prev, [id]: undefined }))
+            setFormError(null)
           }}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `pw-${id}-error` : id === 'newPassword' ? 'pw-rules' : undefined}
