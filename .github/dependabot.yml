@@ -1,12 +1,28 @@
 # 라이브러리 새 버전을 매주 PR로 알려 준다
+# PR이 너무 많이 쌓이지 않게 종류별로 한 PR에 묶는다 (큰 버전 업데이트는 따로 와서 하나씩 확인한다)
 version: 2
 updates:
   - package-ecosystem: maven
     directory: /backend
     schedule: { interval: weekly }
+    groups:
+      maven-minor-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Node 타입은 CI가 쓰는 Node 버전(22)에 맞춘다. 큰 버전은 Node를 올릴 때 같이 올린다
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    groups:
+      github-actions:
+        patterns: ["*"]
