@@ -6,6 +6,7 @@ import com.myblog.community.repository.PostLikeRepository;
 import com.myblog.post.PostLikeSummary.LikeSummary;
 import com.myblog.post.PostLookup;
 import com.myblog.post.PostLookup.PostRef;
+import com.myblog.user.ActiveMemberLock;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 검사 순서: 볼 수 있는 글인가(아니면 없는 글과 같은 POST_NOT_FOUND) → 자기 글이면 SELF_LIKE_NOT_ALLOWED → 처리.
  * 두 요청 모두 같은 결과를 몇 번 보내도 같다: 이미 눌렀으면 누르기는 그대로, 누르지 않았으면 취소도 그대로 (research B-8).
  * "다시 누르면 취소"는 화면이 likedByMe를 보고 둘 중 하나를 고른다.
+ * 누르기는 넣기 전에 회원 줄을 잠근다: 같은 회원의 탈퇴와 겹쳐도 탈퇴 정리(LikeCleaner) 뒤에 좋아요가 남지 않는다.
  */
 @Service
 @Transactional
@@ -23,11 +25,13 @@ public class LikeService {
 
     private final PostLikeRepository likes;
     private final PostLookup postLookup;
+    private final ActiveMemberLock memberLock;
     private final Clock clock;
 
-    public LikeService(PostLikeRepository likes, PostLookup postLookup, Clock clock) {
+    public LikeService(PostLikeRepository likes, PostLookup postLookup, ActiveMemberLock memberLock, Clock clock) {
         this.likes = likes;
         this.postLookup = postLookup;
+        this.memberLock = memberLock;
         this.clock = clock;
     }
 
@@ -35,6 +39,10 @@ public class LikeService {
         PostRef post = visiblePost(postId, memberId);
         if (post.isOwnedBy(memberId)) {
             throw new ApiException(ErrorCode.SELF_LIKE_NOT_ALLOWED);
+        }
+        if (!memberLock.lockIfActive(memberId)) {
+            // 이 요청이 기다리는 사이 탈퇴가 끝났다
+            throw new ApiException(ErrorCode.UNAUTHENTICATED);
         }
         likes.insertIfAbsent(post.postId(), memberId, Instant.now(clock));
         return summary(post.postId(), memberId);
