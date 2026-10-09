@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MyBlog 전체 (서버+화면)" type="CompoundRunConfigurationType">
+    <toRun name="2. 서버 (Spring Boot)" type="Application" />
+    <toRun name="3. 화면 (Vite)" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>
