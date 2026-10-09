@@ -44,10 +44,10 @@ export default function StatsPage() {
   const chart = useMemo(() => {
     if (!rows) return null
     const views: ChartSeries[] = [
-      { label: '조회수', values: rows.map((r) => r.views), colorToken: '--category-1' },
-      { label: '방문자', values: rows.map((r) => r.visitors), colorToken: '--category-2' },
+      { label: '조회수', values: rows.map((r) => r.views), colorToken: '--chart-1' },
+      { label: '방문자', values: rows.map((r) => r.visitors), colorToken: '--chart-2' },
     ]
-    const comments: ChartSeries[] = [{ label: '댓글', values: rows.map((r) => r.comments), colorToken: '--category-3' }]
+    const comments: ChartSeries[] = [{ label: '댓글', values: rows.map((r) => r.comments), colorToken: '--chart-1' }]
     return { dates: rows.map((r) => r.date), views, comments }
   }, [rows])
 

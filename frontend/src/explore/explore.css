@@ -1,21 +1,26 @@
-/* 글 목록·검색 결과 (specs/004): 원고지 칸 선 위에 한 줄씩, 아래에 페이지 번호 */
+/* 글 목록·검색 결과 (specs/004, docs/DESIGN.md): 날짜 · 분류 알약 · 제목 · 발췌가 넓은 여백을 두고 한 줄씩 이어진다 */
 .post-count {
-  margin: 0 0 0.75rem;
-  color: var(--ink-soft);
-  font-size: var(--step--1);
+  margin: var(--spacing-24) 0 0;
+  color: var(--color-slate-caption);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
   font-variant-numeric: tabular-nums;
 }
 
 .post-empty {
   display: grid;
   justify-items: center;
-  gap: 0.5rem;
-  margin: 1.5rem 0;
-  padding: 2rem 1rem;
+  gap: var(--spacing-16);
+  margin: var(--spacing-32) 0;
+  padding: var(--spacing-56) var(--spacing-24);
   text-align: center;
-  border: 1px dashed var(--grid);
-  border-radius: var(--radius-field);
-  color: var(--ink-soft);
+  background: var(--color-soft-cream);
+  border-radius: var(--radius-cards);
+  color: var(--color-graphite-body);
+}
+
+.post-empty p {
+  margin: 0;
 }
 
 .post-list {
@@ -25,52 +30,53 @@
 }
 
 .post-row {
-  border-bottom: 1px solid color-mix(in srgb, var(--grid) 45%, transparent);
+  border-bottom: 1px solid var(--color-hairline-mist);
 }
 
 .post-row-link {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.9rem 0.25rem;
+  gap: var(--spacing-12);
+  padding: var(--spacing-40) 0;
   color: inherit;
   text-decoration: none;
 }
 
 .post-row-link:hover .post-row-title,
 .post-row-link:focus-visible .post-row-title {
-  color: var(--accent);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .post-row-meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-  color: var(--ink-soft);
-  font-size: var(--step--1);
+  align-items: center;
+  gap: var(--spacing-8) var(--spacing-12);
+  color: var(--color-slate-caption);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .post-row-blog {
-  font-weight: 600;
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
-
-.post-row-category {
+  color: var(--color-graphite-body);
   overflow-wrap: anywhere;
 }
 
 .post-row-title {
-  font-family: var(--font-letter);
-  font-size: var(--step-1);
-  font-weight: 700;
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-press-black);
   overflow-wrap: anywhere;
 }
 
 /* 미리보기는 서버가 한 줄로 만든다. 화면에서는 두 줄까지만 보인다 */
 .post-row-preview {
-  color: var(--ink-soft);
+  color: var(--color-graphite-body);
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -78,19 +84,20 @@
   overflow: hidden;
 }
 
+/* 페이지 번호: 알약 */
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 1.5rem 0 0;
+  gap: var(--spacing-8);
+  margin: var(--spacing-56) 0 0;
 }
 
 .pagination ol {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: var(--spacing-8);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -101,94 +108,94 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.25rem;
-  height: 2.25rem;
-  padding: 0 0.5rem;
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-field);
-  color: var(--ink);
+  min-width: 40px;
+  height: 40px;
+  padding: 0 var(--spacing-12);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-full);
+  color: var(--color-press-black);
+  font-size: var(--text-body-sm);
   text-decoration: none;
   font-variant-numeric: tabular-nums;
 }
 
 a.pagination-number:hover,
 a.pagination-step:hover {
-  border-color: var(--grid-strong);
-  background: var(--paper-raised);
+  border-color: var(--color-press-black);
 }
 
 .pagination-number[aria-current='page'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
+  background: var(--color-inkwell);
+  border-color: var(--color-inkwell);
+  color: var(--color-canvas-white);
 }
 
 .pagination-step[aria-disabled='true'] {
-  opacity: 0.45;
+  color: var(--color-fog);
   cursor: not-allowed;
 }
 
-.post-empty p {
-  margin: 0;
-}
-
-/* 머리글 검색창 (specs/004 US5) */
+/* 머리글 검색창 (specs/004 US5): 알약 입력칸 */
 .search-box {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex: 1 1 14rem;
-  max-width: 24rem;
+  gap: var(--spacing-8);
+  flex: 1 1 224px;
+  max-width: 400px;
 }
 
 .search-input {
   flex: 1;
   min-width: 0;
-  padding: 0.4rem 0.75rem;
-  border: 1px solid var(--grid-strong);
-  border-radius: var(--radius-button);
-  background: var(--paper-raised);
-  color: var(--ink);
+  padding: var(--spacing-8) var(--spacing-16);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-full);
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
   font: inherit;
-  font-size: var(--step--1);
+  font-size: var(--text-body-sm);
+}
+
+.search-input:hover {
+  border-color: var(--color-silver-rule);
 }
 
 .search-input:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-press-black);
+  outline-offset: 0;
 }
 
 .search-error {
   position: absolute;
-  top: calc(100% + 0.3rem);
-  left: 0.75rem;
-  font-size: 0.8rem;
+  top: calc(100% + var(--spacing-8));
+  left: var(--spacing-16);
+  font-size: var(--text-caption);
   white-space: nowrap;
 }
 
-/* 검색 결과 화면 */
+/* 검색 결과·태그 화면 */
 .search-page {
-  max-width: 48rem;
+  max-width: var(--article-max-width);
   margin: 0 auto;
-  padding: 2.5rem 1rem 4rem;
+  padding: var(--section-gap) var(--spacing-24);
 }
 
 .search-title {
-  margin: 0 0 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--grid-strong);
-  font-family: var(--font-letter);
-  font-size: var(--step-2);
+  margin: 0;
+  padding-bottom: var(--spacing-24);
+  border-bottom: 1px solid var(--color-hairline-mist);
+  font-size: var(--text-heading);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
 }
 
 .search-keyword {
-  color: var(--ink);
+  color: var(--color-press-black);
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 640px) {
   .site-header {
     flex-wrap: wrap;
   }

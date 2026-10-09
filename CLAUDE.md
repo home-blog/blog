@@ -17,7 +17,7 @@
 - 설정값(글자 수, 시간, 횟수)은 `application.yml`(`auth.*`, `account.*` 등) 한곳에서 읽는다. 비밀 값은 환경 변수로만.
 - 표는 Flyway(`backend/src/main/resources/db/migration`)로만 만든다. JPA는 `ddl-auto: validate`.
 - 모듈 방향(Spring Modulith, `ModularityTest`): `user ← blog ← post ← comment/community/image`, `stats`는 읽기만. 아래 모듈은 위 모듈을 직접 부르지 않고 이벤트나 질문 틀(인터페이스)을 쓴다.
-- 화면 디자인은 "원고지" 방향(토큰은 `frontend/src/index.css`). Spring 기능은 문서 저장소 `docs/3-설계/기술스택-아키텍처.md` 2.2 표대로 적극적으로 쓴다.
+- 화면 디자인은 **`docs/DESIGN.md`(Cohere 스타일, 에디토리얼) 규칙을 엄격히 따른다** (2026-10-09 사용자 지시, 예전 "원고지" 방향을 대신함). 토큰은 `frontend/src/index.css` 한곳: 캔버스 `#ffffff`·크림 `#f0eee9`, 글자 `#212121`, 선은 1px `#e5e7eb`, **그림자 금지**, 주 버튼은 `#17171c` 다크 알약·보조는 밑줄 링크, 모서리는 4·8·12(코드)·22·9999px만, 글자 12~72px 단계만, 색 있는 글자·버튼·아이콘 금지. DESIGN.md에 없어 정한 것: 한글 글꼴 Pretendard, 큰 제목 글꼴 Noto Serif KR(CohereText 대신), 글 읽기 폭 760px, 인용구는 왼쪽 2px 선, 오류 표시는 색 대신 굵은 글자·2px 검은 선. Spring 기능은 문서 저장소 `docs/3-설계/기술스택-아키텍처.md` 2.2 표대로 적극적으로 쓴다.
 - 이 저장소는 **공개(public)** 다. 비밀번호, 키, 계정 정보, 실습 서버 주소는 넣지 않는다.
 
 ## 확인하고 올리기

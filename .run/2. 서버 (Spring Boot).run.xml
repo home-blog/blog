@@ -1,0 +1,15 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- 이미지 저장소 접속 키는 docker-compose.yml의 MinIO 개발 전용 값과 같다 (실제 비밀 값 아님) -->
+  <configuration default="false" name="2. 서버 (Spring Boot)" type="Application" factoryName="Application">
+    <envs>
+      <env name="IMAGE_S3_ACCESS_KEY" value="myblog-dev" />
+      <env name="IMAGE_S3_SECRET_KEY" value="myblog-dev-secret" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="com.myblog.MyBlogApplication" />
+    <module name="myblog-server" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

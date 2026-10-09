@@ -1,18 +1,22 @@
+/* 머리글 (docs/DESIGN.md Top Navigation Bar): 흰 바탕, 선·그림자 없음, 높이 64px. 이름 왼쪽, 검색 가운데, 메뉴·버튼 오른쪽 */
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem clamp(1rem, 4vw, 2.5rem);
-  border-bottom: 1px solid var(--grid);
-  background: var(--paper);
+  gap: var(--spacing-16);
+  max-width: var(--page-max-width);
+  min-height: 64px;
+  margin: 0 auto;
+  padding: var(--spacing-8) var(--spacing-24);
+  background: var(--color-canvas-white);
 }
 
 .site-brand {
-  font-family: var(--font-letter);
-  font-weight: 700;
-  font-size: var(--step-1);
-  color: var(--ink);
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  letter-spacing: var(--tracking-subheading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-press-black);
   text-decoration: none;
 }
 
@@ -21,8 +25,10 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 0.5rem 0.75rem;
-  font-size: var(--step--1);
+  gap: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
 }
 
 .site-nav > * {
@@ -30,45 +36,46 @@
 }
 
 .site-member {
-  color: var(--ink-soft);
+  padding: var(--spacing-8) var(--spacing-16);
+  color: var(--color-slate-caption);
 }
 
 /* 좁은 화면에서는 닉네임을 숨겨 메뉴 자리를 만든다 */
-@media (max-width: 30rem) {
+@media (max-width: 480px) {
   .site-member {
     display: none;
   }
 }
 
 .site-link {
-  color: var(--ink);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-navelements);
+  color: var(--color-press-black);
   text-decoration: none;
 }
 
 .site-link:hover {
-  text-decoration: underline;
+  background: var(--color-soft-cream);
 }
 
-.btn-small {
-  padding: 0.4rem 0.9rem;
-  font-size: var(--step--1);
-  text-decoration: none;
-  display: inline-block;
+.site-nav .btn {
+  margin-left: var(--spacing-8);
 }
 
 /* 새 댓글 수 (specs/006 FR-028): 사용자 메뉴의 블로그 관리 옆, 관리 화면 메뉴의 댓글 관리 옆 */
 .new-badge {
   display: inline-block;
-  min-width: 1.35rem;
-  margin-left: 0.3rem;
-  padding: 0 0.35rem;
-  color: var(--accent-ink);
-  background: var(--accent);
-  border-radius: var(--radius-button);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.35rem;
+  min-width: 24px;
+  margin-left: var(--spacing-8);
+  padding: 0 var(--spacing-8);
+  color: var(--color-canvas-white);
+  background: var(--color-inkwell);
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-bold);
+  line-height: 24px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

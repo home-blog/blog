@@ -1,27 +1,27 @@
-/* 그래프 (specs/006 T058): uPlot 기본 모양 위에 원고지 토큰 */
+/* 그래프 (specs/006 T058): uPlot 기본 모양 위에 docs/DESIGN.md 토큰 (무채색 선, 1px 격자) */
 .daily-chart {
   width: 100%;
   min-width: 0;
-  font-family: var(--font-ui);
-  font-size: var(--step--1);
-  color: var(--ink);
+  font-family: var(--font-unica77);
+  font-size: var(--text-body-sm);
+  color: var(--color-press-black);
 }
 
 .daily-chart .u-legend {
-  font-size: var(--step--1);
+  font-size: var(--text-body-sm);
   text-align: left;
 }
 
 .daily-chart .u-legend th {
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
 }
 
 .chart-numbers {
-  margin-top: 0.5rem;
+  margin-top: var(--spacing-8);
 }
 
 .chart-numbers summary {
   cursor: pointer;
-  color: var(--ink-soft);
-  font-size: var(--step--1);
+  color: var(--color-graphite-body);
+  font-size: var(--text-body-sm);
 }

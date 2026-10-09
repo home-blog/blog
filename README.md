@@ -12,12 +12,14 @@
 
 ## 코드 실행하기
 
-```bash
-# 1. 개발용 DB와 Redis 띄우기
-docker compose up -d
+IntelliJ에서는 오른쪽 위 실행 목록(`.run/` 폴더)에서 고르면 됩니다: `1. DB·Redis·MinIO 켜기` → `MyBlog 전체 (서버+화면)` → http://localhost:5173
 
-# 2. 서버 (http://localhost:8080) — IntelliJ에서 MyBlogApplication 실행해도 됩니다
-cd backend && mvn spring-boot:run
+```bash
+# 1. 개발용 DB, Redis, 이미지 저장소(MinIO) 띄우기
+docker compose up -d --wait
+
+# 2. 서버 (http://localhost:8080). 이미지 저장소 키는 docker-compose.yml의 개발 전용 값
+cd backend && IMAGE_S3_ACCESS_KEY=myblog-dev IMAGE_S3_SECRET_KEY=myblog-dev-secret mvn spring-boot:run
 
 # 3. 화면 (http://localhost:5173) — /api 요청은 서버로 넘어갑니다
 cd frontend && npm install && npm run dev

@@ -1,35 +1,36 @@
+/* 로그인 창: 22px 카드, 1px 선, 그림자 없음 */
 .login-modal {
-  width: min(28rem, calc(100vw - 2rem));
+  width: min(448px, calc(100vw - 32px));
   padding: 0;
-  border: 2px solid var(--grid-strong);
-  border-radius: var(--radius-field);
-  background: var(--paper-raised);
-  color: var(--ink);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-cards);
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
 }
 
 .login-modal::backdrop {
-  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  background: rgb(23 23 28 / 0.4);
 }
 
 .login-modal-body {
   display: grid;
-  gap: 0.25rem;
-  padding: 1.75rem 1.5rem 1.25rem;
+  gap: var(--spacing-8);
+  padding: var(--spacing-32);
 }
 
 .login-modal-body .auth-lead {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--spacing-24);
 }
 
 .login-modal-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
-  font-size: var(--step--1);
+  margin-top: var(--spacing-16);
+  font-size: var(--text-body-sm);
 }
 
 .login-modal-actions a {
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--color-press-black);
+  text-underline-offset: 4px;
 }

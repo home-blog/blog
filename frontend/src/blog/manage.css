@@ -1,25 +1,26 @@
-/* 블로그 관리 화면(분류 관리, 블로그 설정): 원고지 종이 위 카드 하나 */
+/* 블로그 관리 안쪽 화면(분류 관리, 블로그 설정) (docs/DESIGN.md): Outlined Content Card 하나 */
 .manage {
-  max-width: 48rem;
+  max-width: var(--article-max-width);
   margin: 0 auto;
-  padding: 2.5rem 1rem 4rem;
+  padding: var(--spacing-56) var(--spacing-24) var(--section-gap);
 }
 
 .manage-head {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-24);
 }
 
 .manage-title {
-  margin: 0 0 0.35rem;
-  font-family: var(--font-letter);
-  font-size: var(--step-2);
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--text-heading);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
 }
 
 .category-manager {
-  padding: 1rem clamp(0.75rem, 3vw, 1.5rem);
-  background: var(--paper-raised);
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-field);
+  padding: var(--spacing-8) var(--spacing-32) var(--spacing-32);
+  background: var(--color-canvas-white);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-cards);
 }
 
 .category-list {
@@ -33,9 +34,9 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas: 'order name count' 'order actions actions';
   align-items: center;
-  gap: 0.25rem 0.75rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px dashed var(--grid);
+  gap: var(--spacing-8) var(--spacing-12);
+  padding: var(--spacing-16) 0;
+  border-bottom: 1px solid var(--color-hairline-mist);
 }
 
 .category-order {
@@ -50,33 +51,35 @@
   overflow-wrap: anywhere;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spacing-8);
   flex-wrap: wrap;
 }
 
 .category-rename input,
 .category-add input,
 .category-add select {
-  padding: 0.45rem 0.6rem;
+  padding: var(--spacing-8) var(--spacing-12);
   font: inherit;
-  color: var(--ink);
-  background: var(--paper-raised);
-  border: 1px solid var(--grid-strong);
-  border-radius: var(--radius-field);
+  color: var(--color-press-black);
+  background: var(--color-canvas-white);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-navelements);
   min-width: 0;
 }
 
+/* 분류 색 (specs/006 D-9): 무채색 6단계, 밝은 색도 보이게 1px 선 */
 .category-dot {
   flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-silver-rule);
+  border-radius: var(--radius-full);
 }
 
 .category-count {
   grid-area: count;
-  color: var(--ink-soft);
-  font-size: var(--step--1);
+  color: var(--color-slate-caption);
+  font-size: var(--text-body-sm);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -85,41 +88,36 @@
   grid-area: actions;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.btn-icon {
-  padding: 0 0.45rem;
-  line-height: 1.4;
-  min-width: 2rem;
+  gap: var(--spacing-8);
 }
 
 .category-add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-24);
 }
 
 .category-add label {
-  font-weight: 600;
-  font-size: var(--step--1);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-body-sm);
 }
 
 .category-add input {
-  flex: 1 1 10rem;
+  flex: 1 1 160px;
 }
 
 .category-notice {
-  margin: 1rem 0 0;
+  margin: var(--spacing-16) 0 0;
 }
 
 .category-message {
   min-height: 1.5em;
-  margin-top: 0.75rem;
+  margin-top: var(--spacing-12);
 }
 
 .manage-head .hint a {
-  color: var(--accent);
+  color: var(--color-press-black);
+  text-underline-offset: 4px;
 }

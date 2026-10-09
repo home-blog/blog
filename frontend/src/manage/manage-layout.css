@@ -1,64 +1,71 @@
-/* 블로그 관리 화면 틀: 왼쪽 메뉴 + 오른쪽 내용. 좁은 화면에서는 메뉴가 위로 (specs/006 NF-03) */
+/* 블로그 관리 화면 틀 (docs/DESIGN.md): 왼쪽 메뉴 카드 + 오른쪽 내용. 좁은 화면에서는 메뉴가 위 알약 줄로 (specs/006 NF-03) */
 .manage-shell {
   display: grid;
-  grid-template-columns: 13rem minmax(0, 1fr);
-  gap: 2rem;
-  max-width: 68rem;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: var(--spacing-40);
+  max-width: var(--page-max-width);
   margin: 0 auto;
-  padding: 2rem clamp(1rem, 4vw, 2.5rem) 4rem;
+  padding: var(--spacing-40) var(--spacing-24) var(--section-gap);
 }
 
 .manage-side {
   align-self: start;
   position: sticky;
-  top: 1rem;
-  padding: 1rem;
-  background: var(--paper-raised);
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-field);
+  top: var(--spacing-16);
+  padding: var(--spacing-24);
+  background: var(--color-soft-cream);
+  border-radius: var(--radius-cards);
 }
 
 .manage-blog-name {
-  margin: 0 0 0.75rem;
-  font-family: var(--font-letter);
-  font-size: var(--step-1);
-  font-weight: 700;
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  letter-spacing: var(--tracking-subheading);
+  font-weight: var(--font-weight-bold);
   overflow-wrap: anywhere;
 }
 
 .manage-side-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-16);
 }
 
 .manage-menu {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px dashed var(--grid);
+  display: grid;
+  gap: 2px;
 }
 
 .manage-menu-link {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.5rem;
-  color: var(--ink);
-  font-weight: 600;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-navelements);
+  color: var(--color-press-black);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
   text-decoration: none;
-  border-bottom: 1px dashed var(--grid);
 }
 
 .manage-menu-link:hover {
-  background: var(--paper);
+  background: var(--color-canvas-white);
 }
 
 .manage-menu-link.active {
-  color: var(--accent);
-  box-shadow: inset 3px 0 0 var(--accent);
+  background: var(--color-inkwell);
+  color: var(--color-canvas-white);
+}
+
+.manage-menu-link.active .new-badge {
+  background: var(--color-canvas-white);
+  color: var(--color-inkwell);
 }
 
 /* 안쪽 화면(분류 관리·설정 등)은 틀이 여백을 가진다 */
@@ -69,15 +76,15 @@
 }
 
 .manage-status {
-  padding: 3rem 1rem;
+  padding: var(--spacing-56) var(--spacing-16);
   text-align: center;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 768px) {
   .manage-shell {
     grid-template-columns: minmax(0, 1fr);
-    gap: 1.25rem;
-    padding-top: 1.25rem;
+    gap: var(--spacing-24);
+    padding-top: var(--spacing-24);
   }
 
   .manage-side {
@@ -87,18 +94,16 @@
   .manage-menu {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    border-top: 0;
+    gap: var(--spacing-8);
   }
 
   .manage-menu-link {
-    padding: 0.35rem 0.7rem;
-    border: 1px solid var(--grid);
-    border-radius: var(--radius-button);
+    border: 1px solid var(--color-hairline-mist);
+    border-radius: var(--radius-full);
+    background: var(--color-canvas-white);
   }
 
   .manage-menu-link.active {
-    box-shadow: none;
-    border-color: var(--accent);
+    border-color: var(--color-inkwell);
   }
 }
