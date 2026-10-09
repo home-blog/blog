@@ -1,35 +1,28 @@
-/* 확인 창(<dialog>)과 위험한 버튼: 회원 탈퇴(002), 글 삭제·공개로 바꾸기(003)가 같이 쓴다 */
-.btn-danger {
-  background: var(--error);
-  color: #fff;
-}
-
-.btn-danger:not(:disabled):hover {
-  background: color-mix(in srgb, var(--error) 85%, black);
-}
-
+/* 확인 창(<dialog>): 회원 탈퇴(002), 글 삭제·공개로 바꾸기(003). 22px 카드, 1px 선, 그림자 없음
+   위험한 버튼(.btn-danger)도 색 없이 다크 알약이다 (docs/DESIGN.md "colored CTA 금지") — index.css */
 .confirm-dialog {
-  max-width: min(26rem, calc(100vw - 2rem));
-  padding: 1.5rem;
-  border: 1px solid var(--grid-strong);
-  border-radius: var(--radius-field);
-  background: var(--paper-raised);
-  color: var(--ink);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: var(--spacing-32);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-cards);
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
 }
 
 .confirm-dialog::backdrop {
-  background: rgb(0 0 0 / 0.35);
+  background: rgb(23 23 28 / 0.4);
 }
 
 .confirm-title {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-letter);
-  font-size: var(--step-1);
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
 }
 
 .confirm-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-24);
 }

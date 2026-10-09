@@ -9,7 +9,6 @@ import {
   isValidPassword,
   messages,
 } from '../auth/rules'
-import ManuscriptSheet from './ManuscriptSheet'
 import './auth-layout.css'
 
 type Field = 'nickname' | 'email' | 'code' | 'password' | 'passwordConfirm'
@@ -240,9 +239,9 @@ export default function SignupPage({ onSignedUp }: Props) {
 
   return (
     <div className="auth-layout">
-      <section className="auth-sheet">
-        <ManuscriptSheet lines={['', '내 블로그를', '시작합니다.', '', blogName]} rows={7} liveLine={4} />
-        <p className="sheet-caption">
+      <section className="auth-sheet hero">
+        <p className="hero-headline" aria-hidden="true">내 블로그를 시작합니다.</p>
+        <p className="hero-lead">
           가입하면 <strong>{blogName}</strong>와 기본 분류 ‘미분류’가 바로 만들어집니다.
         </p>
       </section>

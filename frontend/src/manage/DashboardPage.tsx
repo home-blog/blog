@@ -54,8 +54,8 @@ export default function DashboardPage() {
   const chart = useMemo(() => {
     if (!dashboard) return null
     const series: ChartSeries[] = [
-      { label: '조회수', values: dashboard.chart.map((d) => d.views), colorToken: '--category-1' },
-      { label: '방문자', values: dashboard.chart.map((d) => d.visitors), colorToken: '--category-2' },
+      { label: '조회수', values: dashboard.chart.map((d) => d.views), colorToken: '--chart-1' },
+      { label: '방문자', values: dashboard.chart.map((d) => d.visitors), colorToken: '--chart-2' },
     ]
     return { dates: dashboard.chart.map((d) => d.date), series }
   }, [dashboard])

@@ -1,88 +1,101 @@
-/* 글 상세: 원고지 종이 위 제목과 본문. 본문은 명조 계열, 줄 간격 넉넉하게 */
+/*
+ * 글 상세 (docs/DESIGN.md): 흰 캔버스, 읽기 폭 760px, 가운데 큰 제목.
+ * 본문 16px / 행간 1.5, 인용구는 왼쪽 선 하나, 코드 블록은 다크 인셋(#17171c, 12px 모서리), 이미지는 22px 모서리
+ */
 @import '../blog/blog.css';
 
 .post-status {
-  max-width: 44rem;
+  max-width: var(--article-max-width);
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: var(--spacing-56) var(--spacing-16);
   text-align: center;
 }
 
 .post {
-  max-width: 46rem;
+  max-width: var(--article-max-width);
   margin: 0 auto;
-  padding: 2.5rem 1rem 4rem;
+  padding: var(--section-gap) var(--spacing-24);
 }
 
+/* 머리: 분류·주제 알약 → 큰 제목 → 블로그 이름·날짜, 모두 가운데 */
 .post-head {
-  padding-bottom: 1.25rem;
-  margin-bottom: 2rem;
-  border-bottom: 2px solid var(--grid-strong);
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-24);
+  margin-bottom: var(--spacing-56);
+  padding-bottom: var(--spacing-40);
+  border-bottom: 1px solid var(--color-hairline-mist);
+  text-align: center;
 }
 
-.post-meta-top {
+.post-labels {
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: var(--step--1);
-  color: var(--ink-soft);
+  justify-content: center;
+  gap: var(--spacing-8);
 }
 
-.post-blog {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.post-blog:hover {
-  text-decoration: underline;
-}
-
-.post-topic {
-  margin-left: 0.35rem;
-  padding: 0 0.5rem;
-  border-radius: var(--radius-button);
-  background: color-mix(in srgb, var(--grid) 35%, transparent);
-  color: var(--ink);
-}
-
+/* 이 화면에서 가장 큰 글: CohereText 48px (작은 화면은 Unica77 32px 굵게 — CohereText는 48px 밑으로 쓰지 않는다) */
 .post-title {
-  margin: 0.5rem 0 0.25rem;
-  font-family: var(--font-letter);
-  font-size: var(--step-2);
-  line-height: 1.35;
+  margin: 0;
+  font-family: var(--font-coheretext);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-display);
   overflow-wrap: anywhere;
 }
 
-.post-times {
+@media (max-width: 640px) {
+  .post-title {
+    font-family: var(--font-unica77);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--text-heading);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-heading);
+  }
+}
+
+.post-byline {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-8);
+  color: var(--color-slate-caption);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.post-blog {
+  color: var(--color-press-black);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .post-owner-actions {
-  margin: 1rem 0 0;
+  margin: 0;
   display: flex;
-  gap: 0.5rem;
-}
-
-.post-owner-actions [aria-disabled='true'] {
-  opacity: 0.55;
-  cursor: not-allowed;
+  justify-content: center;
+  gap: var(--spacing-8);
 }
 
 /* 도구를 불러오는 동안 잠깐 보이는 원문 */
 .post-content-raw {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family: var(--font-letter);
-  line-height: 2;
 }
 
+/* ── 본문 ── */
 .markdown {
-  font-family: var(--font-letter);
-  font-size: 1.05rem;
-  line-height: 2;
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  color: var(--color-press-black);
   overflow-wrap: anywhere;
 }
 
@@ -90,71 +103,153 @@
   margin-top: 0;
 }
 
+.markdown p,
+.markdown ul,
+.markdown ol {
+  margin: 0 0 var(--spacing-24);
+}
+
+.markdown li + li {
+  margin-top: var(--spacing-8);
+}
+
 .markdown h1,
 .markdown h2,
-.markdown h3 {
-  line-height: 1.4;
-  margin: 2rem 0 0.75rem;
+.markdown h3,
+.markdown h4 {
+  margin: var(--spacing-56) 0 var(--spacing-16);
+  font-weight: var(--font-weight-bold);
+}
+
+.markdown h1 {
+  font-size: var(--text-heading);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+}
+
+.markdown h2 {
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
+}
+
+.markdown h3,
+.markdown h4 {
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  letter-spacing: var(--tracking-subheading);
 }
 
 .markdown a {
-  color: var(--accent);
+  color: var(--color-press-black);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
+.markdown hr {
+  margin: var(--spacing-56) 0;
+  border: 0;
+  border-top: 1px solid var(--color-hairline-mist);
+}
+
+/* 이미지 틀: 22px 모서리 */
 .markdown img {
+  display: block;
   max-width: 100%;
   height: auto;
+  margin: var(--spacing-32) auto;
+  border-radius: var(--radius-cards);
 }
 
+/* 인용구: 왼쪽 선 하나와 들여쓰기 (DESIGN.md에 없어 정함) */
 .markdown blockquote {
-  margin: 1rem 0;
-  padding: 0.25rem 1rem;
-  border-left: 3px solid var(--grid-strong);
-  color: var(--ink-soft);
+  margin: var(--spacing-32) 0;
+  padding: 0 0 0 var(--spacing-24);
+  border-left: 2px solid var(--color-press-black);
+  color: var(--color-graphite-body);
+  font-size: var(--text-subheading);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-subheading);
 }
 
+.markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* 글 안의 짧은 코드 */
 .markdown code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.9em;
-  padding: 0.1em 0.3em;
-  background: color-mix(in srgb, var(--grid) 25%, transparent);
-  border-radius: 4px;
+  font-family: var(--font-coheremono);
+  font-size: var(--text-body-sm);
+  letter-spacing: 0;
+  padding: 2px var(--spacing-8);
+  background: var(--color-soft-cream);
+  border-radius: var(--radius-smallui);
 }
 
+/* 코드 블록: Code Snippet Panel — 다크 인셋 */
 .markdown pre {
-  padding: 0.75rem 1rem;
+  margin: var(--spacing-32) 0;
+  padding: var(--spacing-24);
   overflow-x: auto;
-  background: var(--paper-raised);
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-field);
-  line-height: 1.5;
+  background: var(--color-inkwell);
+  color: var(--color-canvas-white);
+  border-radius: var(--radius-code);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body);
 }
 
 .markdown pre code {
   padding: 0;
   background: none;
+  border-radius: 0;
+  color: inherit;
 }
 
 .markdown table {
+  margin: var(--spacing-32) 0;
   border-collapse: collapse;
   display: block;
   overflow-x: auto;
+  font-size: var(--text-body-sm);
 }
 
 .markdown th,
 .markdown td {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--grid);
+  padding: var(--spacing-8) var(--spacing-16);
+  border: 1px solid var(--color-hairline-mist);
+  text-align: left;
 }
 
+.markdown th {
+  background: var(--color-soft-cream);
+}
+
+/* 태그 (specs/005 US5): 본문 아래 알약 */
+.post-tags {
+  margin: var(--spacing-56) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.post-tags .pill {
+  padding: var(--spacing-8) var(--spacing-16);
+  font-size: var(--text-body-sm);
+}
+
+/* 이전·목록·다음 */
 .post-nav {
-  margin-top: 3rem;
-  padding-top: 1.25rem;
-  border-top: 1px dashed var(--grid);
+  margin-top: var(--spacing-56);
+  padding-top: var(--spacing-24);
+  border-top: 1px solid var(--color-hairline-mist);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-8);
+  font-size: var(--text-body-sm);
 }
 
 .post-nav > :last-child {
@@ -163,28 +258,4 @@
 
 .post-nav > :first-child {
   justify-self: start;
-}
-
-/* 태그 (specs/005 US5): 본문 아래 둥근 표 */
-.post-tags {
-  margin: 2rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.post-tag {
-  display: inline-block;
-  padding: 0.15rem 0.7rem;
-  border-radius: var(--radius-button);
-  background: color-mix(in srgb, var(--grid) 35%, transparent);
-  color: var(--accent);
-  font-size: var(--step--1);
-  text-decoration: none;
-}
-
-.post-tag:hover {
-  text-decoration: underline;
 }

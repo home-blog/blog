@@ -1,58 +1,130 @@
-/* MyBlog 화면 공통 토큰 — "원고지" 방향: 종이 위 초록 원고지 선, 먹색 글자 */
+/*
+ * MyBlog 화면 공통 토큰 — docs/DESIGN.md (Cohere 스타일, "크림 종이 위 에디토리얼 모노그래프")
+ * 규칙: 색은 DESIGN.md의 hex만, 그림자 없음(1px #e5e7eb 선으로만 나눔), 모서리는 4·8·12(코드)·22·9999px만,
+ * 글자 크기는 12·14·16·18·24·32·48·60·72px만, 간격은 8px 격자(컴포넌트에 적힌 12px 포함).
+ * 글꼴: Unica77 → Inter(+ 한글 Pretendard), CohereText → Noto Serif KR(정함, 48px 이상 큰 제목만), CohereMono → JetBrains Mono.
+ */
 :root {
-  --paper: #f6f8f4;        /* 원고지 종이 */
-  --paper-raised: #ffffff; /* 입력 칸 바탕 */
-  --ink: #1d2721;          /* 먹색 글자 */
-  --ink-soft: #55635a;     /* 보조 글자 */
-  --grid: #a9c8b2;         /* 원고지 칸 선 */
-  --grid-strong: #6f9c7e;  /* 굵은 칸 선, 테두리 */
-  --accent: #2c6a4d;       /* 버튼, 강조 */
-  --accent-ink: #ffffff;
-  --ok: #2c6a4d;
-  --error: #b3261e;
-  --focus: #1f5fbf;
+  /* 색 — DESIGN.md Tokens: Colors */
+  --color-canvas-white: #ffffff;
+  --color-soft-cream: #f0eee9;
+  --color-hairline-mist: #e5e7eb;
+  --color-silver-rule: #d9d9dd;
+  --color-fog: #93939f;
+  --color-slate-caption: #75758a;
+  --color-graphite-body: #616161;
+  --color-press-black: #212121;
+  --color-inkwell: #17171c;
+  --color-charcoal-depth: #2e2e2e;
+  --color-lilac-mist: #f0dff3;
 
-  /* 분류 색 목록 (specs/006 T025, D-9): 원고지 초록과 어울리는 먹·물감 색 6개. 개수는 서버 category.color-count와 같다 */
-  --category-1: #2c6a4d; /* 원고지 초록 (미분류) */
-  --category-2: #3d6f99; /* 먹 파랑 */
-  --category-3: #a0522d; /* 적갈 */
-  --category-4: #8a6d1f; /* 황토 */
-  --category-5: #6b4f8a; /* 보라 */
-  --category-6: #9a3b5c; /* 자주 */
+  /* 분류 색 목록 (specs/006 D-9). DESIGN.md "Monochrome Discipline": 화면 표시에는 무채색만 쓴다. 개수는 서버 category.color-count(6)와 같다 */
+  --category-1: #212121;
+  --category-2: #616161;
+  --category-3: #75758a;
+  --category-4: #93939f;
+  --category-5: #d9d9dd;
+  --category-6: #f0eee9;
 
-  --font-ui: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
-  --font-letter: 'Gowun Batang', 'Nanum Myeongjo', serif;
+  /* 그래프 선 (specs/006): 무채색 두 단계 — 조회수 진한 선, 방문자 옅은 선 */
+  --chart-1: #212121;
+  --chart-2: #93939f;
 
-  --step--1: 0.875rem;
-  --step-0: 1rem;
-  --step-1: 1.25rem;
-  --step-2: 1.75rem;
+  /* 글꼴 */
+  --font-unica77: 'Inter', 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', ui-sans-serif, system-ui, sans-serif;
+  --font-coheretext: 'Noto Serif KR', 'Nanum Myeongjo', ui-serif, Georgia, serif;
+  --font-coheremono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --radius-field: 6px;
-  --radius-button: 999px;
+  /* 글자 크기·행간·자간 — DESIGN.md Type Scale */
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.12px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.4;
+  --tracking-body-sm: -0.14px;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --tracking-body: -0.16px;
+  --text-subheading: 18px;
+  --leading-subheading: 1.4;
+  --tracking-subheading: -0.18px;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1.3;
+  --tracking-heading-sm: -0.24px;
+  --text-heading: 32px;
+  --leading-heading: 1.3;
+  --tracking-heading: -0.32px;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 1.2;
+  --tracking-heading-lg: -0.48px;
+  --text-display-sm: 60px;
+  --text-display: 72px;
+  --leading-display: 1;
+  --tracking-display: -0.02em;
+
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* 간격 — 8px 격자 */
+  --spacing-8: 8px;
+  --spacing-12: 12px; /* 버튼·내비 안쪽 여백 (DESIGN.md Components) */
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-56: 56px;
+  --spacing-80: 80px;
+  --spacing-128: 128px;
+
+  /* 폭 */
+  --page-max-width: 1200px;
+  --article-max-width: 760px; /* 글 읽기 폭 (정함: 720~800px 사이) */
+  --section-gap: 80px;
+  --card-padding: 24px;
+  --element-gap: 16px;
+
+  /* 모서리 — 이 다섯 값이 전부 */
+  --radius-smallui: 4px;
+  --radius-navelements: 8px;
+  --radius-code: 12px;
+  --radius-cards: 22px;
+  --radius-full: 9999px;
 
   color-scheme: light;
-  font-family: var(--font-ui);
-  font-size: 100%;
-  line-height: 1.6;
-  color: var(--ink);
-  background: var(--paper);
+  font-family: var(--font-unica77);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  color: var(--color-press-black);
+  background: var(--color-canvas-white);
+  -webkit-font-smoothing: antialiased;
 }
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  box-shadow: none;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--paper);
+  background: var(--color-canvas-white);
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: var(--font-weight-bold);
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--color-press-black);
   outline-offset: 2px;
 }
 
@@ -65,18 +137,325 @@ body {
   }
 }
 
+/* 화면에서만 숨긴다. 다른 규칙(.field input 등)이 크기·여백을 덮어쓰지 못하게 !important */
 .visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+/* ── 큰 제목 (Hero Headline): 가운데, 48px 이상에서만 CohereText ── */
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-24);
+  text-align: center;
+}
+
+.hero-headline {
+  margin: 0;
+  font-family: var(--font-coheretext);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-display);
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--color-press-black);
+  overflow-wrap: anywhere;
+}
+
+/* 큰 제목 크기는 48·60·72px 세 단계만 (CohereText는 48px 밑으로 쓰지 않는다) */
+@media (max-width: 960px) {
+  .hero-headline {
+    font-size: var(--text-display-sm);
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-headline {
+    font-size: var(--text-heading-lg);
+    line-height: var(--leading-heading-lg);
+  }
+}
+
+.hero-lead {
+  max-width: 560px;
+  margin: 0;
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  letter-spacing: var(--tracking-subheading);
+  color: var(--color-graphite-body);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-24);
+}
+
+/* ── 버튼: 주 동작은 다크 알약 하나, 나머지는 밑줄 링크·고스트 ── */
+.btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-24);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  text-decoration: none;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  cursor: pointer;
   white-space: nowrap;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Dark Pill Primary Button */
+.btn-primary,
+.btn-danger {
+  background: var(--color-inkwell);
+  color: var(--color-canvas-white);
+}
+
+.btn-primary:not(:disabled):hover,
+.btn-danger:not(:disabled):hover {
+  background: var(--color-charcoal-depth);
+}
+
+/* 보조 알약: 흰 바탕 + 1px 선 */
+.btn-outline {
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
+  border-color: var(--color-hairline-mist);
+}
+
+.btn-outline:not(:disabled):hover {
+  border-color: var(--color-press-black);
+}
+
+/* Ghost Nav Button */
+.btn-quiet {
+  background: transparent;
+  color: var(--color-press-black);
+  border-color: transparent;
+}
+
+.btn-quiet:not(:disabled):hover {
+  background: var(--color-soft-cream);
+}
+
+.btn-small {
+  padding: var(--spacing-8) var(--spacing-16);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
+}
+
+.btn-wide {
+  width: 100%;
+  margin-top: var(--spacing-8);
+}
+
+.btn-icon {
+  padding: 0 var(--spacing-8);
+  min-width: 32px;
+  min-height: 32px;
+}
+
+/* Underline Text Link: 보조 동작 */
+.text-link {
+  color: var(--color-press-black);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+/* ── 알약 태그 ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: 2px var(--spacing-12);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-full);
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.pill:hover {
+  border-color: var(--color-press-black);
+}
+
+.pill-cream {
+  background: var(--color-soft-cream);
+  border-color: var(--color-soft-cream);
+}
+
+.pill[aria-current='page'],
+.pill.is-on {
+  background: var(--color-inkwell);
+  border-color: var(--color-inkwell);
+  color: var(--color-canvas-white);
+}
+
+/* 비공개 같은 상태 표시도 알약 */
+.blog-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-8);
+  border: 1px solid var(--color-silver-rule);
+  border-radius: var(--radius-full);
+  color: var(--color-graphite-body);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+  white-space: nowrap;
+}
+
+/* ── Outlined Content Card ── */
+.card {
+  padding: var(--card-padding) var(--spacing-32);
+  background: var(--color-canvas-white);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-cards);
+}
+
+.card-title {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── 입력 ── */
+.field {
+  display: grid;
+  gap: var(--spacing-8);
+}
+
+.field label {
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.field-row {
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+.field-row > input,
+.field-row > .code-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field input,
+.field textarea,
+.input,
+select.input {
+  width: 100%;
+  padding: var(--spacing-12) var(--spacing-16);
+  font: inherit;
+  color: var(--color-press-black);
+  background: var(--color-canvas-white);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-navelements);
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:hover,
+.field textarea:hover,
+.input:hover {
+  border-color: var(--color-silver-rule);
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--color-press-black);
+  outline-offset: 0;
+  border-color: var(--color-press-black);
+}
+
+.field input:read-only {
+  background: var(--color-soft-cream);
+  color: var(--color-graphite-body);
+}
+
+/* 틀린 칸: 색 대신 검은 선과 메시지 (Monochrome Discipline) */
+.field input[aria-invalid='true'],
+.field textarea[aria-invalid='true'],
+.input[aria-invalid='true'] {
+  border-color: var(--color-press-black);
+  border-width: 2px;
+}
+
+/* ── 안내·메시지: 색 대신 굵기와 표시로 구분 ── */
+.hint {
+  margin: 0;
+  color: var(--color-graphite-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
+}
+
+.msg {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-body-sm);
+}
+
+.msg-error {
+  color: var(--color-press-black);
+  font-weight: var(--font-weight-bold);
+}
+
+.msg-error::before {
+  content: '! ' / '';
+}
+
+.msg-ok {
+  color: var(--color-graphite-body);
 }
 
 /* 회원 전용 화면을 로그인 없이 열었을 때 (RequireLogin) */
 .require-login {
-  padding: 3rem 1rem;
+  padding: var(--spacing-56) var(--spacing-16);
   text-align: center;
-  color: var(--ink-soft);
+  color: var(--color-graphite-body);
+}
+
+/* 화면 가운데 상태 글 (불러오는 중, 없는 글) */
+.page-status {
+  max-width: var(--article-max-width);
+  margin: 0 auto;
+  padding: var(--spacing-56) var(--spacing-16);
+  text-align: center;
 }

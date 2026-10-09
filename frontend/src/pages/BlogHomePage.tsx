@@ -56,15 +56,15 @@ export default function BlogHomePage() {
   const { blog, categories } = current
   return (
     <div className="blog-home">
-      <header className="blog-head">
-        <h1 className="blog-name">{blog.name}</h1>
-        {blog.intro ? <p className="blog-intro">{blog.intro}</p> : <p className="blog-intro hint">아직 소개가 없습니다</p>}
+      <header className="blog-head hero">
+        <h1 className="hero-headline blog-name">{blog.name}</h1>
+        {blog.intro ? <p className="hero-lead blog-intro">{blog.intro}</p> : <p className="hero-lead blog-intro">아직 소개가 없습니다</p>}
         {blog.isOwner && (
-          <p className="blog-owner-actions">
-            <Link to="/manage/blog" className="btn btn-outline btn-small">
+          <p className="hero-actions">
+            <Link to="/manage/blog" className="text-link">
               블로그 설정
             </Link>
-            <Link to="/manage/categories" className="btn btn-outline btn-small">
+            <Link to="/manage/categories" className="text-link">
               분류 관리
             </Link>
           </p>

@@ -79,7 +79,7 @@ export default function BlogPostList({ blogId, viewer }: Props) {
 
   return (
     <section className="blog-posts" aria-labelledby="posts-title">
-      <h2 id="posts-title" className="blog-side-title">
+      <h2 id="posts-title" className="visually-hidden">
         글
       </h2>
       {!shown ? (

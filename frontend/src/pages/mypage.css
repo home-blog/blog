@@ -1,12 +1,12 @@
 @import '../components/confirm-dialog.css';
 
-/* 마이페이지: 원고지 종이 위에 카드 세 장 */
+/* 마이페이지 (docs/DESIGN.md): 흰 캔버스 위 Outlined Content Card 세 장 */
 .mypage {
-  max-width: 44rem;
+  max-width: var(--article-max-width);
   margin: 0 auto;
-  padding: 2.5rem 1rem 4rem;
+  padding: var(--spacing-56) var(--spacing-24) var(--section-gap);
   display: grid;
-  gap: 1.5rem;
+  gap: var(--spacing-24);
 }
 
 .mypage-head .auth-lead {
@@ -14,37 +14,35 @@
 }
 
 .mypage-card {
-  padding: 1.5rem clamp(1rem, 4vw, 2rem);
-  background: var(--paper-raised);
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-field);
+  padding: var(--spacing-32);
+  background: var(--color-canvas-white);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-cards);
 }
 
 .mypage-card-title {
-  margin: 0 0 1rem;
-  font-family: var(--font-letter);
-  font-size: var(--step-1);
-  font-weight: 700;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px dashed var(--grid);
+  margin: 0 0 var(--spacing-24);
+  font-size: var(--text-heading-sm);
+  line-height: var(--leading-heading-sm);
+  letter-spacing: var(--tracking-heading-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .mypage-info {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--spacing-16);
   margin: 0;
 }
 
 .mypage-info > div {
   display: grid;
-  grid-template-columns: 6rem minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--spacing-16);
 }
 
 .mypage-info dt {
-  color: var(--ink-soft);
-  font-size: var(--step--1);
-  font-weight: 600;
+  color: var(--color-slate-caption);
+  font-size: var(--text-body-sm);
 }
 
 .mypage-info dd {
@@ -58,32 +56,15 @@
 }
 
 .mypage-blog {
-  display: inline-block;
-  margin-top: 1.25rem;
-  text-decoration: none;
+  margin-top: var(--spacing-24);
 }
 
 .mypage-note {
-  margin: -0.5rem 0 1rem;
+  margin: calc(var(--spacing-8) * -1) 0 var(--spacing-16);
 }
 
 .mypage-card .auth-form {
   max-width: none;
-}
-
-.field textarea {
-  width: 100%;
-  padding: 0.7rem 0.85rem;
-  font: inherit;
-  color: var(--ink);
-  background: var(--paper-raised);
-  border: 1px solid var(--grid-strong);
-  border-radius: var(--radius-field);
-  resize: vertical;
-}
-
-.field textarea[aria-invalid='true'] {
-  border-color: var(--error);
 }
 
 .intro-count {
@@ -93,80 +74,81 @@
 
 .mypage-links {
   display: grid;
-  gap: 0.5rem;
+  gap: var(--spacing-12);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .mypage-link {
-  font-weight: 600;
-  color: var(--accent);
+  color: var(--color-press-black);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .mypage-back {
-  margin: 0 0 0.5rem;
-  font-size: var(--step--1);
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--text-body-sm);
 }
 
 .mypage-back a {
-  color: var(--ink-soft);
+  color: var(--color-graphite-body);
+  text-underline-offset: 4px;
 }
 
 .mypage-soon {
-  font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--color-fog);
 }
 
 .mypage-status {
-  padding: 3rem 1rem;
+  padding: var(--spacing-56) var(--spacing-16);
   text-align: center;
 }
 
 @media (max-width: 560px) {
   .mypage-info > div {
     grid-template-columns: 1fr;
-    gap: 0.15rem;
+    gap: 0;
   }
 }
 
 .mypage-link-quiet {
-  color: var(--ink-soft);
+  color: var(--color-graphite-body);
 }
 
-/* 회원 탈퇴 */
+/* 회원 탈퇴: 크림 표면으로 구역을 나눈다 */
 .withdrawal-notice {
-  border-color: color-mix(in srgb, var(--error) 35%, var(--grid));
+  background: var(--color-soft-cream);
+  border-color: var(--color-soft-cream);
 }
 
 .withdrawal-lists {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1rem 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-16) var(--spacing-32);
 }
 
 .withdrawal-lists ul {
-  margin: 0.25rem 0 1rem;
-  padding-left: 1.1rem;
+  margin: var(--spacing-8) 0 var(--spacing-16);
+  padding-left: var(--spacing-24);
 }
 
 .withdrawal-subtitle {
   margin: 0;
-  font-size: var(--step--1);
-  font-weight: 700;
+  font-size: var(--text-body-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .withdrawal-agree {
   display: flex;
-  gap: 0.6rem;
+  gap: var(--spacing-12);
   align-items: flex-start;
-  font-weight: 500;
 }
 
 .withdrawal-agree input {
-  margin-top: 0.35rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--error);
+  margin-top: 4px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-inkwell);
 }
-

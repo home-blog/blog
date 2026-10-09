@@ -30,7 +30,7 @@ function shortDate(date: string): string {
 }
 
 function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#2c6a4d'
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#212121'
 }
 
 export default function DailyLineChart({ dates, series, label, height = 220 }: Props) {
@@ -40,8 +40,8 @@ export default function DailyLineChart({ dates, series, label, height = 220 }: P
     const el = box.current
     if (!el) return
     const xs = dates.map((_, i) => i)
-    const grid = { stroke: token('--grid'), width: 1, dash: [3, 3] }
-    const ink = token('--ink-soft')
+    const grid = { stroke: token('--color-hairline-mist'), width: 1 }
+    const ink = token('--color-slate-caption')
     const options: uPlot.Options = {
       width: el.clientWidth,
       height,

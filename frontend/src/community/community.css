@@ -1,90 +1,92 @@
-/* 좋아요·신고: 본문 아래 가운데, 원고지 테두리의 둥근 버튼 */
+/* 좋아요·신고 (docs/DESIGN.md): 본문 아래 가운데 알약. 누른 좋아요는 다크 알약 */
 .post-reactions {
-  margin: 2.5rem 0 0;
+  margin: var(--spacing-56) 0 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: var(--spacing-16);
 }
 
 .like {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--spacing-8);
 }
 
 .like-button {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.35rem;
-  padding: 0.5rem 1.1rem;
-  border: 1px solid var(--grid-strong);
-  border-radius: var(--radius-button);
-  background: var(--paper-raised);
-  color: var(--ink);
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-24);
+  border: 1px solid var(--color-hairline-mist);
+  border-radius: var(--radius-full);
+  background: var(--color-canvas-white);
+  color: var(--color-press-black);
   font: inherit;
-  font-weight: 600;
   cursor: pointer;
 }
 
 .like-button:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-
-.like-button:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+  border-color: var(--color-press-black);
 }
 
 .like-button.is-on {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--paper-raised));
-  color: var(--accent);
+  border-color: var(--color-inkwell);
+  background: var(--color-inkwell);
+  color: var(--color-canvas-white);
 }
 
 .like-button:disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.45;
 }
 
 .like-count {
   font-variant-numeric: tabular-nums;
 }
 
+/* 신고 단추도 좋아요와 같은 높이의 알약 */
+.report > .btn {
+  padding: var(--spacing-12) var(--spacing-24);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
 .report {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--spacing-8);
 }
 
 .report-reasons {
-  margin: 0.5rem 0 0;
+  margin: var(--spacing-8) 0 0;
   padding: 0;
   border: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem 1rem;
+  gap: var(--spacing-8) var(--spacing-16);
 }
 
 .report-reasons legend {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-8);
 }
 
 .report-reason {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--spacing-8);
   cursor: pointer;
+  accent-color: var(--color-inkwell);
 }
 
 .report-detail {
-  margin-top: 0.75rem;
+  margin-top: var(--spacing-16);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--spacing-8);
 }
 
 .report-detail .comment-length {

@@ -1,7 +1,6 @@
 // 로그인 화면 (specs/001 US2·US3, T030, T033)
 import { Link, useLocation, useNavigate } from 'react-router'
 import LoginForm from '../auth/LoginForm'
-import ManuscriptSheet from './ManuscriptSheet'
 import './auth-layout.css'
 
 interface LocationState {
@@ -23,8 +22,8 @@ export default function LoginPage() {
 
   return (
     <div className="auth-layout">
-      <section className="auth-sheet">
-        <ManuscriptSheet lines={['', '다시 만나서', '반갑습니다.']} rows={5} />
+      <section className="auth-sheet hero" aria-hidden="true">
+        <p className="hero-headline">다시 만나서 반갑습니다.</p>
       </section>
 
       <section className="auth-form-wrap" aria-labelledby="login-title">

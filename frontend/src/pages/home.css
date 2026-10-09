@@ -1,28 +1,11 @@
+/* 첫 화면: 흰 캔버스 위 가운데 큰 제목 (docs/DESIGN.md Layout — Hero는 가운데 글자 묶음, 사진 없음) */
 .home {
-  display: grid;
-  justify-items: center;
-  gap: 1.5rem;
-  padding: clamp(2rem, 8vh, 5rem) 1rem 3rem;
-  text-align: center;
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--spacing-128) var(--spacing-24) var(--section-gap);
 }
-
-.home-lead {
-  max-width: 34rem;
-  margin: 0;
-  color: var(--ink-soft);
-}
-
-.home-lead strong {
-  color: var(--accent);
-}
-
-.home-lead a {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 
 .home-notice {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--spacing-40);
   text-align: center;
 }
