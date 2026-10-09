@@ -186,7 +186,7 @@
 
 .count-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(192px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 192px), 1fr));
   gap: var(--spacing-16);
   margin-bottom: var(--spacing-24);
 }
@@ -239,7 +239,7 @@
 .dash-lists,
 .stats-panels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 256px), 1fr));
   gap: 0 var(--spacing-24);
 }
 

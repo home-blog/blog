@@ -68,7 +68,7 @@
   text-align: center;
 }
 
-/* 비밀번호 규칙: 맞으면 검은 글자와 ✓, 아직이면 흐린 글자 */
+/* 비밀번호 규칙: 글자는 읽기 쉬운 진한 회색, 맞았는지는 ✓ 표시와 검은 글자로 구분 */
 .rules {
   display: flex;
   flex-wrap: wrap;
@@ -78,7 +78,7 @@
   list-style: none;
   font-size: var(--text-body-sm);
   line-height: var(--leading-body-sm);
-  color: var(--color-fog);
+  color: var(--color-graphite-body);
 }
 
 .rule {

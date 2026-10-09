@@ -16,7 +16,7 @@
 
 .editor-meta {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(192px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 192px), 1fr));
   gap: var(--spacing-16);
   align-items: start;
 }
