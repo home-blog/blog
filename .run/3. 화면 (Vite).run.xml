@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <!-- Node.js 플러그인이 없는 IntelliJ(Community 등)에서도 돌도록 셸에서 npm을 부른다. 처음이면 패키지부터 설치한다 -->
   <configuration default="false" name="3. 화면 (Vite)" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="[ -d node_modules ] || npm ci; npm run dev" />
+    <option name="SCRIPT_TEXT" value="([ -d node_modules ] || npm ci) &amp;&amp; npm run dev" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
