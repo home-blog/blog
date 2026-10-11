@@ -8,7 +8,7 @@
 set search_path = :"schema";
 begin;
 do $$ begin
-  if exists (select 1 from users where email like 'demo.%@example.com') then
+  if exists (select 1 from users where password = '!demo-account-no-login' and email like 'demo.%@example.com') then
     raise exception '예시 데이터가 이미 있습니다. 다시 넣으려면 먼저 demo-remove.sql을 실행하세요';
   end if;
 end $$;

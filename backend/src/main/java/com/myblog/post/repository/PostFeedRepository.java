@@ -50,10 +50,10 @@ public class PostFeedRepository {
             offset ? limit ?
             """;
 
-    /** 인기 글: 기간(since부터)의 일별 조회수 합이 큰 순. 같으면 전체 조회수, 최신 순. 자리표시자는 since가 맨 앞이다. */
+    /** 인기 글: 기간(since ~ until)의 일별 조회수 합이 큰 순. 같으면 전체 조회수, 최신 순. 자리표시자는 기간 두 개가 맨 앞이다. */
     private static final String POPULAR = COLUMNS + FROM + """
             left join (select s.post_id, sum(s.views) as recent_views
-                       from post_daily_stat s where s.stat_date >= ? group by s.post_id) r on r.post_id = p.post_id
+                       from post_daily_stat s where s.stat_date between ? and ? group by s.post_id) r on r.post_id = p.post_id
             """ + OPEN_POSTS + """
             order by coalesce(r.recent_views, 0) desc, p.views desc, p.created_at desc, p.post_id desc
             limit ?
@@ -82,12 +82,13 @@ public class PostFeedRepository {
         }, PostFeedRepository::toItem);
     }
 
-    /** 인기 글 limit개. since는 기간의 첫날(그날 포함). */
-    public List<FeedItem> findPopular(Long topicId, LocalDate since, int limit) {
+    /** 인기 글 limit개. since~until은 기간의 첫날과 마지막 날(둘 다 포함). */
+    public List<FeedItem> findPopular(Long topicId, LocalDate since, LocalDate until, int limit) {
         return jdbc.query(connection -> {
             PreparedStatement statement = connection.prepareStatement(POPULAR);
             statement.setObject(1, since);
-            int next = bindOpenPosts(statement, 2, topicId);
+            statement.setObject(2, until);
+            int next = bindOpenPosts(statement, 3, topicId);
             statement.setInt(next, limit);
             return statement;
         }, PostFeedRepository::toItem);

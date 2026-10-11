@@ -63,7 +63,7 @@ public class PostFeedService {
         Topic chosen = choose(topicRepository.findAllByOrderBySortOrderAscIdAsc(), topic);
         LocalDate today = LocalDate.now(clock.withZone(settings.dayZone()));
         LocalDate since = today.minusDays(settings.popularDays() - 1L);
-        List<FeedRow> rows = feedRepository.findPopular(chosen == null ? null : chosen.getId(), since,
+        List<FeedRow> rows = feedRepository.findPopular(chosen == null ? null : chosen.getId(), since, today,
                 settings.popularSize()).stream()
                 .map(this::toRow)
                 .toList();

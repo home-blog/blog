@@ -146,11 +146,12 @@ class PostFeedTest {
     }
 
     @Test
-    void 인기_글은_최근_7일_조회수가_많은_순이고_오래된_조회수는_세지_않는다() throws Exception {
+    void 인기_글은_최근_7일_조회수가_많은_순이고_기간_밖_조회수는_세지_않는다() throws Exception {
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         stat(sportB, today, 900_000);
         stat(travelA, today.minusDays(6), 800_000);
-        stat(travelB, today.minusDays(7), 5_000_000); // 기간 밖
+        stat(travelB, today.minusDays(7), 5_000_000); // 기간 밖 (지난 날)
+        stat(travelB, today.plusDays(1), 5_000_000); // 기간 밖 (아직 오지 않은 날)
 
         String body = mvc.perform(get("/api/posts/popular"))
                 .andExpect(status().isOk())

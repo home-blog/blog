@@ -23,7 +23,7 @@ KST = timezone(timedelta(hours=9))
 NOW = datetime(2026, 10, 11, 23, 0, tzinfo=KST)
 TOPICS = {"여행", "음식", "취미", "운동", "개발"}
 CATEGORY_COLORS = 6  # application.yml category.color-count
-NOT_A_HASH = "!demo-account-no-login"
+NOT_A_HASH = "!demo-account-no-login"  # demo-remove.sql도 이 값으로 예시 계정을 찾는다
 
 
 def q(value):
@@ -106,7 +106,7 @@ def main():
     out("set search_path = :\"schema\";")
     out("begin;")
     out("do $$ begin")
-    out("  if exists (select 1 from users where email like 'demo.%@example.com') then")
+    out(f"  if exists (select 1 from users where password = {q(NOT_A_HASH)} and email like 'demo.%@example.com') then")
     out("    raise exception '예시 데이터가 이미 있습니다. 다시 넣으려면 먼저 demo-remove.sql을 실행하세요';")
     out("  end if;")
     out("end $$;")

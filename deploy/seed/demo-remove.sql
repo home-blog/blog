@@ -10,7 +10,9 @@ set search_path = :"schema";
 begin;
 
 create temporary table demo_users on commit drop as
-    select users_id from users where email like 'demo.%@example.com';
+    -- 예시 계정만: demo-content.sql이 넣은 "로그인 불가" 표식(BCrypt 해시가 아닌 값)과 예시 이메일을 모두 만족해야 한다.
+    -- 가입으로 만든 계정은 비밀번호가 늘 BCrypt 해시라 이 표식을 가질 수 없다
+    select users_id from users where password = '!demo-account-no-login' and email like 'demo.%@example.com';
 create temporary table demo_blogs on commit drop as
     select blog_id from blog where users_id in (select users_id from demo_users);
 create temporary table demo_posts on commit drop as
