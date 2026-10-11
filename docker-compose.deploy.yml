@@ -1,13 +1,14 @@
 # 배포용 (실습 서버 등). 실행: docker compose -f docker-compose.deploy.yml --env-file .env.deploy up -d --build
-# 밖으로 여는 포트는 화면 입구(WEB_PORT) 하나뿐이다. DB·Redis·이미지 저장소·서버는 컨테이너끼리만 통한다
-# (같은 서버를 여러 사람이 쓰므로 127.0.0.1에도 열지 않는다). 값은 .env.deploy에서 읽는다 (견본 .env.deploy.example)
-name: myblog
+# 여는 포트는 화면 입구(WEB_PORT) 하나뿐이고, 그것도 이 서버 안(127.0.0.1)에서만 받는다. 밖에서는 실습 서버 Nginx를 거쳐야 한다.
+# DB·Redis·이미지 저장소·서버는 컨테이너끼리만 통한다 (같은 서버를 여러 사람이 쓰므로). 값은 .env.deploy에서 읽는다 (견본 .env.deploy.example)
+# 이름(DEPLOY_NAME)은 같은 서버의 다른 사람 컨테이너·데이터와 섞이지 않게 나만 쓰는 이름으로 정한다
+name: ${DEPLOY_NAME:?.env.deploy에 DEPLOY_NAME을 적으세요}
 
 services:
   web:
     build: ./frontend
     ports:
-      - "${WEB_PORT:?.env.deploy에 WEB_PORT를 적으세요}:80"
+      - "127.0.0.1:${WEB_PORT:?.env.deploy에 WEB_PORT를 적으세요}:80"
     depends_on:
       server:
         condition: service_healthy
