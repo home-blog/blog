@@ -41,4 +41,4 @@ cd frontend && npm install && npm run dev
 - CI가 통과해야 merge합니다.
 - 무엇을 만들지는 문서 저장소의 `specs/<기능>/tasks.md`, 어떻게는 같은 폴더의 `plan.md`, `contracts/`를 따릅니다.
 - 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않습니다. 로컬은 `.env`(git 제외), 배포는 환경 변수나 GitHub Secrets로 넣습니다. (`.env.example`의 값은 개발 전용입니다)
-- 실습 서버에 올리는 방법은 [`deploy/README.md`](deploy/README.md)에 있습니다 (`docker-compose.deploy.yml` + `.env.deploy`).
+- 실습 서버 배포는 GitHub Actions(`.github/workflows/deploy.yml`)가 합니다. 방법은 [`deploy/README.md`](deploy/README.md)에 있습니다.

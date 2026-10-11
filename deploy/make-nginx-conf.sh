@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 실습 서버에서 실행: 내 도메인·포트로 Nginx 설정 파일(~/nginx/<도메인>.conf)을 만든다.
-# 사용: bash deploy/make-nginx-conf.sh <도메인> [포트]
+# 사용: bash ~/<DEPLOY_NAME>/deploy/make-nginx-conf.sh <도메인> [포트]
 #       포트를 적지 않으면 .env.deploy의 WEB_PORT를 쓴다 (docker compose가 여는 포트와 같아야 한다)
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"

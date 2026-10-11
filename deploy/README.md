@@ -1,46 +1,61 @@
 # 실습 서버에 올리기
 
-구성: 인터넷 → 실습 서버 Nginx(도메인 → `127.0.0.1:<내 포트>`) → **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 서버로 넘김) → **서버 컨테이너**(Spring) → DB·Redis·MinIO 컨테이너.
-여는 포트는 화면 컨테이너 하나(`WEB_PORT`, 예: 8410)뿐이고 서버 안(`127.0.0.1`)에서만 받는다. 밖에서는 실습 서버 Nginx를 거쳐야 들어온다. DB·Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
+`main`에 코드가 합쳐지고 CI가 통과하면 **GitHub Actions(`.github/workflows/deploy.yml`)가 알아서 배포한다.** 서버에 들어가 있을 필요가 없다.
 
-> 이 저장소는 공개다. 서버 주소·비밀번호·`.env.deploy` 내용은 어디에도 올리지 않는다.
+1. Actions가 서버·화면 Docker 이미지를 만든다.
+2. SSH로 실습 서버에 접속해 이미지와 배포 파일을 `~/geulgyeol/`에 올린다. 접속 정보는 GitHub Secrets에서 읽는다.
+3. 서버에서 `deploy/remote-deploy.sh`를 실행해 컨테이너를 새로 켠다.
 
-## 처음 한 번
+구성: 인터넷 → 실습 서버 Nginx(도메인 → `127.0.0.1:8410`) → **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 서버로 넘김) → **서버 컨테이너**(Spring) → 실습 DB(PostgreSQL, 내 스키마) · Redis · MinIO 컨테이너.
+여는 포트는 화면 입구 8410 하나뿐이고, 그것도 서버 안(`127.0.0.1`)에서만 받는다. Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
+
+> 이 저장소는 공개다. 서버 주소·비밀번호는 GitHub Secrets에만 둔다.
+
+## 준비 (처음 한 번)
+
+**GitHub Secrets** (저장소 Settings → Secrets and variables → Actions)
+
+| 이름 | 내용 | |
+|---|---|---|
+| `SSH_ADDRESS`, `SSH_PORT`, `SSH_ID`, `SSH_PASSWORD` | 실습 서버 접속 | 꼭 |
+| `SSH_KNOWN_HOSTS` | 서버 지문. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다. 아래 "서버 지문 넣기"대로 **확인한 지문만** 넣는다 | 꼭 |
+| `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
+
+**서버 지문 넣기**: `ssh-keyscan`은 받은 지문이 진짜인지 확인해 주지 않는다. 그래서 다른 길로 확인한 지문과 맞춰 본 뒤에 넣는다.
 
 ```bash
-# 1. 실습 서버에 접속 (주소·비밀번호는 수업 안내 참고)
-# 2. 코드 받기
-git clone https://github.com/home-blog/blog.git
-cd blog
-
-# 3. 비밀 값 채우기 (git에 올라가지 않는 파일)
-cp .env.deploy.example .env.deploy
-nano .env.deploy        # DEPLOY_NAME(나만 쓰는 이름), WEB_PORT(내 포트), 비밀번호·키(openssl rand)를 채운다
-
-# 4. 켜기 (처음에는 이미지 빌드로 몇 분 걸린다)
-bash deploy/deploy.sh
-
-# 5. Nginx 설정 파일 만들기 (포트는 .env.deploy의 WEB_PORT를 읽는다) → 강사님께 파일 이름을 알려 적용 요청
-bash deploy/make-nginx-conf.sh <내 도메인>
+# 1. 내 컴퓨터가 이미 믿고 접속해 온 지문 (처음 SSH로 접속할 때 yes 하고 저장된 것)
+ssh-keygen -F '[<주소>]:<포트>'
+# 2. 지금 서버가 보내는 지문
+ssh-keyscan -p <포트> <주소>
 ```
+두 결과의 `ssh-ed25519 AAAA...` 부분이 같으면 2번 결과를 그대로 Secret에 넣는다. 다르거나 1번이 비어 있으면 넣지 말고 강사님께 서버 지문(`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` 결과)을 받아 `ssh-keygen -lf <(ssh-keyscan -p <포트> <주소>)`와 맞춰 본다.
 
-## 고친 코드를 다시 올릴 때
+이미지 저장소 키와 인증번호 키는 첫 배포 때 서버가 스스로 만들어 `~/geulgyeol/.generated.env`(나만 읽기)에 두고 계속 쓴다. **이 파일을 지우면 올린 이미지를 읽지 못한다.**
+
+**도메인 연결** (서버에서 한 번, 첫 배포가 끝난 뒤)
 
 ```bash
-cd blog && bash deploy/deploy.sh   # git pull → 다시 빌드 → 켜기. DB·이미지는 그대로 남는다
+bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도메인>.conf가 생긴다
 ```
+그다음 강사님께 파일 이름을 알려 적용을 요청한다.
 
-## 자주 쓰는 명령
+## 배포하기
+
+- **자동**: `main`에 PR을 합치면 CI 다음에 배포가 돈다. GitHub의 Actions 탭 → `배포`에서 진행을 본다.
+- **손으로**: Actions 탭 → `배포` → `Run workflow`.
+
+## 서버에서 볼 때 (SSH 접속 후)
 
 ```bash
-docker compose -f docker-compose.deploy.yml --env-file .env.deploy ps            # 상태
-docker compose -f docker-compose.deploy.yml --env-file .env.deploy logs -f server # 서버 로그
-docker compose -f docker-compose.deploy.yml --env-file .env.deploy down           # 끄기 (데이터는 남음)
+docker ps --filter name=geulgyeol         # 상태
+docker logs -f geulgyeol-server-1         # 서버 로그 (나올 때 Ctrl+C)
+bash ~/geulgyeol/deploy/remote-deploy.sh  # 지금 이미지로 다시 켜기
 ```
 
 ## 알아 둘 것
 
-- **HTTPS**: 도메인에 HTTPS(자물쇠)가 없으면 `.env.deploy`의 `SESSION_COOKIE_SECURE=false`로 해야 로그인이 된다. HTTPS가 붙으면 `true`로 되돌리고 `bash deploy/deploy.sh`.
-- **인증 메일**: 배포에서는 SMTP로만 보낸다(인증번호를 로그에 남기지 않는다). `MAIL_*` 값이 없으면 가입이 안 된다.
-- `DEPLOY_NAME`을 나중에 바꾸면 새 이름의 빈 DB로 켜진다. 처음 정한 이름을 그대로 쓴다.
-- `docker compose down -v`는 DB와 이미지를 **지운다**. 쓰지 않는다.
+- **HTTPS**: 지금은 http라서 로그인 쿠키를 http에서도 보낸다(`SESSION_COOKIE_SECURE=false`). 도메인에 HTTPS(자물쇠)가 붙으면 저장소 Settings → Variables에 `SESSION_COOKIE_SECURE`=`true`를 만들고 다시 배포한다.
+- **DB 스키마**: 서버는 `DB_SCHEMA` 안에만 표를 만든다(Flyway). 그 스키마에 다른 표가 이미 있으면 서버가 켜지지 않는다.
+- 같은 Docker를 여럿이 쓰므로 컨테이너·이미지 이름은 모두 `geulgyeol-`로 시작한다. 옛 이미지는 배포 때 내 것만 지운다.

@@ -1,0 +1,107 @@
+# 실습 서버 배포: main의 CI가 통과하면 Docker 이미지를 만들어 SSH로 서버에 올리고 deploy/remote-deploy.sh로 켠다.
+# 손으로 다시 돌리기: Actions → 배포 → Run workflow
+#
+# 준비 (Repository secrets): SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD (실습 서버 접속)
+#                            SSH_KNOWN_HOSTS (서버 지문. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과. 없으면 배포를 멈춘다)
+#                            DB_ADDRESS, DB_PORT, DB_NAME, DB_SCHEMA, DB_USERNAME, DB_PASSWORD (실습 DB)
+#                 있으면 씀:  MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD (인증 메일. 없으면 가입이 안 된다)
+#           (Repository variables, 있으면 씀): SESSION_COOKIE_SECURE (HTTPS가 붙으면 true. 없으면 false)
+# 서버에는 ~/<DEPLOY_NAME> 폴더 하나만 쓴다. 화면 입구는 127.0.0.1:<WEB_PORT>, 도메인 연결은 deploy/README.md 참고
+name: 배포
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# 배포는 한 번에 하나씩, 도중에 끊지 않는다
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_NAME: geulgyeol   # 서버 폴더·컨테이너·이미지 이름
+  WEB_PORT: "8410"         # 내 포트 범위(8410~8419)의 맨 처음
+
+jobs:
+  deploy:
+    name: 실습 서버에 배포
+    # main에 push된 코드의 CI가 통과했을 때만 (PR의 CI는 배포하지 않는다). 손으로 돌릴 때도 main만
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: 이미지 만들기
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          tag="${SHA:0:12}"
+          echo "IMAGE_TAG=$tag" >> "$GITHUB_ENV"
+          docker build -t "$DEPLOY_NAME-server:$tag" backend
+          docker build -t "$DEPLOY_NAME-web:$tag" frontend
+          docker save "$DEPLOY_NAME-server:$tag" "$DEPLOY_NAME-web:$tag" | gzip -1 > "$RUNNER_TEMP/images.tar.gz"
+          ls -lh "$RUNNER_TEMP/images.tar.gz"
+
+      - name: 서버 접속 준비
+        env:
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          # 비밀번호·DB 정보를 보내기 전에 진짜 실습 서버인지 지문으로 확인한다 (지문은 미리 확인해 Secret에 넣어 둔다)
+          if [ -z "$SSH_KNOWN_HOSTS" ]; then
+            echo "::error::SSH_KNOWN_HOSTS Secret이 없습니다. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과를 넣어 주세요 (deploy/README.md)"
+            exit 1
+          fi
+          sudo apt-get install -y -qq sshpass >/dev/null
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: 서버에 올리고 켜기
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_ADDRESS: ${{ secrets.SSH_ADDRESS }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_ID: ${{ secrets.SSH_ID }}
+          DB_ADDRESS: ${{ secrets.DB_ADDRESS }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_SCHEMA: ${{ secrets.DB_SCHEMA }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          SESSION_COOKIE_SECURE: ${{ vars.SESSION_COOKIE_SECURE || 'false' }}
+        run: |
+          # 비밀번호는 명령줄이 아닌 환경 변수(SSHPASS)로 넘긴다
+          remote() { sshpass -e ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$SSH_ID@$SSH_ADDRESS" "$@"; }
+          dir="\$HOME/$DEPLOY_NAME"   # 서버 쪽 홈 폴더 (서버에서 풀린다)
+
+          # 1) 배포 파일 (compose, 스크립트)
+          tar czf - docker-compose.deploy.yml deploy | remote "mkdir -p $dir && tar xzf - -C $dir"
+
+          # 2) 접속 정보: 파일을 거치지 않고 바로 서버의 .env.deploy(나만 읽기)로 쓴다. 값은 셸 따옴표로 감싼다
+          for k in DEPLOY_NAME WEB_PORT IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
+                   MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE; do
+            if [ -n "${!k}" ]; then printf '%s=%q\n' "$k" "${!k}"; fi
+          done | remote "umask 077 && cat > $dir/.env.deploy"
+
+          # 3) 이미지
+          remote "cat > $dir/images.tar.gz" < "$RUNNER_TEMP/images.tar.gz"
+
+          # 4) 켜기 (실패하면 서버 로그 끝부분을 남긴다)
+          if ! remote "bash $dir/deploy/remote-deploy.sh"; then
+            remote "docker logs --tail 80 $DEPLOY_NAME-server-1" || true
+            exit 1
+          fi
