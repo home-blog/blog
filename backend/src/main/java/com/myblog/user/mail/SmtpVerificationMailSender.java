@@ -2,17 +2,18 @@ package com.myblog.user.mail;
 
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 /**
- * 배포용: SMTP로 인증번호 메일을 보내고 끝날 때까지 기다린다 (research D-2). 계정은 환경 변수로만 넣는다 (D-1 미정).
+ * SMTP로 인증번호 메일을 보내고 끝날 때까지 기다린다 (research D-2). 계정은 환경 변수로만 넣는다 (D-1 미정).
+ * myblog.mail.sender=smtp(배포 기본값)일 때 켜진다. 개발 중에도 backend/.env에 계정을 넣으면 실제 메일함으로 받아 볼 수 있다.
  */
 @Component
-@Profile("!dev")
+@ConditionalOnProperty(name = "myblog.mail.sender", havingValue = "smtp", matchIfMissing = true)
 public class SmtpVerificationMailSender implements VerificationMailSender {
 
     private final JavaMailSender mailSender;

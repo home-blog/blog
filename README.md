@@ -28,6 +28,7 @@ cd frontend && npm install && npm run dev
 - 서버 상태 확인: http://localhost:8080/actuator/health
 - 테스트 전체: `cd backend && mvn verify` (DB와 Redis가 떠 있어야 합니다)
 - 개발 설정에서는 인증 메일을 보내지 않고 서버 로그의 `[개발용 메일]` 줄에 인증번호를 찍습니다.
+- 내 메일함(Gmail, 네이버)으로 실제 인증 메일을 받아 보려면 `backend/.env`에 `MAIL_SENDER=smtp`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`를 적고 서버를 다시 켭니다. 적는 법은 `application-dev.yml` 맨 위에 있습니다. `.env`는 git에 올라가지 않습니다.
 
 ## 작업 방식
 
