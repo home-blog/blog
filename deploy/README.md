@@ -18,9 +18,19 @@
 | 이름 | 내용 | |
 |---|---|---|
 | `SSH_ADDRESS`, `SSH_PORT`, `SSH_ID`, `SSH_PASSWORD` | 실습 서버 접속 | 꼭 |
-| `SSH_KNOWN_HOSTS` | 서버 지문. 내 컴퓨터 터미널에서 `ssh-keyscan -p <포트> <주소>`를 실행해 나온 줄을 그대로 넣는다. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다 | 꼭 |
+| `SSH_KNOWN_HOSTS` | 서버 지문. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다. 아래 "서버 지문 넣기"대로 **확인한 지문만** 넣는다 | 꼭 |
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
+
+**서버 지문 넣기**: `ssh-keyscan`은 받은 지문이 진짜인지 확인해 주지 않는다. 그래서 다른 길로 확인한 지문과 맞춰 본 뒤에 넣는다.
+
+```bash
+# 1. 내 컴퓨터가 이미 믿고 접속해 온 지문 (처음 SSH로 접속할 때 yes 하고 저장된 것)
+ssh-keygen -F '[<주소>]:<포트>'
+# 2. 지금 서버가 보내는 지문
+ssh-keyscan -p <포트> <주소>
+```
+두 결과의 `ssh-ed25519 AAAA...` 부분이 같으면 2번 결과를 그대로 Secret에 넣는다. 다르거나 1번이 비어 있으면 넣지 말고 강사님께 서버 지문(`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` 결과)을 받아 `ssh-keygen -lf <(ssh-keyscan -p <포트> <주소>)`와 맞춰 본다.
 
 이미지 저장소 키와 인증번호 키는 첫 배포 때 서버가 스스로 만들어 `~/geulgyeol/.generated.env`(나만 읽기)에 두고 계속 쓴다. **이 파일을 지우면 올린 이미지를 읽지 못한다.**
 
