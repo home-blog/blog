@@ -110,6 +110,11 @@ explore:
   search:
     keyword-min-length: 2
     keyword-max-length: 50
+  feed:              # 첫 화면 글 모음 (모든 블로그의 공개 글, 주제별)
+    page-size: 12
+    popular-size: 5   # 이번 주 인기 글 수
+    popular-days: 7   # 인기 글을 고르는 기간 (오늘 포함)
+    day-zone: ${stats.day-zone}
 
 # 댓글·좋아요·신고·태그·이미지 (specs/005 plan.md 설정값 목록). 글자는 코드 포인트로 센다
 community:

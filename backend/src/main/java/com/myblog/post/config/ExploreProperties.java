@@ -1,5 +1,6 @@
 package com.myblog.post.config;
 
+import java.time.ZoneId;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -8,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 검색 결과도 글 목록과 같은 페이지 글 수·미리보기 길이를 쓴다 (004 D-3: A, 같은 설정값).
  */
 @ConfigurationProperties(prefix = "explore")
-public record ExploreProperties(ListPage list, Search search) {
+public record ExploreProperties(ListPage list, Search search, Feed feed) {
 
     /** 한 페이지 글 수(10)와 미리보기 길이(100자). */
     public record ListPage(int pageSize, int previewLength) {
@@ -26,6 +27,20 @@ public record ExploreProperties(ListPage list, Search search) {
         public Search {
             if (keywordMinLength < 1 || keywordMaxLength < keywordMinLength) {
                 throw new IllegalStateException("explore.search는 1 <= keyword-min-length <= keyword-max-length이어야 합니다");
+            }
+        }
+    }
+
+    /**
+     * 첫 화면 글 모음: 한 페이지 글 수(12), 인기 글 수(5)와 기간(최근 7일, 오늘 포함), 날짜를 세는 시간대(한국).
+     * 인기 글은 그 기간의 글별 일별 조회수(post_daily_stat) 합으로 고른다.
+     */
+    public record Feed(int pageSize, int popularSize, int popularDays, ZoneId dayZone) {
+
+        public Feed {
+            if (pageSize < 1 || popularSize < 1 || popularDays < 1 || dayZone == null) {
+                throw new IllegalStateException(
+                        "explore.feed의 page-size, popular-size, popular-days는 1 이상이고 day-zone이 있어야 합니다");
             }
         }
     }

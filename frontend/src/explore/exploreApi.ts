@@ -68,3 +68,55 @@ export function searchPosts(q: string, page: number, signal?: AbortSignal): Prom
   if (page > 1) params.set('page', String(page))
   return api<SearchPage>(`/api/search/posts?${params.toString()}`, { signal })
 }
+
+/** 첫 화면 글 모음 한 줄: 여러 블로그의 공개 글 (GET /api/posts, /api/posts/popular) */
+export interface FeedPost {
+  postId: number
+  blogId: number
+  blogName: string
+  nickname: string
+  title: string
+  /** 주제 이름 (여행, 음식, 취미, 운동, 개발) */
+  topic: string
+  categoryId: number
+  categoryName: string
+  createdAt: string
+  preview: string
+  commentCount: number
+  likeCount: number
+}
+
+export interface FeedPage {
+  /** 고른 주제 (모든 주제면 null) */
+  topic: string | null
+  /** 주제 탭에 쓸 이름들 (정해진 순서) */
+  topics: string[]
+  totalCount: number
+  page: number
+  totalPages: number
+  pageSize: number
+  posts: FeedPost[]
+}
+
+export interface PopularPosts {
+  topic: string | null
+  /** 인기 글을 고른 기간(일) */
+  days: number
+  posts: FeedPost[]
+}
+
+function topicParams(topic: string | null, page = 1): string {
+  const params = new URLSearchParams()
+  if (topic) params.set('topic', topic)
+  if (page > 1) params.set('page', String(page))
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+export function getFeed(topic: string | null, page: number, signal?: AbortSignal): Promise<FeedPage> {
+  return api<FeedPage>(`/api/posts${topicParams(topic, page)}`, { signal })
+}
+
+export function getPopular(topic: string | null, signal?: AbortSignal): Promise<PopularPosts> {
+  return api<PopularPosts>(`/api/posts/popular${topicParams(topic)}`, { signal })
+}
