@@ -1,0 +1,231 @@
+{
+  "key": "codecup",
+  "email": "demo.codecup@example.com",
+  "nickname": "커피한잔코드",
+  "userIntro": "커피 마시면서 로그 읽는 3년 차 백엔드 개발자. Java, Spring, PostgreSQL, Docker.",
+  "joinedAt": "2023-02-20",
+  "blogName": "커피 한 잔, 로그 한 줄",
+  "blogIntro": "백엔드 개발하면서 밟은 삽질과 공부한 것, 해마다 쓰는 회고를 모아 둡니다. 같은 실수를 두 번 하지 않으려고 씁니다.",
+  "categories": [
+    "스프링",
+    "데이터베이스",
+    "도커",
+    "회고"
+  ],
+  "posts": [
+    {
+      "title": "@Transactional이 안 먹던 이유: 같은 클래스 안에서 부르면 프록시를 안 탄다",
+      "topic": "개발",
+      "category": "스프링",
+      "tags": [
+        "spring",
+        "transactional",
+        "aop",
+        "삽질기"
+      ],
+      "createdAt": "2023-03-05T22:10:00+09:00",
+      "content": "입사 첫 해 처음으로 혼자 맡은 배치 작업에서 **롤백이 안 되는** 문제가 났다. 주문 여러 건을 저장하다가 중간에 예외가 나면 앞에서 저장한 건 롤백돼야 하는데, 이미 DB에 들어가 있었다. 분명 `@Transactional`을 붙였는데.\n\n## 문제의 코드\n\n```java\n@Service\npublic class OrderBatchService {\n\n    private final OrderRepository orderRepository;\n\n    public OrderBatchService(OrderRepository orderRepository) {\n        this.orderRepository = orderRepository;\n    }\n\n    public void placeAll(List<OrderRequest> requests) {\n        for (OrderRequest request : requests) {\n            saveOrder(request); // 여기!\n        }\n    }\n\n    @Transactional\n    public void saveOrder(OrderRequest request) {\n        orderRepository.save(Order.from(request));\n        if (request.quantity() <= 0) {\n            throw new IllegalArgumentException(\"수량 오류\");\n        }\n    }\n}\n```\n\n컨트롤러는 `placeAll()`을 부르고, `placeAll()`이 같은 클래스의 `saveOrder()`를 부른다.\n\n## 원인\n\n스프링의 선언적 트랜잭션은 **프록시**로 동작한다. 다른 빈이 `OrderBatchService`를 주입받으면 실제로는 프록시 객체를 받고, 프록시가 메서드 호출을 가로채서 트랜잭션을 연다.\n\n그런데 `placeAll()` 안에서 `saveOrder()`를 부르는 건 `this.saveOrder()`다. 프록시를 거치지 않고 **원래 객체의 메서드를 직접** 부르니까 `@Transactional`이 아무 일도 안 한다. 게다가 `placeAll()`에는 트랜잭션이 없으니 `save()`는 리포지토리 기본 트랜잭션으로 각각 커밋돼 버렸다.\n\n## 해결\n\n이번 경우는 원래 의도가 \"전체를 하나로 묶기\"였어서 그냥 바깥 메서드에 붙였다.\n\n```java\n@Transactional\npublic void placeAll(List<OrderRequest> requests) {\n    for (OrderRequest request : requests) {\n        saveOrder(request);\n    }\n}\n```\n\n건마다 따로 커밋해야 하는 경우였다면 `saveOrder()`를 **다른 빈으로 분리**하는 게 맞다. 자기 자신을 주입받는 방법도 있긴 한데 코드 읽는 사람이 헷갈려서 안 쓰기로 했다.\n\n## 같이 알게 된 것\n\n- `private` 메서드에 붙인 `@Transactional`도 같은 이유로 동작하지 않는다.\n- 기본 롤백 대상은 **언체크 예외**(`RuntimeException`, `Error`)다. 체크 예외는 `rollbackFor`를 지정해야 한다.\n- 로그로 확인하려면 `logging.level.org.springframework.transaction=DEBUG`를 켜면 트랜잭션 시작/커밋이 찍힌다.\n\n> 어노테이션 붙였다고 끝이 아니라, **누가 어떤 경로로 부르는지**를 봐야 한다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "프록시라서 내부 호출은 안 탄다는 거, 리액트에서 클로저 때문에 옛날 값 잡히는 거랑 비슷한 느낌으로 헷갈리네요ㅋㅋ 정리 감사합니다."
+        },
+        {
+          "by": "hometrain",
+          "body": "개발은 잘 모르지만 '누가 어떤 경로로 부르는지 봐야 한다'는 말은 왠지 운동 자세에도 통하는 것 같아요."
+        }
+      ]
+    },
+    {
+      "title": "JPA N+1 문제, fetch join이랑 batch size로 잡은 기록",
+      "topic": "개발",
+      "category": "스프링",
+      "tags": [
+        "jpa",
+        "n+1",
+        "hibernate",
+        "성능"
+      ],
+      "createdAt": "2023-07-23T23:00:00+09:00",
+      "content": "팀 목록 API가 느리다는 얘기가 나와서 쿼리 로그를 켜 봤더니 **팀 1번 조회 + 멤버 조회가 팀 수만큼** 찍혀 있었다. 말로만 듣던 N+1을 내가 만들었다.\n\n## 상황\n\n```java\n@Entity\npublic class Team {\n    @Id @GeneratedValue\n    private Long id;\n\n    private String name;\n\n    @OneToMany(mappedBy = \"team\")\n    private List<Member> members = new ArrayList<>();\n}\n```\n\n```java\nList<Team> teams = teamRepository.findAll();\nreturn teams.stream()\n        .map(t -> new TeamResponse(t.getName(), t.getMembers().size()))\n        .toList();\n```\n\n`@OneToMany`는 기본이 지연 로딩이라 `findAll()`에서는 팀만 가져온다. 그런데 `getMembers().size()`에서 컬렉션을 초기화하면서 **팀마다 select가 한 번씩** 더 나간다. 팀이 50개면 쿼리가 51번.\n\n## 방법 1: fetch join\n\n```java\npublic interface TeamRepository extends JpaRepository<Team, Long> {\n\n    @Query(\"select t from Team t join fetch t.members\")\n    List<Team> findAllWithMembers();\n}\n```\n\n쿼리 한 번으로 끝난다. 예전에는 컬렉션 fetch join에 `distinct`를 꼭 붙여야 했는데, Hibernate 6부터는 루트 엔티티 중복을 알아서 걸러 준다.\n\n`@EntityGraph`로도 같은 걸 할 수 있다.\n\n```java\n@EntityGraph(attributePaths = \"members\")\n@Query(\"select t from Team t\")\nList<Team> findAllWithMembersGraph();\n```\n\n**문제는 페이징**이었다. 컬렉션을 fetch join 하면서 `Pageable`을 넘기면 Hibernate가 경고를 남기고 **전부 메모리에 올린 뒤 잘라서** 준다. 데이터가 많으면 위험하다.\n\n## 방법 2: batch size\n\n페이징이 필요한 화면은 fetch join 대신 이걸 썼다.\n\n```yaml\nspring:\n  jpa:\n    properties:\n      hibernate:\n        default_batch_fetch_size: 100\n```\n\n이러면 지연 로딩할 때 `where team_id in (?, ?, ...)`로 **최대 100개씩 묶어서** 가져온다. 팀 50개면 팀 조회 1번 + 멤버 조회 1번.\n\n## 정리\n\n| 상황 | 쓴 방법 |\n|---|---|\n| 페이징 없음, 연관 데이터 꼭 필요 | fetch join / `@EntityGraph` |\n| 페이징 있음 + 컬렉션 | `default_batch_fetch_size` |\n| 화면에 개수만 필요 | 아예 DTO로 `count` 쿼리 |\n\n결국 이 API는 멤버 수만 필요했어서 마지막 방법으로 갔다. 엔티티를 다 가져올 필요가 없었던 거다.\n\n> 쿼리 로그는 개발 환경에서 항상 켜 두기로 했다. 안 보면 모른다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "프론트에서 볼 땐 그냥 API 하나가 느린 건데 뒤에서 51번 돌고 있었군요... 개수만 필요하면 DTO로 가는 거 공감합니다."
+        }
+      ]
+    },
+    {
+      "title": "1년 차 회고: 돌아가는 코드에서 설명할 수 있는 코드로",
+      "topic": "개발",
+      "category": "회고",
+      "tags": [
+        "회고",
+        "주니어개발자",
+        "백엔드"
+      ],
+      "createdAt": "2023-12-31T21:30:00+09:00",
+      "content": "올해 2월에 입사했으니 거의 1년이다. 연말이라 그냥 넘기기 아쉬워서 적어 둔다. 기술 정리라기보다 **일기**에 가깝다.\n\n## 한 일\n\n- 사내 주문 관리 서비스 유지보수 (Spring Boot, JPA, PostgreSQL)\n- 정산 배치 하나를 처음부터 맡아서 만들었다\n- 장애 대응 두 번 참여 (한 번은 내가 원인 제공...)\n\n## 잘한 것\n\n### 모르는 걸 바로 물어봤다\n처음 석 달은 질문하는 게 너무 눈치 보였다. 그런데 사수가 \"30분 혼자 봐도 모르겠으면 물어봐\"라는 기준을 정해 줘서 그 뒤로는 편해졌다. **30분 규칙**은 내년에도 지킨다.\n\n### 블로그를 시작했다\n삽질한 걸 적다 보니, 같은 실수를 두 번 하는 일이 줄었다. `@Transactional` 글은 사내 위키에도 옮겨 놨다.\n\n## 아쉬운 것\n\n### 테스트를 미뤘다\n\"기능 먼저 하고 테스트는 나중에\"를 반복했다. 결국 정산 배치에서 경계값 버그가 났는데, 테스트 하나만 있었어도 잡혔을 문제였다.\n\n### 이유를 설명하지 못했다\n코드 리뷰에서 \"왜 이렇게 했어요?\"라는 질문에 \"이렇게 하니까 돌아가서요\"라고 답한 적이 있다. 그날 꽤 부끄러웠다. 돌아가는 것과 **설명할 수 있는 것**은 다르다.\n\n## 내년 목표\n\n1. 새로 만드는 기능은 테스트부터 (적어도 서비스 계층은)\n2. DB 공부: 실행 계획 읽는 법, 인덱스 제대로 이해하기\n3. Docker로 로컬 환경 통일해 보기\n4. 한 달에 글 하나는 쓰기\n\n> 1년 동안 제일 많이 늘어난 건 코드 실력보다 **모른다고 말하는 속도**인 것 같다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "'이렇게 하니까 돌아가서요' 저도 해 본 대답이라 뜨끔하네요. 1년 수고 많으셨어요!"
+        },
+        {
+          "by": "film",
+          "body": "30분 규칙 좋네요. 개발 아니어도 쓸 수 있을 것 같아요."
+        },
+        {
+          "by": "hometrain",
+          "body": "한 달에 글 하나 목표 응원합니다. 기록이 쌓이면 진짜 힘이 돼요."
+        }
+      ]
+    },
+    {
+      "title": "PostgreSQL에서 인덱스 탔는지 EXPLAIN ANALYZE로 확인하기",
+      "topic": "개발",
+      "category": "데이터베이스",
+      "tags": [
+        "postgresql",
+        "인덱스",
+        "실행계획",
+        "explain"
+      ],
+      "createdAt": "2024-04-14T20:40:00+09:00",
+      "content": "작년 회고에서 실행 계획 읽기를 목표로 적었는데, 마침 블로그 글 목록 쿼리가 느리다는 이슈가 와서 제대로 공부해 볼 기회가 생겼다.\n\n## 느린 쿼리\n\n```sql\nSELECT id, title, created_at\nFROM post\nWHERE blog_id = 42\nORDER BY created_at DESC\nLIMIT 20;\n```\n\n`post` 테이블은 몇백만 건, `blog_id`에는 인덱스가 없었다.\n\n## EXPLAIN과 EXPLAIN ANALYZE\n\n- `EXPLAIN`: 플래너가 **예상한** 계획만 보여 준다. 쿼리는 실행하지 않는다.\n- `EXPLAIN ANALYZE`: 쿼리를 **실제로 실행**하고 실제 시간과 행 수를 같이 보여 준다.\n\n그래서 `UPDATE`나 `DELETE`에 `EXPLAIN ANALYZE`를 쓸 땐 트랜잭션 안에서 하고 롤백해야 한다. 진짜로 지워진다.\n\n```sql\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT id, title, created_at\nFROM post\nWHERE blog_id = 42\nORDER BY created_at DESC\nLIMIT 20;\n```\n\n결과(줄임):\n\n```text\nLimit  (actual time=812.4..812.5 rows=20 loops=1)\n  ->  Sort  (actual time=812.4..812.4 rows=20 loops=1)\n        Sort Key: created_at DESC\n        ->  Seq Scan on post  (actual time=0.03..790.1 rows=1840 loops=1)\n              Filter: (blog_id = 42)\n              Rows Removed by Filter: 3198160\n```\n\n읽는 법은 **안쪽(들여쓰기 깊은 것)부터**. 테이블 전체를 훑고(Seq Scan), 300만 건 넘게 버리고, 남은 걸 정렬한 다음 20개를 자른다.\n\n## 인덱스 추가\n\n조건과 정렬을 같이 커버하도록 복합 인덱스를 만들었다.\n\n```sql\nCREATE INDEX CONCURRENTLY idx_post_blog_created\n    ON post (blog_id, created_at DESC);\n```\n\n운영 DB라서 `CONCURRENTLY`를 붙였다. 테이블에 쓰기 잠금을 오래 걸지 않는 대신 시간이 더 걸리고, **트랜잭션 블록 안에서는 실행할 수 없다**. 마이그레이션 도구에서 쓸 때 이것 때문에 한 번 실패했다.\n\n```text\nLimit  (actual time=0.05..0.11 rows=20 loops=1)\n  ->  Index Scan using idx_post_blog_created on post  (actual time=0.05..0.10 rows=20 loops=1)\n        Index Cond: (blog_id = 42)\n```\n\nSort 단계가 사라졌다. 인덱스가 이미 `created_at DESC` 순서라서 앞에서 20개만 읽으면 끝난다. 812ms → 0.1ms.\n\n## 같이 본 것\n\n- 계획의 **예상 rows**와 **실제 rows**가 크게 다르면 통계가 오래된 것일 수 있다. `ANALYZE post;`로 갱신.\n- 작은 테이블은 인덱스가 있어도 Seq Scan이 더 빠를 수 있어서 플래너가 그쪽을 고른다. 이건 정상이다.\n- 컬럼 순서가 중요하다. `(created_at, blog_id)`였으면 이 쿼리엔 별 도움이 안 됐을 거다.\n\n> 인덱스를 \"추가했다\"가 아니라 \"**탔다**\"를 확인하는 습관.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "Sort 단계가 사라지는 부분 보니까 속이 다 시원하네요. 812ms에서 0.1ms라니..."
+        },
+        {
+          "by": "halfday",
+          "body": "CONCURRENTLY는 트랜잭션 안에서 안 된다는 거 메모해 둡니다. 저도 언젠가 밟을 것 같아서요."
+        }
+      ]
+    },
+    {
+      "title": "Docker 컨테이너에서 Spring Boot가 DB에 못 붙던 이유: localhost의 함정",
+      "topic": "개발",
+      "category": "도커",
+      "tags": [
+        "docker",
+        "dockercompose",
+        "springboot",
+        "삽질기"
+      ],
+      "createdAt": "2024-10-20T22:15:00+09:00",
+      "content": "로컬 환경을 Docker Compose로 통일하는 작업을 하다가 반나절을 날렸다. 앱 컨테이너가 계속 `Connection refused`를 뱉으면서 죽었다.\n\n## 처음 설정\n\n```yaml\nservices:\n  db:\n    image: postgres:16\n    environment:\n      POSTGRES_PASSWORD: ${DB_PASSWORD}\n    ports:\n      - \"5432:5432\"\n\n  app:\n    build: .\n    environment:\n      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/postgres\n      SPRING_DATASOURCE_USERNAME: postgres\n      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}\n    ports:\n      - \"8080:8080\"\n```\n\nIDE에서 앱을 띄울 땐 잘 되던 URL 그대로였다.\n\n## 원인 1: 컨테이너 안의 localhost는 그 컨테이너 자신\n\n컨테이너마다 네트워크 공간이 따로 있어서, `app` 컨테이너 안에서 `localhost`는 **`app` 컨테이너 자신**이다. 거기엔 5432에서 듣는 게 없으니 거절당한 것.\n\nCompose는 서비스들을 같은 네트워크에 묶고 **서비스 이름으로 DNS**를 잡아 준다. 그래서 `localhost` 대신 `db`를 쓰면 된다.\n\n```yaml\nSPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres\n```\n\n참고로 컨테이너끼리는 `ports`가 없어도 통신된다. `ports`는 **호스트(내 노트북)에서 접근**할 때만 필요하다.\n\n## 원인 2: DB가 준비되기 전에 앱이 떴다\n\n주소를 고쳤더니 이번엔 가끔만 실패했다. `depends_on`은 컨테이너 **시작 순서**만 보장하지, PostgreSQL이 접속을 받을 준비가 됐는지는 모른다.\n\n```yaml\nservices:\n  db:\n    image: postgres:16\n    environment:\n      POSTGRES_PASSWORD: ${DB_PASSWORD}\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U postgres\"]\n      interval: 5s\n      timeout: 3s\n      retries: 10\n\n  app:\n    build: .\n    environment:\n      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres\n      SPRING_DATASOURCE_USERNAME: postgres\n      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}\n    depends_on:\n      db:\n        condition: service_healthy\n```\n\n`condition: service_healthy`를 주면 헬스체크가 통과할 때까지 앱 시작을 기다린다.\n\n## 디버깅하면서 쓴 명령\n\n```bash\ndocker compose ps                  # 상태와 health 확인\ndocker compose logs -f app         # 앱 로그 따라가기\ndocker compose exec app sh         # 컨테이너 안에 들어가서\ngetent hosts db                    # 서비스 이름이 풀리는지 확인\n```\n\n> \"내 컴퓨터에선 되는데\"의 내 컴퓨터가 **어디인지**부터 확인하자.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "프론트 개발 서버에서 API 프록시 잡을 때도 똑같은 걸로 헤맨 적 있어요. 컨테이너 안 localhost 진짜 함정이에요."
+        },
+        {
+          "by": "woodwork",
+          "body": "무슨 말인지 반쯤 알아들었는데 '내 컴퓨터가 어디인지부터'라는 마지막 줄이 너무 웃기고 공감돼요."
+        }
+      ]
+    },
+    {
+      "title": "Testcontainers로 통합 테스트 옮긴 후기",
+      "topic": "개발",
+      "category": "스프링",
+      "tags": [
+        "testcontainers",
+        "테스트",
+        "springboot",
+        "postgresql"
+      ],
+      "createdAt": "2025-02-09T21:00:00+09:00",
+      "content": "그동안 리포지토리 테스트는 H2 인메모리 DB로 돌렸다. 빠르고 편했는데, 운영은 PostgreSQL이라 **H2에서는 통과하는데 운영에서 터지는** 일이 몇 번 있었다. `jsonb` 컬럼, `ON CONFLICT`, 윈도 함수 같은 것들.\n\n그래서 이번 분기에 통합 테스트를 Testcontainers로 옮겼다.\n\n## 설정\n\n의존성은 `spring-boot-testcontainers`, `testcontainers`의 `junit-jupiter`, `postgresql` 모듈.\n\n```java\n@SpringBootTest\n@Testcontainers\nclass PostRepositoryTest {\n\n    @Container\n    @ServiceConnection\n    static PostgreSQLContainer<?> postgres =\n            new PostgreSQLContainer<>(\"postgres:16-alpine\");\n\n    @Autowired\n    PostRepository postRepository;\n\n    @Test\n    void 블로그별_최신글_20개를_가져온다() {\n        // given: 테스트 데이터 저장\n        // when\n        List<Post> posts = postRepository.findTop20ByBlogIdOrderByCreatedAtDesc(1L);\n        // then\n        assertThat(posts).hasSizeLessThanOrEqualTo(20);\n    }\n}\n```\n\n예전엔 `@DynamicPropertySource`로 URL, 계정, 비밀번호를 하나하나 넣어 줬는데, Spring Boot 3.1부터는 `@ServiceConnection`만 붙이면 접속 정보를 알아서 연결해 준다. 코드가 확 줄었다.\n\n## 느려진 것 대응\n\n컨테이너를 띄우니까 당연히 느려졌다. 처음엔 테스트 클래스마다 컨테이너를 새로 띄워서 전체 테스트가 4분에서 11분이 됐다.\n\n### 컨테이너 공유\n`static` 필드 컨테이너를 **추상 베이스 클래스**에 두고 테스트 클래스들이 상속하게 했다. 스프링 테스트 컨텍스트 캐시도 같이 재사용되도록 설정을 통일했다.\n\n```java\n@SpringBootTest\n@Testcontainers\npublic abstract class IntegrationTestSupport {\n\n    @Container\n    @ServiceConnection\n    static PostgreSQLContainer<?> postgres =\n            new PostgreSQLContainer<>(\"postgres:16-alpine\");\n}\n```\n\n### 단위 테스트와 나누기\n서비스 로직 대부분은 리포지토리를 목으로 바꾼 **단위 테스트**로 돌리고, 쿼리가 중요한 것만 통합 테스트로 남겼다.\n\n결과적으로 전체 6분 정도. 예전보다 느리지만 **운영과 같은 DB**에서 검증된다는 안정감이 훨씬 크다.\n\n## 겪은 문제\n\n- CI 러너에서 Docker를 못 찾아서 실패 → Docker가 되는 러너로 바꿈\n- 테스트 간 데이터가 섞임 → 각 테스트 끝에 정리하거나 `@Transactional`로 롤백\n- Flyway 마이그레이션도 테스트에서 같이 돌아가서, **마이그레이션 오류를 테스트에서 먼저** 잡게 된 건 덤\n\n> \"테스트는 통과했는데요\"가 의미 있으려면, 테스트 환경이 운영을 닮아야 한다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "프론트에서 jsdom이랑 실제 브라우저 차이 때문에 고생한 거랑 비슷하네요. 결국 진짜 환경에서 돌려야 안심이 되더라고요."
+        },
+        {
+          "by": "halfday",
+          "body": "4분에서 11분 됐을 때 식은땀 났을 것 같아요ㅋㅋ 베이스 클래스로 공유하는 거 참고합니다."
+        }
+      ]
+    },
+    {
+      "title": "PostgreSQL 데드락 로그 읽는 법, 이번엔 진짜 데드락이었다",
+      "topic": "개발",
+      "category": "데이터베이스",
+      "tags": [
+        "postgresql",
+        "데드락",
+        "트랜잭션",
+        "장애"
+      ],
+      "createdAt": "2025-08-17T22:30:00+09:00",
+      "content": "정산 배치가 새벽에 가끔 실패한다는 알림이 왔다. 로그를 보니 이런 게 있었다.\n\n```text\nERROR:  deadlock detected\nDETAIL:  Process 21843 waits for ShareLock on transaction 9817734; blocked by process 21851.\n        Process 21851 waits for ShareLock on transaction 9817731; blocked by process 21843.\nHINT:  See server log for query details.\n```\n\n## 로그 읽기\n\n- **21843**은 트랜잭션 9817734가 끝나길 기다린다. 그 트랜잭션은 21851의 것.\n- **21851**은 트랜잭션 9817731이 끝나길 기다린다. 그건 21843의 것.\n\n서로가 서로를 기다리는 원형 대기. PostgreSQL은 이걸 감지하면 **둘 중 하나를 에러로 끝내서** 풀어 준다. 그래서 하나는 실패하고 하나는 성공한다.\n\n`ShareLock on transaction`은 보통 **다른 트랜잭션이 잡고 있는 행을 수정하려고 기다릴 때** 나온다. 행 잠금을 쥔 트랜잭션이 끝나기를 기다리는 것.\n\n서버 로그 쪽에는 각 프로세스가 실행하던 쿼리가 같이 찍혀 있어서 그걸로 범인을 찾았다.\n\n## 원인\n\n두 배치 작업이 같은 계좌 잔액을 갱신하는데, **순서가 달랐다**.\n\n- 작업 A: 계좌 1 → 계좌 2 순서로 `UPDATE`\n- 작업 B: 계좌 2 → 계좌 1 순서로 `UPDATE`\n\nA가 1을 잡고, B가 2를 잡은 상태에서 서로 상대 것을 기다리면 끝.\n\n## 해결: 잠그는 순서를 통일\n\n처리할 행을 **항상 같은 순서로** 먼저 잠그게 바꿨다.\n\n```sql\nSELECT id\nFROM account\nWHERE id IN (:ids)\nORDER BY id\nFOR UPDATE;\n```\n\nJPA에서는 이렇게 썼다.\n\n```java\n@Lock(LockModeType.PESSIMISTIC_WRITE)\n@Query(\"select a from Account a where a.id in :ids order by a.id\")\nList<Account> findAllForUpdate(@Param(\"ids\") Collection<Long> ids);\n```\n\nid 오름차순으로 잠그니까 두 작업이 같은 행을 노려도 한쪽이 그냥 기다리기만 하고 원형 대기는 생기지 않는다.\n\n## 같이 손본 설정\n\n- `log_lock_waits = on`: `deadlock_timeout`(기본 1초)보다 오래 잠금을 기다리면 로그를 남긴다. 데드락까지 안 가도 **잠금 대기 자체**를 볼 수 있다.\n- 배치 쪽에는 데드락 에러 시 **짧게 한 번 재시도**를 넣었다. 순서를 맞췄어도 다른 경로에서 생길 수 있으니 안전장치로.\n- 트랜잭션 범위를 줄였다. 잠금을 오래 쥘수록 부딪칠 확률이 커진다.\n\n> 데드락은 DB가 이상한 게 아니라, 내 코드가 **서로 다른 순서로** 문을 잠근 결과였다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "로그 한 줄씩 해석해 주시니까 처음으로 데드락 로그가 읽히네요."
+        },
+        {
+          "by": "film",
+          "body": "문을 서로 다른 순서로 잠근다는 비유가 머리에 쏙 들어와요."
+        }
+      ]
+    },
+    {
+      "title": "2025 회고: 3년 차가 되면서 달라진 것들",
+      "topic": "개발",
+      "category": "회고",
+      "tags": [
+        "회고",
+        "3년차",
+        "백엔드",
+        "커리어"
+      ],
+      "createdAt": "2026-01-04T20:00:00+09:00",
+      "content": "매년 연말에 쓰다가 올해는 바빠서 새해 첫 일요일에 쓴다. 2월이면 3년 차가 된다.\n\n## 올해 한 일\n\n- 주문 서비스에서 **정산 도메인**으로 옮겼다. 돈이 걸린 코드는 무게가 다르다.\n- 통합 테스트를 Testcontainers로 옮기는 작업을 주도했다.\n- 신입 두 명 온보딩을 맡았다.\n- 블로그 글 11개. 목표(한 달 하나)는 아깝게 실패.\n\n## 달라진 것\n\n### 장애를 대하는 태도\n1년 차 때는 장애가 나면 일단 겁부터 났다. 올해 데드락 건을 겪으면서 **로그를 처음부터 끝까지 읽는** 습관이 생겼다. 무섭다고 대충 재시작부터 하면 같은 일이 다시 난다.\n\n### 리뷰에서 하는 말\n예전엔 \"이거 왜 이렇게 했어요?\"가 무서운 질문이었는데, 이제는 내가 신입한테 하는 질문이 됐다. 대신 **\"이렇게 하면 이런 경우가 걱정돼요\"** 처럼 이유를 같이 붙이려고 한다. 1년 차 때 그 질문에 대답 못 했던 기억이 있어서.\n\n### 코드보다 문서\n정산 로직은 기획서보다 코드가 진실인 경우가 많았다. 그래서 규칙을 하나 찾을 때마다 위키에 표로 정리했다. 연말에 다른 팀이 그 표를 보고 질문 없이 연동을 끝냈다는 얘기를 듣고 꽤 뿌듯했다.\n\n## 아쉬운 것\n\n- 건강. 작년보다 앉아 있는 시간이 확실히 늘었다. 허리가 신호를 보낸다.\n- 새 기술을 거의 못 만졌다. 회사 일만으로 한 해가 지나간 느낌.\n\n## 2026 목표\n\n1. 운영 지표 보는 법 공부: 커넥션 풀, 응답 시간 분포, GC\n2. 사이드로 작은 서비스 하나 끝까지 배포해 보기\n3. 주 3회 운동 (이웃 블로그 홈트 루틴 따라 하는 중)\n4. 글은 개수 말고 **제대로 된 삽질기** 6개\n\n> 3년 차에 필요한 건 더 많이 아는 것보다, 모르는 걸 **빨리 좁혀 가는 방법**인 것 같다.\n",
+      "comments": [
+        {
+          "by": "hometrain",
+          "body": "앗 제 루틴 따라 하신다니 영광이에요! 허리 신호 올 땐 글루트 브릿지랑 버드독부터 해 보세요."
+        },
+        {
+          "by": "frontnote",
+          "body": "정산 규칙 표로 정리한 거 너무 좋은 습관이네요. 올해도 삽질기 기대할게요."
+        },
+        {
+          "by": "runner",
+          "body": "주 3회 운동 목표 같이 지켜 봐요. 3년 차 축하드립니다!"
+        }
+      ]
+    },
+    {
+      "title": "커넥션 풀 고갈 장애 회고: HikariCP 로그를 따라간 길",
+      "topic": "개발",
+      "category": "스프링",
+      "tags": [
+        "hikaricp",
+        "커넥션풀",
+        "장애회고",
+        "springboot"
+      ],
+      "createdAt": "2026-09-27T21:45:00+09:00",
+      "content": "지난주 화요일 점심시간에 정산 조회 API가 30초씩 멈추다가 500을 뱉었다. 로그에 찍힌 건 이거였다.\n\n```text\nHikariPool-1 - Connection is not available, request timed out after 30000ms.\n```\n\n## 무슨 뜻인가\n\nHikariCP 풀에서 커넥션을 빌리려고 했는데, **30초(`connectionTimeout` 기본값) 동안 남는 커넥션이 없었다**는 뜻이다. 풀 크기는 기본값 10 그대로였다.\n\nDB가 느린 건지, 커넥션을 누가 오래 쥐고 있는 건지부터 나눠야 했다. DB 쪽 `pg_stat_activity`를 보니 우리 앱 커넥션 대부분이 `idle in transaction` 상태였다. **트랜잭션을 연 채로 아무것도 안 하고 있다**는 뜻.\n\n## 원인\n\n```java\n@Transactional\npublic SettlementResponse confirm(Long settlementId) {\n    Settlement settlement = settlementRepository.findById(settlementId).orElseThrow();\n    settlement.confirm();\n\n    // 외부 송금 API 호출 (여기서 몇 초씩 걸림)\n    TransferResult result = transferClient.request(settlement.toTransferRequest());\n\n    settlement.markTransferred(result.transactionId());\n    return SettlementResponse.from(settlement);\n}\n```\n\n트랜잭션 안에서 **외부 API를 호출**하고 있었다. 평소엔 200ms 정도라 문제가 없었는데, 그날 외부 API가 느려지면서 호출 하나가 5~10초씩 걸렸다. 그동안 커넥션을 쥐고 있으니 점심 트래픽에 10개가 금방 바닥났다.\n\n## 대응\n\n### 당일\n외부 API 호출에 **타임아웃**이 아예 없었다. 급하게 연결/응답 타임아웃을 넣어 배포했다.\n\n### 근본 수정\n트랜잭션을 두 개로 쪼개고, 외부 호출은 트랜잭션 **밖**으로 뺐다.\n\n```java\npublic SettlementResponse confirm(Long settlementId) {\n    TransferRequest request = settlementTxService.confirm(settlementId);   // 트랜잭션 1\n    TransferResult result = transferClient.request(request);               // 트랜잭션 밖\n    return settlementTxService.markTransferred(settlementId, result);      // 트랜잭션 2\n}\n```\n\n`settlementTxService`는 별도 빈이다. 같은 클래스에 두면 내부 호출이라 `@Transactional`이 안 먹는다는 건 1년 차 때 이미 배웠다.\n\n중간에 실패하면 \"확정됐지만 송금 안 된\" 상태가 남으니까, 그 상태를 조회해서 재처리하는 배치를 같이 만들었다.\n\n## 같이 켠 설정\n\n```yaml\nspring:\n  datasource:\n    hikari:\n      leak-detection-threshold: 5000\n  jpa:\n    open-in-view: false\n```\n\n- `leak-detection-threshold`: 커넥션을 5초 넘게 쥐고 있으면 **빌려 간 위치의 스택 트레이스**를 경고로 남긴다. 다음엔 원인을 훨씬 빨리 찾을 수 있다.\n- `open-in-view`: 켜져 있으면 영속성 컨텍스트가 요청 끝까지 살아 있어서, DB 커넥션을 처음 쓴 뒤 **응답이 나갈 때까지** 쥐고 있을 수 있다. 이번 원인은 아니었지만 같이 껐다. 대신 지연 로딩이 컨트롤러에서 터지는 곳 두 군데를 고쳐야 했다.\n\n## 배운 것\n\n- 풀 크기를 늘리는 건 답이 아니었다. 20으로 늘렸으면 20개가 다 묶였을 거다.\n- 트랜잭션 안에는 **DB 일만** 둔다.\n- 외부 호출에는 **반드시 타임아웃**.\n\n> 30초 타임아웃 로그 한 줄 뒤에, 타임아웃 없는 외부 호출이 숨어 있었다.\n",
+      "comments": [
+        {
+          "by": "frontnote",
+          "body": "프론트에서는 그냥 '서버가 느려요'로 끝나는데 이런 일이 있었군요. 트랜잭션 안에는 DB 일만, 기억해 둘게요."
+        },
+        {
+          "by": "halfday",
+          "body": "풀 크기 늘리면 20개가 다 묶였을 거라는 말에 고개 끄덕였어요."
+        },
+        {
+          "by": "hometrain",
+          "body": "1년 차 때 글이 여기서 다시 나오니까 성장 일지 보는 것 같아요."
+        }
+      ]
+    }
+  ]
+}

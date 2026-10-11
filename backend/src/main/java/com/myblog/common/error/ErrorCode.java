@@ -72,6 +72,8 @@ public enum ErrorCode {
     // 글 탐색 (specs/004 contracts 2). 숫자는 설정값(explore.search.*)에 따라 PostSearchService가 채운다
     SEARCH_KEYWORD_TOO_SHORT(HttpStatus.BAD_REQUEST, "검색어를 %d자 이상 입력해 주세요"),
     SEARCH_KEYWORD_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 %d자까지 입력할 수 있습니다"),
+    // 첫 화면 글 모음: 주제 이름이 정해진 다섯 개가 아니면
+    TOPIC_NOT_FOUND(HttpStatus.BAD_REQUEST, "※ 없는 주제입니다"),
 
     // 댓글·좋아요·신고·태그·이미지 (specs/005 contracts). ※는 상세/05 안내 문구 표에 아직 없는 제안 문구다
     /** 칸별 문구. 글자 수는 설정값(community.comment.*)에 따라 CommentFieldErrorMessages가 채운다. */

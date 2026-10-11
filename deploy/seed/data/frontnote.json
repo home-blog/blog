@@ -1,0 +1,240 @@
+{
+  "key": "frontnote",
+  "email": "demo.frontnote@example.com",
+  "nickname": "프론트노트",
+  "userIntro": "화면 만드는 프론트엔드 개발자. React, TypeScript, CSS, 그리고 키보드로도 쓸 수 있는 화면.",
+  "joinedAt": "2023-06-11",
+  "blogName": "프론트 노트",
+  "blogIntro": "프론트엔드 개발하면서 배운 리액트, CSS, 접근성 이야기와 주말에 조금씩 만드는 사이드 프로젝트 기록. 가끔 일상도 적어요.",
+  "categories": [
+    "리액트",
+    "CSS와 접근성",
+    "사이드 프로젝트",
+    "일상"
+  ],
+  "posts": [
+    {
+      "title": "useEffect 의존성 배열 때문에 API를 무한으로 부른 삽질기",
+      "topic": "개발",
+      "category": "리액트",
+      "tags": [
+        "react",
+        "useeffect",
+        "삽질기",
+        "hooks"
+      ],
+      "createdAt": "2023-06-18T21:00:00+09:00",
+      "content": "입사하고 처음 맡은 화면에서 목록 페이지를 띄웠더니 **네트워크 탭이 폭포처럼** 흘러내렸어요. 같은 API가 1초에 수십 번 불리고 있었습니다. 백엔드 분이 조용히 메시지를 주셨던 날이에요.\n\n## 문제의 코드\n\n```tsx\nfunction PostList({ category }: { category: string }) {\n  const [page, setPage] = useState(1);\n  const [posts, setPosts] = useState<Post[]>([]);\n\n  const params = { category, page };\n\n  useEffect(() => {\n    fetchPosts(params).then(setPosts);\n  }, [params]);\n\n  // ...\n}\n```\n\n## 왜 무한으로 도나\n\n1. 렌더링할 때마다 `params`는 **새 객체**로 만들어져요.\n2. `useEffect`는 의존성을 `Object.is`로 비교해요. 내용이 같아도 객체가 다르면 바뀐 걸로 봐요.\n3. 이펙트 실행 → `setPosts` → 다시 렌더링 → 새 `params` → 이펙트 실행 → ...\n\n결국 응답이 올 때마다 다음 요청이 나가는 무한 반복이었어요.\n\n## 고친 코드\n\n의존성에는 **원시값**을 넣고, 객체는 이펙트 안에서 만들었어요.\n\n```tsx\nuseEffect(() => {\n  const controller = new AbortController();\n\n  fetchPosts({ category, page }, { signal: controller.signal })\n    .then(setPosts)\n    .catch((error) => {\n      if (error.name !== 'AbortError') throw error;\n    });\n\n  return () => controller.abort();\n}, [category, page]);\n```\n\n`AbortController`는 덤이에요. 카테고리를 빠르게 바꿀 때 **이전 요청의 응답이 늦게 도착해서** 화면을 덮어쓰는 문제가 있었는데, 정리 함수에서 이전 요청을 취소하니까 같이 해결됐어요.\n\n## 같이 정리한 것\n\n- 린트의 `react-hooks/exhaustive-deps` 경고는 끄지 말기. 경고가 귀찮게 느껴지면 보통 구조가 이상한 거였어요.\n- 객체를 꼭 의존성에 넣어야 하면 `useMemo`로 감싸는 방법도 있어요. 다만 이번처럼 이펙트 안으로 옮기는 게 더 단순했어요.\n- 개발 모드의 Strict Mode에서는 이펙트가 **두 번** 실행돼요. 처음엔 이것 때문에 요청이 두 번 나가는 줄 알고 헷갈렸어요.\n\n> 의존성 배열은 \"언제 실행할지 정하는 곳\"이 아니라 \"이펙트가 **무엇을 읽는지** 적는 곳\"이라는 말이 이제야 이해됐어요.\n",
+      "comments": [
+        {
+          "by": "codecup",
+          "body": "그날 메시지 보낸 백엔드 개발자 입장도 상상되네요ㅋㅋ 서버 로그에 같은 요청이 쭉 찍히면 깜짝 놀라요."
+        },
+        {
+          "by": "hometrain",
+          "body": "개발 글은 잘 모르는데 '폭포처럼 흘러내렸다'는 표현이 너무 생생해요."
+        }
+      ]
+    },
+    {
+      "title": "CSS Grid 카드 목록, auto-fill이랑 auto-fit 차이 이제 안 헷갈리기",
+      "topic": "개발",
+      "category": "CSS와 접근성",
+      "tags": [
+        "css",
+        "grid",
+        "반응형",
+        "레이아웃"
+      ],
+      "createdAt": "2023-11-12T15:30:00+09:00",
+      "content": "카드 목록 반응형을 만들 때마다 미디어 쿼리를 3~4개씩 쓰고 있었는데, Grid 한 줄로 거의 끝난다는 걸 알고 나서 갈아탔어요. 그런데 `auto-fill`이랑 `auto-fit`이 매번 헷갈려서 정리해 둡니다.\n\n## 기본 모양\n\n```css\n.card-list {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));\n  gap: 16px;\n}\n```\n\n- `minmax(240px, 1fr)`: 카드는 **최소 240px**, 남는 공간이 있으면 균등하게 늘어나요.\n- `repeat(auto-fill, ...)`: 컨테이너 너비에 **들어갈 수 있는 만큼** 열을 만들어요.\n\n화면이 넓어지면 열이 늘고, 좁아지면 줄어요. 미디어 쿼리 없이요.\n\n## auto-fill vs auto-fit\n\n차이는 **아이템이 열 수보다 적을 때**만 보여요.\n\n예를 들어 컨테이너에 열이 5개 들어갈 수 있는데 카드가 2장뿐이라면:\n\n- `auto-fill`: 빈 열 3개를 **그대로 남겨 둬요**. 카드 2장은 240px 언저리 크기로 왼쪽에 붙어 있어요.\n- `auto-fit`: 빈 열을 **0으로 접어요**. 남은 공간을 카드 2장이 나눠 가져서 엄청 넓어져요.\n\n| 상황 | 추천 |\n|---|---|\n| 검색 결과처럼 개수가 들쭉날쭉한 목록 | `auto-fill` (카드 크기가 일정해서 덜 어색해요) |\n| 항목 수가 거의 고정된 소개 섹션 | `auto-fit` (꽉 차게 늘어나요) |\n\n## 좁은 화면에서 넘칠 때\n\n컨테이너가 240px보다 좁아지면 카드가 삐져나가서 가로 스크롤이 생겨요. 이렇게 막았어요.\n\n```css\n.card-list {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));\n  gap: 16px;\n}\n```\n\n`min(240px, 100%)`라서 컨테이너가 좁으면 최소 너비가 컨테이너 너비로 줄어들어요.\n\n## 카드 높이 맞추기\n\nGrid는 같은 행의 아이템 높이를 기본으로 맞춰 줘요(`align-items: stretch`). 카드 안에서 버튼을 바닥에 붙이고 싶으면 카드에 `display: flex; flex-direction: column;`을 주고 버튼에 `margin-top: auto`를 줘요.\n\n> 미디어 쿼리 4개가 한 줄이 됐을 때의 쾌감이란...\n",
+      "comments": [
+        {
+          "by": "woodwork",
+          "body": "카드 2장일 때 차이 설명이 딱 와닿네요. 제 공방 작품 목록 페이지가 auto-fit이라 이상하게 넓었던 거였어요!"
+        },
+        {
+          "by": "codecup",
+          "body": "min(240px, 100%) 트릭 좋네요. 관리자 화면 만들 때 써먹겠습니다."
+        }
+      ]
+    },
+    {
+      "title": "버튼 대신 div에 onClick 달면 생기는 일",
+      "topic": "개발",
+      "category": "CSS와 접근성",
+      "tags": [
+        "접근성",
+        "a11y",
+        "button",
+        "키보드"
+      ],
+      "createdAt": "2024-03-03T22:20:00+09:00",
+      "content": "사내 접근성 점검을 받았는데 제가 만든 화면에서 지적이 제일 많이 나왔어요. 그중 절반이 **`div`에 `onClick`** 단 것들이었습니다. 마우스로는 잘 되니까 문제라고 생각을 못 했어요.\n\n## 뭐가 문제였나\n\n```tsx\n<div className=\"like-button\" onClick={toggleLike}>\n  ♥ 좋아요\n</div>\n```\n\n1. **키보드로 갈 수 없어요.** `Tab`을 눌러도 포커스가 안 가요.\n2. 포커스를 줘도 **`Enter`나 `Space`로 눌리지 않아요.**\n3. 스크린리더가 이게 **버튼인지 몰라요.** 그냥 글자 \"좋아요\"로 읽어요.\n\n점검하신 분이 키보드만으로 화면을 써 보는 걸 옆에서 봤는데, 좋아요를 누를 방법이 아예 없었어요.\n\n## 제일 쉬운 해결: 그냥 button\n\n```tsx\n<button type=\"button\" className=\"like-button\" onClick={toggleLike} aria-pressed={liked}>\n  좋아요\n</button>\n```\n\n`button`을 쓰면 포커스, `Enter`/`Space` 처리, 역할 안내가 **전부 공짜**예요.\n\n- `type=\"button\"`은 꼭 적어요. `form` 안에 있으면 기본값이 `submit`이라 의도치 않게 폼이 제출돼요.\n- 켜짐/꺼짐 상태가 있는 버튼은 `aria-pressed`로 상태를 알려 줘요.\n- 하트 아이콘만 있는 버튼이면 `aria-label=\"좋아요\"`처럼 이름을 꼭 붙여요.\n\n## 스타일 때문에 div를 썼던 거라면\n\n버튼 기본 스타일이 싫어서 `div`를 썼던 거였어요. 초기화하면 돼요.\n\n```css\n.reset-button {\n  appearance: none;\n  background: none;\n  border: 0;\n  padding: 0;\n  font: inherit;\n  color: inherit;\n  cursor: pointer;\n}\n\n.reset-button:focus-visible {\n  outline: 2px solid currentColor;\n  outline-offset: 2px;\n}\n```\n\n`outline: none`만 하고 끝내면 키보드 사용자는 **어디에 포커스가 있는지** 알 수 없어요. `:focus-visible`로 키보드 포커스일 때만 보이게 하면 마우스 클릭 때는 안 거슬려요.\n\n## 정말 div여야 한다면\n\n`role=\"button\"`, `tabIndex={0}`, 키 이벤트까지 직접 다 해야 해요. 해 보면 왜 `button`을 쓰라는지 알게 돼요.\n\n> 마우스를 내려놓고 `Tab`만으로 내 화면을 한 번 써 보세요. 생각보다 많이 막혀요.\n",
+      "comments": [
+        {
+          "by": "codecup",
+          "body": "type=\"button\" 안 적어서 폼 제출되는 거 백엔드에서 이상한 요청으로 본 적 있어요ㅋㅋ"
+        },
+        {
+          "by": "film",
+          "body": "Tab만으로 써 보기 해 봤는데 진짜 막히는 데가 많네요. 좋은 습관 배워 갑니다."
+        },
+        {
+          "by": "plant",
+          "body": "아이콘만 있는 버튼에 이름 붙이는 거, 저처럼 화면 확대해서 보는 사람한테도 도움 돼요."
+        }
+      ]
+    },
+    {
+      "title": "사이드 프로젝트: 동네 빵집 지도 만들기 1편, 기획부터 첫 배포까지",
+      "topic": "개발",
+      "category": "사이드 프로젝트",
+      "tags": [
+        "사이드프로젝트",
+        "react",
+        "leaflet",
+        "vite"
+      ],
+      "createdAt": "2024-08-25T20:10:00+09:00",
+      "content": "주말마다 동네 빵집을 돌아다니는 게 취미인데, 메모 앱에 적어 둔 빵집 목록이 50곳이 넘어가면서 찾기가 힘들어졌어요. 그래서 **내가 쓰려고** 지도 페이지를 만들기 시작했어요.\n\n## 정한 범위\n\n욕심내면 끝을 못 낼 것 같아서 1차 범위를 작게 잡았어요.\n\n- 지도에 빵집 핀 찍기\n- 핀 누르면 이름, 대표 메뉴, 쉬는 날, 한 줄 메모\n- \"오늘 문 연 곳만\" 필터\n- 로그인, 댓글, 리뷰 같은 건 **안 함**\n\n데이터는 JSON 파일 하나로 시작했어요. 서버는 나중에 필요해지면요.\n\n## 고른 도구\n\n| 용도 | 고른 것 | 이유 |\n|---|---|---|\n| 빌드 | Vite + React + TypeScript | 회사에서 쓰는 거라 익숙해서 |\n| 지도 | Leaflet + OpenStreetMap 타일 | 키 발급 없이 바로 시작 가능 |\n| 배포 | 정적 호스팅 | 서버가 없으니까 |\n\n## 데이터 모양\n\n```ts\ntype Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';\n\ninterface Bakery {\n  id: string;\n  name: string;\n  lat: number;\n  lng: number;\n  signature: string[];\n  closedOn: Weekday[];\n  memo?: string;\n}\n```\n\n## \"오늘 문 연 곳\" 필터\n\n```ts\nconst WEEKDAYS: Weekday[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];\n\nfunction isOpenToday(bakery: Bakery, today = new Date()): boolean {\n  const weekday = WEEKDAYS[today.getDay()];\n  return !bakery.closedOn.includes(weekday);\n}\n```\n\n`getDay()`는 일요일이 0이라서 배열을 일요일부터 시작했어요. 처음에 월요일부터 적었다가 하루씩 밀려서, 월요일 휴무인 집이 화요일에 닫혀 있다고 나왔어요.\n\n## 해 보니 어려웠던 것\n\n- 핀이 30개 넘으니까 겹쳐서 누르기 힘들었어요. 다음 편에서 묶어 보여 주는 방법을 찾아볼 거예요.\n- 모바일에서 지도 스크롤이랑 페이지 스크롤이 싸워요. 지도 높이를 화면의 60%로 고정하고 아래에 목록을 뒀어요.\n- 위도/경도는 손으로 찾아 넣는 게 제일 오래 걸렸어요...\n\n> 남이 쓸 서비스가 아니라 **내가 매주 쓸 도구**라서 그런지, 오랜만에 사이드 프로젝트가 재밌어요.\n",
+      "comments": [
+        {
+          "by": "bakery",
+          "body": "빵집 지도라니 너무 반가워요! 쉬는 날 필터는 진짜 필요하죠. 헛걸음한 적이 한두 번이 아니라서요."
+        },
+        {
+          "by": "mukja",
+          "body": "완성되면 공유해 주세요. 빵지순례 동선 짤 때 쓰고 싶어요."
+        },
+        {
+          "by": "codecup",
+          "body": "getDay() 일요일 0 함정 저도 백엔드에서 요일 계산하다 밟은 적 있어요ㅋㅋ"
+        }
+      ]
+    },
+    {
+      "title": "TypeScript 유니온 타입으로 로딩·에러 상태 정리하기",
+      "topic": "개발",
+      "category": "리액트",
+      "tags": [
+        "typescript",
+        "react",
+        "상태관리",
+        "유니온타입"
+      ],
+      "createdAt": "2025-01-19T21:40:00+09:00",
+      "content": "예전 코드를 보면 이런 상태가 꼭 있었어요.\n\n```ts\nconst [isLoading, setIsLoading] = useState(false);\nconst [error, setError] = useState<Error | null>(null);\nconst [data, setData] = useState<User | null>(null);\n```\n\n불리언 세 개를 따로 관리하다 보니 **로딩 중인데 에러도 있는** 이상한 조합이 생겼어요. 재시도할 때 `setError(null)`을 깜빡해서, 데이터가 잘 왔는데 에러 메시지가 같이 떠 있던 버그도 있었고요.\n\n## 상태를 하나로 묶기\n\n```ts\ntype AsyncState<T> =\n  | { status: 'idle' }\n  | { status: 'loading' }\n  | { status: 'success'; data: T }\n  | { status: 'error'; error: Error };\n```\n\n이렇게 하면 `data`는 **`success`일 때만**, `error`는 **`error`일 때만** 존재해요. 말이 안 되는 조합은 타입에서 아예 만들 수가 없어요.\n\n## 화면에서 쓰기\n\n```tsx\nfunction UserCard({ state }: { state: AsyncState<User> }) {\n  switch (state.status) {\n    case 'idle':\n      return null;\n    case 'loading':\n      return <p>불러오는 중...</p>;\n    case 'error':\n      return <p role=\"alert\">{state.error.message}</p>;\n    case 'success':\n      return <p>{state.data.nickname}</p>;\n    default: {\n      const unreachable: never = state;\n      return unreachable;\n    }\n  }\n}\n```\n\n`case 'success'` 안에서는 TypeScript가 `state`를 알아서 좁혀 줘서 `state.data`에 바로 접근할 수 있어요.\n\n마지막 `default`의 `never`가 핵심이에요. 나중에 누가 `{ status: 'empty' }`를 추가하고 `case`를 안 만들면, `state`가 `never`가 아니게 되니까 **컴파일 에러**가 나요. 처리를 빠뜨릴 수가 없어요.\n\n## 상태 바꾸는 쪽\n\n```ts\nconst [state, setState] = useState<AsyncState<User>>({ status: 'idle' });\n\nasync function load(id: string) {\n  setState({ status: 'loading' });\n  try {\n    const user = await fetchUser(id);\n    setState({ status: 'success', data: user });\n  } catch (e) {\n    setState({ status: 'error', error: e instanceof Error ? e : new Error(String(e)) });\n  }\n}\n```\n\n`catch`의 `e`는 `unknown`이라서 `Error`인지 확인하고 넣었어요.\n\n## 그 뒤로\n\n서버 상태는 지금은 데이터 패칭 라이브러리에 맡기는 편이에요. 그래도 폼 제출 상태나 업로드 진행 상태처럼 **직접 관리하는 상태**에는 이 패턴을 계속 써요.\n\n> 불리언이 두 개 넘어가면 유니온 타입을 의심해 보기.\n",
+      "comments": [
+        {
+          "by": "codecup",
+          "body": "never로 빠뜨린 케이스 잡는 거 자바 sealed interface + switch랑 느낌이 비슷하네요. 깔끔합니다."
+        },
+        {
+          "by": "halfday",
+          "body": "로딩 중인데 에러도 떠 있는 화면 본 적 있어요ㅋㅋ 이런 이유였군요."
+        }
+      ]
+    },
+    {
+      "title": "다크 모드, CSS 변수로 한 번에 정리한 방법",
+      "topic": "개발",
+      "category": "CSS와 접근성",
+      "tags": [
+        "css",
+        "다크모드",
+        "css변수",
+        "디자인토큰"
+      ],
+      "createdAt": "2025-06-08T14:00:00+09:00",
+      "content": "사이드 프로젝트 빵집 지도를 밤에 보다가 눈이 너무 부셔서 다크 모드를 넣었어요. 처음엔 컴포넌트마다 `.dark .card { ... }` 를 붙이다가 금방 감당이 안 돼서, **CSS 변수 한곳**으로 정리했어요.\n\n## 1. 색을 역할 이름으로 정의\n\n색 이름(`--gray-100`)이 아니라 **역할 이름**으로 정했어요.\n\n```css\n:root {\n  --color-bg: #ffffff;\n  --color-surface: #f5f5f4;\n  --color-text: #1c1917;\n  --color-text-muted: #57534e;\n  --color-border: #e7e5e4;\n  color-scheme: light;\n}\n```\n\n컴포넌트는 이 변수만 써요.\n\n```css\n.card {\n  background: var(--color-surface);\n  color: var(--color-text);\n  border: 1px solid var(--color-border);\n}\n```\n\n## 2. 시스템 설정 따라가기\n\n```css\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    --color-bg: #1c1917;\n    --color-surface: #292524;\n    --color-text: #f5f5f4;\n    --color-text-muted: #a8a29e;\n    --color-border: #44403c;\n    color-scheme: dark;\n  }\n}\n```\n\n`color-scheme: dark`를 꼭 같이 줘요. 이걸 빼면 **스크롤바, 폼 입력창, 체크박스**가 여전히 밝은 색으로 나와서 어색해요.\n\n## 3. 사용자가 직접 고르기\n\n시스템은 라이트인데 이 사이트만 어둡게 보고 싶은 사람도 있어서 토글을 만들었어요.\n\n```css\n:root[data-theme='dark'] {\n  --color-bg: #1c1917;\n  --color-surface: #292524;\n  --color-text: #f5f5f4;\n  --color-text-muted: #a8a29e;\n  --color-border: #44403c;\n  color-scheme: dark;\n}\n```\n\n```ts\nfunction setTheme(theme: 'light' | 'dark' | 'system') {\n  const root = document.documentElement;\n  if (theme === 'system') {\n    root.removeAttribute('data-theme');\n  } else {\n    root.setAttribute('data-theme', theme);\n  }\n}\n```\n\n다크 값을 두 번 적는 게 좀 아쉽지만, 구조가 단순해서 그냥 두었어요.\n\n## 해 보니 챙길 것\n\n- **완전한 검정(#000)** 은 오히려 눈이 피곤했어요. 살짝 따뜻한 짙은 회색이 편해요.\n- 다크에서는 글자와 배경의 **대비**를 다시 확인해야 해요. 라이트에서 괜찮던 보조 글자색이 다크에서 안 읽혔어요.\n- 지도 타일은 CSS 변수로 안 바뀌어서, 다크 모드일 때만 타일에 약간 어둡게 필터를 줬어요.\n\n> 컴포넌트가 색을 직접 알지 않게 하는 것. 그게 다크 모드의 전부였어요.\n",
+      "comments": [
+        {
+          "by": "bakery",
+          "body": "빵집 지도 다크 모드까지! 밤에 내일 갈 빵집 찾을 때 딱이겠어요."
+        },
+        {
+          "by": "codecup",
+          "body": "color-scheme 안 주면 스크롤바만 하얗게 남는 거 관리자 화면에서 본 적 있네요."
+        }
+      ]
+    },
+    {
+      "title": "모달 접근성 체크리스트: 포커스, Esc, 그리고 dialog 요소",
+      "topic": "개발",
+      "category": "CSS와 접근성",
+      "tags": [
+        "접근성",
+        "모달",
+        "dialog",
+        "a11y"
+      ],
+      "createdAt": "2025-11-30T21:15:00+09:00",
+      "content": "회사 디자인 시스템의 모달을 다시 만드는 일을 맡았어요. 예전 모달은 `div`를 화면 위에 띄우는 방식이었는데, 키보드로 써 보니 **모달 뒤의 버튼으로 포커스가 넘어가는** 문제가 있었어요. 다시 만들면서 확인한 것들을 체크리스트로 정리해요.\n\n## 체크리스트\n\n- [ ] 열리면 포커스가 **모달 안**으로 들어간다\n- [ ] `Tab`으로 돌아도 **모달 밖으로 나가지 않는다**\n- [ ] `Esc`로 닫힌다\n- [ ] 닫히면 포커스가 **연 버튼**으로 돌아간다\n- [ ] 스크린리더가 모달의 **제목**을 읽는다\n- [ ] 모달 뒤의 내용은 스크린리더가 읽지 않는다\n\n예전 모달은 이 중 하나만 됐어요(Esc).\n\n## dialog 요소로 바꾸기\n\n요즘 브라우저는 `<dialog>`와 `showModal()`을 지원해요. 이걸로 위 목록의 상당 부분을 브라우저가 해 줘요.\n\n```tsx\nfunction ConfirmDialog({ open, title, onClose, children }: Props) {\n  const ref = useRef<HTMLDialogElement>(null);\n  const openerRef = useRef<HTMLElement | null>(null);\n\n  useEffect(() => {\n    const dialog = ref.current;\n    if (!dialog) return;\n    if (open && !dialog.open) {\n      openerRef.current = document.activeElement as HTMLElement | null;\n      dialog.showModal();\n    } else if (!open && dialog.open) {\n      dialog.close();\n    }\n  }, [open]);\n\n  return (\n    <dialog\n      ref={ref}\n      aria-labelledby=\"confirm-dialog-title\"\n      onClose={() => {\n        onClose();\n        openerRef.current?.focus();\n      }}\n    >\n      <h2 id=\"confirm-dialog-title\">{title}</h2>\n      {children}\n    </dialog>\n  );\n}\n```\n\n`showModal()`로 열면:\n\n- 모달 바깥이 **inert**가 돼서 클릭도, 포커스도, 스크린리더 탐색도 안 돼요.\n- `Esc`를 누르면 `cancel` 이벤트가 나고 닫혀요. 닫힐 때 `close` 이벤트가 오니까 React 상태는 `onClose`에서 맞춰요.\n- 화면 맨 위 레이어에 그려져서 `z-index` 싸움이 없어져요. 배경은 `::backdrop`으로 꾸며요.\n\n## 직접 챙긴 것\n\n- **포커스 복귀**: 브라우저가 해 주는 경우도 있지만, 확실하게 하려고 연 버튼을 기억해 뒀다가 직접 돌려줬어요.\n- **처음 포커스 위치**: 삭제 확인 모달은 `취소` 버튼에 `autoFocus`를 줘요. 실수로 `Enter` 눌러서 지우는 걸 막으려고요.\n- **제목 연결**: `aria-labelledby`로 제목을 이어 줘야 \"대화 상자, 글 삭제\" 처럼 읽혀요.\n- **스크롤 잠금**: 모달 뒤 페이지가 스크롤되는 건 따로 막아야 했어요.\n\n```css\ndialog::backdrop {\n  background: rgb(0 0 0 / 0.4);\n}\n\nbody:has(dialog[open]) {\n  overflow: hidden;\n}\n```\n\n> 모달은 \"띄우는 것\"보다 \"**닫히고 난 뒤 포커스가 어디 있는지**\"가 더 중요했어요.\n",
+      "comments": [
+        {
+          "by": "plant",
+          "body": "닫히고 나서 포커스가 맨 위로 튀는 사이트 정말 많아요. 이런 글 반갑습니다."
+        },
+        {
+          "by": "codecup",
+          "body": "삭제 확인에서 취소에 autoFocus 주는 거 디테일 좋네요. 운영자 화면에도 적용해 달라고 해야겠어요."
+        }
+      ]
+    },
+    {
+      "title": "제주 워케이션 일주일, 일하고 걷고 귤 먹은 기록",
+      "topic": "여행",
+      "category": "일상",
+      "tags": [
+        "워케이션",
+        "제주",
+        "원격근무",
+        "일상"
+      ],
+      "createdAt": "2026-05-17T16:20:00+09:00",
+      "content": "회사에 원격 근무 제도가 생겨서 처음으로 **일주일 워케이션**을 다녀왔어요. 제주 동쪽 바닷가 마을에 숙소를 잡았어요. 개발 글은 아니지만 기록해 두고 싶어서 일상 카테고리에 남겨요.\n\n## 준비한 것\n\n- 노트북, 충전기, **휴대용 모니터** (이거 가져간 게 신의 한 수)\n- 숙소 고를 때 와이파이 속도 미리 물어보기. 화상 회의가 있어서요.\n- 핫스팟 데이터 여유분. 실제로 하루 와이파이가 끊겨서 썼어요.\n\n## 하루 루틴\n\n| 시간 | 한 것 |\n|---|---|\n| 7:30 | 해안 산책 40분 |\n| 9:00 ~ 12:00 | 집중 업무 (회의 없는 시간) |\n| 12:00 ~ 13:30 | 동네 식당 점심 |\n| 13:30 ~ 18:00 | 회의, 코드 리뷰 |\n| 18:00 이후 | 노을 보러 나가기, 저녁 |\n\n평소보다 출퇴근 시간이 없으니까 아침 산책이 가능했어요. 오전 집중 시간에 작업이 진짜 잘 됐어요. 창밖에 바다가 보이는 게 생각보다 효과가 커요.\n\n## 좋았던 것\n\n- 점심 먹고 10분 걸으면 바다가 나와요. 오후 회의 전에 머리 식히기 딱 좋았어요.\n- 동네 하나로 반경을 좁혔더니 **관광하느라 지치는 일**이 없었어요.\n- 오일장 구경. 귤 한 봉지 사서 일주일 내내 책상 옆에 두고 먹었어요.\n\n## 아쉬웠던 것\n\n- 의자. 숙소 식탁 의자에서 하루 8시간은 허리가 버티질 못해요. 결국 쿠션을 하나 샀어요.\n- 일과 휴가의 경계가 흐려져서, 수요일엔 밤 10시까지 일하고 있었어요.\n- 날씨. 바람 부는 날엔 산책이 거의 극기 훈련이었어요.\n\n## 다음에 간다면\n\n- 일주일보다는 **열흘**. 첫날 적응, 마지막 날 짐 싸기를 빼면 실제로는 5일이었어요.\n- 금요일 오후는 연차 반차 내고 제대로 놀기.\n\n> 장소가 바뀐다고 일이 줄진 않지만, 일 사이사이의 **10분**이 완전히 달라졌어요.\n",
+      "comments": [
+        {
+          "by": "sea",
+          "body": "동쪽 바닷가 마을 저도 좋아하는 곳이에요. 바람 부는 날 산책 극기 훈련 공감합니다ㅋㅋ"
+        },
+        {
+          "by": "halfday",
+          "body": "열흘이 적당하다는 말 메모해 둘게요. 저도 워케이션 가 보고 싶어요."
+        },
+        {
+          "by": "hometrain",
+          "body": "식탁 의자 8시간은 진짜 허리 망가져요. 쉬는 시간에 스트레칭 꼭 하세요!"
+        }
+      ]
+    },
+    {
+      "title": "React 19의 폼 액션과 useActionState, 실제로 써 본 정리",
+      "topic": "개발",
+      "category": "리액트",
+      "tags": [
+        "react",
+        "react19",
+        "폼",
+        "useactionstate"
+      ],
+      "createdAt": "2026-10-04T22:00:00+09:00",
+      "content": "사이드 프로젝트 빵집 지도에 \"빵집 제보하기\" 폼을 붙이면서 React 19의 폼 액션을 처음 제대로 써 봤어요. 예전처럼 `onSubmit`, `preventDefault`, 로딩 상태, 에러 상태를 하나하나 만들던 것보다 확실히 코드가 줄었어요.\n\n## 예전 방식\n\n```tsx\nconst [pending, setPending] = useState(false);\nconst [message, setMessage] = useState('');\n\nasync function handleSubmit(event: React.FormEvent<HTMLFormElement>) {\n  event.preventDefault();\n  setPending(true);\n  const formData = new FormData(event.currentTarget);\n  const result = await submitReport(formData);\n  setMessage(result.message);\n  setPending(false);\n}\n```\n\n## useActionState로 바꾸기\n\n```tsx\nimport { useActionState } from 'react';\n\ntype ReportState = { ok: boolean; message: string };\n\nasync function reportAction(\n  _prevState: ReportState,\n  formData: FormData,\n): Promise<ReportState> {\n  const name = String(formData.get('name') ?? '').trim();\n  if (!name) {\n    return { ok: false, message: '빵집 이름을 적어 주세요.' };\n  }\n  await submitReport({ name, memo: String(formData.get('memo') ?? '') });\n  return { ok: true, message: '제보 고마워요! 확인하고 지도에 올릴게요.' };\n}\n\nexport function ReportForm() {\n  const [state, formAction, isPending] = useActionState(reportAction, {\n    ok: false,\n    message: '',\n  });\n\n  return (\n    <form action={formAction}>\n      <label htmlFor=\"name\">빵집 이름</label>\n      <input id=\"name\" name=\"name\" />\n\n      <label htmlFor=\"memo\">한 줄 메모</label>\n      <textarea id=\"memo\" name=\"memo\" />\n\n      <button type=\"submit\" disabled={isPending}>\n        {isPending ? '보내는 중...' : '제보하기'}\n      </button>\n      <p role=\"status\">{state.message}</p>\n    </form>\n  );\n}\n```\n\n- `useActionState(액션, 초기 상태)`는 `[상태, 폼에 넘길 액션, 진행 중 여부]`를 돌려줘요.\n- 액션 함수는 **이전 상태**와 `FormData`를 받고, 다음 상태를 돌려줘요.\n- `<form action={formAction}>`으로 넘기면 `preventDefault`도 필요 없어요.\n\n## 버튼을 따로 뺐을 때: useFormStatus\n\n제출 버튼을 공통 컴포넌트로 빼면 `isPending`을 props로 내려야 하는데, `useFormStatus`를 쓰면 **가장 가까운 부모 form**의 상태를 읽을 수 있어요.\n\n```tsx\nimport { useFormStatus } from 'react-dom';\n\nfunction SubmitButton({ children }: { children: React.ReactNode }) {\n  const { pending } = useFormStatus();\n  return (\n    <button type=\"submit\" disabled={pending}>\n      {children}\n    </button>\n  );\n}\n```\n\n주의할 점: `useFormStatus`는 `form`을 렌더링하는 **그 컴포넌트 안에서 부르면 안 되고**, form의 자식 컴포넌트에서 불러야 해요. 처음에 같은 컴포넌트에서 불러서 계속 `pending`이 `false`였어요.\n\n## 써 보고 느낀 점\n\n- 제출이 끝나면 비제어 입력창이 **자동으로 초기화**돼요. 에러가 났을 때 입력한 값이 사라지는 게 싫으면, 상태에 입력값을 같이 담아서 `defaultValue`로 되돌려 줘야 했어요.\n- 상태 메시지에 `role=\"status\"`를 주면 스크린리더가 결과를 읽어 줘요.\n\n> 폼은 결국 \"보내고, 기다리고, 결과를 보여 주는 것\". 그 흐름을 React가 한 덩어리로 묶어 준 느낌이에요.\n",
+      "comments": [
+        {
+          "by": "bakery",
+          "body": "제보하기 생겼다니 기대돼요! 저희 동네 소금빵 집 꼭 제보할게요."
+        },
+        {
+          "by": "codecup",
+          "body": "서버 쪽 검증은 따로 하시죠? 프론트 검증만 믿으면 안 되는 건 같이 강조하고 싶어요ㅋㅋ"
+        },
+        {
+          "by": "mukja",
+          "body": "빵집 지도 계속 업데이트되는 거 보니까 좋네요. 언젠가 꼭 써 볼게요."
+        }
+      ]
+    }
+  ]
+}
