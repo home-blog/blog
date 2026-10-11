@@ -1,4 +1,4 @@
-# 배포용. 모든 접속 정보는 환경 변수로 넣는다. 배포 환경은 아직 미정 (specs/001 research D-5)
+# 배포용. 모든 접속 정보는 환경 변수로 넣는다 (docker-compose.deploy.yml이 .env.deploy에서 넘긴다, 견본 .env.deploy.example)
 spring:
   datasource:
     url: ${DB_URL}
@@ -18,9 +18,11 @@ myblog:
     require-secret: true   # 비어 있거나 32자보다 짧으면 서버를 켜지 않는다
 
 server:
+  # 앞단 Nginx가 알려 준 원래 주소·프로토콜(X-Forwarded-*)을 믿는다 (실습 서버 Nginx → 화면 컨테이너 Nginx → 서버)
+  forward-headers-strategy: native
   servlet:
     session:
       cookie:
-        secure: true      # HTTPS에서만 쿠키 전송 (NF-10)
+        secure: ${SESSION_COOKIE_SECURE:true}   # HTTPS에서만 쿠키 전송 (NF-10). HTTPS가 아직 없는 서버에서만 false
         http-only: true
         same-site: lax
