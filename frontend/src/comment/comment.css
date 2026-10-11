@@ -1,54 +1,46 @@
-/* 댓글 영역 (docs/DESIGN.md): 크림 표면 위 목록, 1px 선으로 나눔. 내용은 글자 그대로(줄바꿈 유지) */
+/* 댓글 영역: 원고지 칸 선으로 나눈 목록, 내용은 글자 그대로(줄바꿈 유지) */
 .comments {
-  margin-top: var(--spacing-56);
-  padding: var(--spacing-40) var(--spacing-32);
-  background: var(--color-soft-cream);
-  border-radius: var(--radius-cards);
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--grid-strong);
 }
 
 .comments-title {
-  margin: 0 0 var(--spacing-24);
-  font-size: var(--text-heading-sm);
-  line-height: var(--leading-heading-sm);
-  letter-spacing: var(--tracking-heading-sm);
+  margin: 0 0 1rem;
+  font-size: var(--step-1);
 }
 
 .comments-count {
-  color: var(--color-slate-caption);
-  font-weight: var(--font-weight-regular);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
 .comment-list {
-  margin: 0 0 var(--spacing-32);
+  margin: 0 0 1.5rem;
   padding: 0;
   list-style: none;
 }
 
 .comment {
-  padding: var(--spacing-16) 0;
-  border-bottom: 1px solid var(--color-silver-rule);
+  padding: 0.85rem 0;
+  border-bottom: 1px dashed var(--grid);
 }
 
 .comment-meta {
-  margin: 0 0 var(--spacing-8);
+  margin: 0 0 0.35rem;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-8) var(--spacing-12);
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-body-sm);
-  color: var(--color-slate-caption);
+  align-items: baseline;
+  gap: 0.6rem;
 }
 
 .comment-author {
-  color: var(--color-press-black);
-  font-weight: var(--font-weight-bold);
+  font-weight: 600;
 }
 
 .comment-author.is-withdrawn {
-  color: var(--color-fog);
-  font-weight: var(--font-weight-regular);
+  color: var(--ink-soft);
+  font-weight: 400;
 }
 
 .comment-actions {
@@ -60,38 +52,42 @@
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  font-family: var(--font-letter);
+  line-height: 1.8;
 }
 
 .comment-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-8);
+  gap: 0.5rem;
 }
 
 .comment-input {
   width: 100%;
-  padding: var(--spacing-16);
-  border: 1px solid var(--color-hairline-mist);
-  border-radius: var(--radius-navelements);
-  background: var(--color-canvas-white);
-  color: var(--color-press-black);
+  box-sizing: border-box;
+  padding: 0.75rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
   font: inherit;
+  line-height: 1.6;
   resize: vertical;
 }
 
 .comment-input:focus-visible {
-  outline: 2px solid var(--color-press-black);
-  outline-offset: 0;
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
 }
 
 .comment-input[aria-invalid='true'] {
-  border: 2px solid var(--color-press-black);
+  border-color: var(--error);
 }
 
 .comment-form-foot {
   display: flex;
   align-items: center;
-  gap: var(--spacing-16);
+  gap: 0.75rem;
 }
 
 .comment-form-foot > :first-child {
@@ -99,31 +95,30 @@
 }
 
 .comment-length {
-  color: var(--color-slate-caption);
-  font-size: var(--text-body-sm);
+  color: var(--ink-soft);
+  font-size: var(--step--1);
   font-variant-numeric: tabular-nums;
 }
 
 .comment-length.is-over {
-  color: var(--color-press-black);
-  font-weight: var(--font-weight-bold);
+  color: var(--error);
+  font-weight: 600;
 }
 
 .comment-login {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-16);
-  padding: var(--spacing-24);
-  background: var(--color-canvas-white);
-  border: 1px solid var(--color-hairline-mist);
-  border-radius: var(--radius-cards);
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px dashed var(--grid-strong);
+  border-radius: var(--radius-field);
 }
 
 .comment-load-error {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-8);
-  margin-bottom: var(--spacing-16);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
