@@ -23,6 +23,18 @@ spring:
   session:
     jdbc:
       initialize-schema: never   # 세션 표는 Flyway(V1__spring_session.sql)로 만든다
+  mail:   # 인증번호 메일 (D-1). 계정은 환경 변수로만. Gmail·네이버 모두 587 포트 + STARTTLS + 로그인
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true   # 암호화 없이 보내지 않는다
+      mail.smtp.connectiontimeout: 5000   # 메일 서버가 응답하지 않으면 5초 뒤 실패로 알린다 (D-2)
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
 server:
   servlet:
@@ -35,6 +47,9 @@ management:
     web:
       exposure:
         include: health
+  health:
+    mail:
+      enabled: false   # 메일 서버가 잠깐 안 돼도 서버 전체를 고장으로 알리지 않는다. 발송 실패는 가입 화면에서 바로 알린다 (D-2)
 
 # 기능 설정값은 한곳에서 (헌법 원칙 VI). 값은 docs의 specs/001 plan.md `설정값 목록`과 같다
 auth:
@@ -147,5 +162,7 @@ stats:
     visit-margin: 1h       # "오늘 왔다" 표시를 다음 한국 자정보다 이만큼 더 둔다 (시계 차이 여유)
 
 myblog:
+  mail:
+    sender: smtp   # smtp(실제 발송) 또는 log(서버 로그에 인증번호만 찍기). dev 설정은 log가 기본
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
