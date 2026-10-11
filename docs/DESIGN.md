@@ -1,3 +1,5 @@
+> **쓰지 않음 (2026-10-12)**: 사용자가 "원고지" 디자인이 낫다고 해서 이 방향(PR #40)의 화면 변경을 되돌렸다. 화면 규칙은 `CLAUDE.md`의 "원고지" 방향을 따른다. 이 문서는 기록으로만 남긴다.
+
 # Cohere — Style Reference
 > Editorial monograph on cream paper — every screen is a spread, not a dashboard.
 

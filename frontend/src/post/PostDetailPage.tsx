@@ -82,25 +82,23 @@ export default function PostDetailPage() {
   return (
     <article className="post">
       <header className="post-head">
-        <p className="post-labels">
-          <span className="pill pill-cream">{post.category.name}</span>
-          <span className="pill">{post.topic.name}</span>
+        <p className="post-meta-top">
+          <Link to={`/blog/${post.blogId}`} className="post-blog">
+            {post.blogName}
+          </Link>
+          <span aria-hidden="true"> · </span>
+          <span className="post-category">{post.category.name}</span>
+          <span className="post-topic">{post.topic.name}</span>
           {post.isOwner && post.visibility === 'private' && <span className="blog-badge">비공개 글</span>}
           {post.isOwner && post.category.visibility === 'private' && <span className="blog-badge">비공개 분류</span>}
         </p>
         <h1 className="post-title">{post.title}</h1>
-        <p className="post-byline">
-          <Link to={`/blog/${post.blogId}`} className="post-blog">
-            {post.blogName}
-          </Link>
-          <span aria-hidden="true">·</span>
+        <p className="post-times hint">
           <time dateTime={post.createdAt}>{formatTime(post.createdAt)}</time>
           {post.updatedAt && (
             <>
-              <span aria-hidden="true">·</span>
-              <span>
-                수정 <time dateTime={post.updatedAt}>{formatTime(post.updatedAt)}</time>
-              </span>
+              {' '}
+              · 수정 <time dateTime={post.updatedAt}>{formatTime(post.updatedAt)}</time>
             </>
           )}
         </p>
@@ -130,7 +128,7 @@ export default function PostDetailPage() {
         <ul className="post-tags" aria-label="태그">
           {post.tags.map((tag) => (
             <li key={tag}>
-              <Link to={`/tags/${encodeURIComponent(tag)}`} className="pill">
+              <Link to={`/tags/${encodeURIComponent(tag)}`} className="post-tag">
                 #{tag}
               </Link>
             </li>
@@ -159,7 +157,7 @@ export default function PostDetailPage() {
           <span />
         )}
         {/* 이 글의 분류로 좁힌 블로그 글 목록 (specs/004 T043, 주소 ?category=) */}
-        <Link to={`/blog/${post.blogId}?category=${post.category.categoryId}`} className="text-link">
+        <Link to={`/blog/${post.blogId}?category=${post.category.categoryId}`} className="btn btn-quiet btn-small">
           목록으로
         </Link>
         {post.nextPostId !== null ? (
