@@ -22,8 +22,8 @@ services:
     build: ./backend
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://${DB_ADDRESS:?DB_ADDRESS가 없습니다}:${DB_PORT:-5432}/${DB_NAME:?DB_NAME이 없습니다}?currentSchema=${DB_SCHEMA:-public}
-      DB_SCHEMA: ${DB_SCHEMA:-public}
+      DB_URL: jdbc:postgresql://${DB_ADDRESS:?DB_ADDRESS가 없습니다}:${DB_PORT:-5432}/${DB_NAME:?DB_NAME이 없습니다}?currentSchema=${DB_SCHEMA:?DB_SCHEMA가 없습니다}
+      DB_SCHEMA: ${DB_SCHEMA:?DB_SCHEMA가 없습니다}
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME이 없습니다}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD가 없습니다}
       REDIS_HOST: redis
@@ -38,9 +38,6 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
-    # DB가 같은 서버(localhost)에 있을 때 컨테이너 안에서 닿는 이름 (remote-deploy.sh가 주소를 바꿔 준다)
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy

@@ -34,9 +34,11 @@ set -a
 . ./.generated.env
 set +a
 
-# DB가 이 서버 자신(localhost)이면 컨테이너 안에서는 host.docker.internal로 닿는다
+# 컨테이너 안에서 localhost는 그 컨테이너 자신이라 DB에 닿지 않는다. DB 서버의 실제 주소(이름이나 IP)를 써야 한다
 case "$DB_ADDRESS" in
-  localhost | 127.0.0.1 | ::1) DB_ADDRESS=host.docker.internal ;;
+  localhost | 127.* | ::1)
+    echo "DB_ADDRESS($DB_ADDRESS)로는 컨테이너에서 DB에 닿지 않습니다. DB 서버의 실제 주소를 Secret에 넣어 주세요." >&2
+    exit 1 ;;
 esac
 
 compose=(docker compose -f docker-compose.deploy.yml)

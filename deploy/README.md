@@ -18,9 +18,9 @@
 | 이름 | 내용 | |
 |---|---|---|
 | `SSH_ADDRESS`, `SSH_PORT`, `SSH_ID`, `SSH_PASSWORD` | 실습 서버 접속 | 꼭 |
-| `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다 | 꼭 |
+| `SSH_KNOWN_HOSTS` | 서버 지문. 내 컴퓨터 터미널에서 `ssh-keyscan -p <포트> <주소>`를 실행해 나온 줄을 그대로 넣는다. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다 | 꼭 |
+| `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
-| `SSH_KNOWN_HOSTS` | 서버 지문 (`ssh-keyscan -p <포트> <주소>` 결과) | 있으면 더 안전 |
 
 이미지 저장소 키와 인증번호 키는 첫 배포 때 서버가 스스로 만들어 `~/geulgyeol/.generated.env`(나만 읽기)에 두고 계속 쓴다. **이 파일을 지우면 올린 이미지를 읽지 못한다.**
 
