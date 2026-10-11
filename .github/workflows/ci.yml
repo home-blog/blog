@@ -51,6 +51,8 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: 개발용 설정 파일 만들기
+        run: cp ../.env.example ../.env   # 서버가 읽는 접속 정보. 위 services의 DB 계정과 같다
       - name: 빌드와 테스트
         run: mvn -B -ntp verify 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0
         shell: bash

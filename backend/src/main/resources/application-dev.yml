@@ -1,17 +1,11 @@
 # 개발용 (내 컴퓨터 + docker-compose). 메일은 기본으로 보내지 않고 서버 로그에 인증번호를 찍는다 (specs/001 research B-9)
 # 로그 수준은 logback-spring.xml에서 정한다
 #
-# 내 메일함으로 실제 인증 메일을 받아 보려면 backend/.env 파일을 만들어 아래 네 줄을 적는다 (.env는 git에 올라가지 않는다).
-# 줄 끝에 # 주석을 달면 값에 섞이므로 값만 적는다.
-#   MAIL_SENDER=smtp
-#   MAIL_HOST=smtp.gmail.com
-#   MAIL_USERNAME=내주소@gmail.com
-#   MAIL_PASSWORD=앱비밀번호
-# Gmail: 2단계 인증을 켠 뒤 만든 앱 비밀번호(16자). 네이버: MAIL_HOST=smtp.naver.com, 메일 환경설정에서 POP3/SMTP 사용을 켜고
-# 2단계 인증을 쓰면 앱 비밀번호. 네이버는 보내는 주소가 로그인 계정과 같아야 한다 (myblog.mail.from을 따로 정하지 않으면 계정 주소로 보낸다)
+# DB, Redis, 이미지 저장소, 메일 접속 정보는 저장소 맨 위의 .env에서 읽는다 (docker-compose.yml과 같은 파일).
+# 처음이면 cp .env.example .env. 내 메일함으로 실제 인증 메일을 받으려면 .env의 MAIL_* 값을 채운다 (적는 법은 .env.example).
 spring:
   config:
-    import: optional:file:.env[.properties]   # 서버를 backend 폴더에서 실행할 때 (mvn, IntelliJ 실행 설정 모두)
+    import: optional:file:../.env[.properties]   # 서버는 backend 폴더에서 실행한다 (mvn, IntelliJ 실행 설정 모두)
 
 myblog:
   mail:

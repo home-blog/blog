@@ -20,3 +20,4 @@ frontend/dist/
 # 환경 변수 파일 (비밀 값)
 .env
 .env.*
+!.env.example

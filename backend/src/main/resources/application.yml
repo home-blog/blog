@@ -1,4 +1,5 @@
-# 공통 설정. 비밀 값은 환경 변수로만 넣는다 (공개 저장소). 기본값은 로컬 개발용이다.
+# 공통 설정. 비밀 값은 환경 변수로만 넣는다 (공개 저장소). 로컬 개발에서는 저장소 맨 위의 .env에서 읽는다 (application-dev.yml).
+# 기본값은 비밀이 아닌 것(내 컴퓨터 주소, 포트)만 둔다.
 spring:
   application:
     name: myblog-server
@@ -6,8 +7,8 @@ spring:
     default: dev
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:myblog}
-    username: ${DB_USERNAME:myblog}
-    password: ${DB_PASSWORD:myblog-dev}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -134,7 +135,7 @@ community:
       endpoint: ${IMAGE_S3_ENDPOINT:http://localhost:9000}
       region: ${IMAGE_S3_REGION:us-east-1}
       bucket: ${IMAGE_S3_BUCKET:myblog-images}
-      access-key: ${IMAGE_S3_ACCESS_KEY:}   # 접속 키는 환경 변수로만 (개발용 값은 docker-compose.yml에)
+      access-key: ${IMAGE_S3_ACCESS_KEY:}   # 접속 키는 환경 변수로만 (개발용 값은 .env.example에)
       secret-key: ${IMAGE_S3_SECRET_KEY:}
     disk:
       directory: ${IMAGE_DISK_DIRECTORY:./data/images}
