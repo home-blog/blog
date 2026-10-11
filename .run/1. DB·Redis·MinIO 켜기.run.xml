@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="1. DB·Redis·MinIO 켜기" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="docker compose up -d --wait" />
+    <option name="SCRIPT_TEXT" value="([ -f .env ] || cp .env.example .env) &amp;&amp; docker compose up -d --wait" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />

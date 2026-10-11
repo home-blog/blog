@@ -14,7 +14,7 @@
 ## 코드 작성 규칙
 
 - 요청 흐름: 보안 필터 → 컨트롤러 → 서비스(핵심 규칙) → 저장소. 쿼리는 문자열로 이어 붙이지 않는다.
-- 설정값(글자 수, 시간, 횟수)은 `application.yml`(`auth.*`, `account.*` 등) 한곳에서 읽는다. 비밀 값은 환경 변수로만.
+- 설정값(글자 수, 시간, 횟수)은 `application.yml`(`auth.*`, `account.*` 등) 한곳에서 읽는다. 비밀 값은 환경 변수로만. 로컬 접속 정보(DB, Redis, MinIO, 메일)는 루트 `.env` 하나(git 제외, 견본 `.env.example`)를 docker compose와 서버(dev)가 같이 읽는다.
 - 표는 Flyway(`backend/src/main/resources/db/migration`)로만 만든다. JPA는 `ddl-auto: validate`.
 - 모듈 방향(Spring Modulith, `ModularityTest`): `user ← blog ← post ← comment/community/image`, `stats`는 읽기만. 아래 모듈은 위 모듈을 직접 부르지 않고 이벤트나 질문 틀(인터페이스)을 쓴다.
 - 화면 디자인은 **`docs/DESIGN.md`(Cohere 스타일, 에디토리얼) 규칙을 엄격히 따른다** (2026-10-09 사용자 지시, 예전 "원고지" 방향을 대신함). 토큰은 `frontend/src/index.css` 한곳: 캔버스 `#ffffff`·크림 `#f0eee9`, 글자 `#212121`, 선은 1px `#e5e7eb`, **그림자 금지**, 주 버튼은 `#17171c` 다크 알약·보조는 밑줄 링크, 모서리는 4·8·12(코드)·22·9999px만, 글자 12~72px 단계만, 색 있는 글자·버튼·아이콘 금지. DESIGN.md에 없어 정한 것: 한글 글꼴 Pretendard, 큰 제목 글꼴 Noto Serif KR(CohereText 대신), 글 읽기 폭 760px, 인용구는 왼쪽 2px 선, 오류 표시는 색 대신 굵은 글자·2px 검은 선. Spring 기능은 문서 저장소 `docs/3-설계/기술스택-아키텍처.md` 2.2 표대로 적극적으로 쓴다.
@@ -22,7 +22,7 @@
 
 ## 확인하고 올리기
 
-- 클라우드 세션에서는 Maven과 Docker가 된다. `dockerd`를 켜고 `docker compose up -d --wait` 뒤 `cd backend && mvn verify`, `cd frontend && npm ci && npm run lint && npm run build`를 **push 전에** 돌린다. 화면은 서버와 `npx vite`를 띄우고 Playwright(`/opt/node-tools/node_modules/playwright`, 브라우저는 미리 설치됨)로 확인할 수 있다.
+- 클라우드 세션에서는 Maven과 Docker가 된다. `dockerd`를 켜고 `cp .env.example .env`(처음 한 번), `docker compose up -d --wait` 뒤 `cd backend && mvn verify`, `cd frontend && npm ci && npm run lint && npm run build`를 **push 전에** 돌린다. 화면은 서버와 `npx vite`를 띄우고 Playwright(`/opt/node-tools/node_modules/playwright`, 브라우저는 미리 설치됨)로 확인할 수 있다.
 - 커밋 작성자는 `JaeUng <rnrn4308428@gmail.com>`. 메시지는 한국어로, 무엇을 왜 바꿨는지와 작업 ID(T001 등)를 적는다.
 - **PR은 기능 단위로** 올린다 (사용자 이야기 하나 = PR 하나). 브랜치는 `feat/<기능>-<내용>`, `fix/...`, `chore/...`. 작은 정리는 다음 기능 PR에 넣는다. 리뷰 수정은 같은 PR에서 한다.
 - PR을 올리면 CI 3개(서버, 화면, 품질 분석)와 CodeRabbit을 확인하고, 맞는 지적은 고쳐 스레드에 답한 뒤 해결 표시한다. 모두 통과하면 merge한다 (2026-10-08 사용자: PR 올리기·품질 검사 대응·merge는 알아서).

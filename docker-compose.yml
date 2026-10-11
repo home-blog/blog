@@ -1,25 +1,25 @@
 # 개발용 서비스 (specs/001 T004). 실행: docker compose up -d
-# 비밀번호는 개발 전용 값이다. 배포에는 쓰지 않는다.
+# 접속 정보는 같은 폴더의 .env에서 읽는다 (처음이면 cp .env.example .env). 서버도 같은 .env를 읽는다.
 services:
   postgres:
     image: pgvector/pgvector:pg18   # PostgreSQL 18 + pgvector(임베딩 저장·비교용 확장, 나중에 쓸 때 대비)
     environment:
-      POSTGRES_DB: myblog
-      POSTGRES_USER: myblog
-      POSTGRES_PASSWORD: myblog-dev
+      POSTGRES_DB: ${DB_NAME:?.env가 없습니다. cp .env.example .env}
+      POSTGRES_USER: ${DB_USERNAME:?.env가 없습니다. cp .env.example .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?.env가 없습니다. cp .env.example .env}
     ports:
-      - "127.0.0.1:5432:5432"   # 내 컴퓨터에서만 접속
+      - "127.0.0.1:${DB_PORT:-5432}:5432"   # 내 컴퓨터에서만 접속
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myblog -d myblog"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       retries: 10
 
   redis:
     image: redis:8
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -28,14 +28,14 @@ services:
   # 이미지 저장소 (specs/005 T051, D-1). S3 방식으로 부른다. 버킷은 서버가 처음 쓸 때 만든다.
   # 공식 minio/minio 이미지는 Docker Hub에서 더 받을 수 없어서(2026-10 확인) 같은 MinIO를 이어 빌드하는 pgsty/minio를 쓴다.
   # 서버 코드는 S3 방식만 쓰므로 다른 S3 호환 저장소로 바꿔도 코드는 그대로다.
-  # 접속 키는 개발 전용 값이다. 서버에는 환경 변수 IMAGE_S3_ACCESS_KEY, IMAGE_S3_SECRET_KEY로 같은 값을 넣는다.
+  # 관리자 계정이 곧 서버의 접속 키다 (.env의 IMAGE_S3_ACCESS_KEY, IMAGE_S3_SECRET_KEY).
   # 들여다보기: http://localhost:9001 (같은 키로 로그인)
   minio:
     image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: myblog-dev
-      MINIO_ROOT_PASSWORD: myblog-dev-secret
+      MINIO_ROOT_USER: ${IMAGE_S3_ACCESS_KEY:?.env가 없습니다. cp .env.example .env}
+      MINIO_ROOT_PASSWORD: ${IMAGE_S3_SECRET_KEY:?.env가 없습니다. cp .env.example .env}
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"

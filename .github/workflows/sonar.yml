@@ -56,6 +56,9 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: 개발용 설정 파일 만들기
+        if: env.SONAR_TOKEN != ''
+        run: cp .env.example .env   # 서버가 읽는 접속 정보. 위 services의 DB 계정과 같다
       - name: 서버 빌드와 커버리지
         if: env.SONAR_TOKEN != ''
         working-directory: backend
