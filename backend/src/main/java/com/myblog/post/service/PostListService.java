@@ -117,7 +117,8 @@ public class PostListService {
     private PostRow toRow(Post post, CategoryInfo category) {
         ManuscriptMeasure.Measure measure = manuscript.of(post.getContent());
         return new PostRow(post.getId(), post.getTitle(), category.categoryId(), category.name(), post.getCreatedAt(),
-                preview.of(post.getContent()), post.getVisibility(), measure.sheets(), measure.readMinutes());
+                preview.of(post.getContent()), post.getVisibility(), measure.sheets(), measure.readMinutes(),
+                PostThumbnail.of(post.getContent()).orElse(null));
     }
 
     /** 목록 한 페이지. categoryId는 실제로 적용한 분류 (고르지 않았으면 null). */
@@ -125,8 +126,8 @@ public class PostListService {
             int totalPages, int pageSize, List<PostRow> posts) {
     }
 
-    /** 목록 한 줄. visibility는 주인에게만 "private"가 올 수 있다 (FR-006). */
+    /** 목록 한 줄. visibility는 주인에게만 "private"가 올 수 있다 (FR-006). thumbnail은 없으면 null. */
     public record PostRow(Long postId, String title, Long categoryId, String categoryName, Instant createdAt,
-            String preview, String visibility, int sheets, int readMinutes) {
+            String preview, String visibility, int sheets, int readMinutes, String thumbnail) {
     }
 }

@@ -105,7 +105,10 @@ body {
       :focus-within,
       :active
     ),
-  .popular-item:hover .popular-rank {
+  .popular-item:hover .popular-rank,
+  .card:is(:hover, :focus-within) :is(.thumb-photo, .thumb-photo img),
+  .site-brand:hover .brand-mark,
+  .cover-choice:hover {
     transform: none !important;
   }
 }

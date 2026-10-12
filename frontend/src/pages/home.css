@@ -343,3 +343,63 @@
 .popular-meta a {
   color: inherit;
 }
+
+/* ── 카드 썸네일 (specs/008): 카드 맨 위, 원고지 칸 띠 아래 ── */
+.feed-card > .thumb {
+  margin: 0.3rem 0 0.35rem;
+}
+
+/* ── 맨 위 큰 카드: 왼쪽 큰 사진, 오른쪽 글. 좁으면 사진이 위 ── */
+.feature-card {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.75rem;
+  margin: 0 0 2rem;
+  padding: 1.6rem;
+}
+
+.feature-body {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.feature-label {
+  font-family: var(--font-letter);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.feature-label::before {
+  content: '✎ ';
+}
+
+.feature-title {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.feature-preview {
+  margin: 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feature-card .card-foot {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 48rem) {
+  .feature-card {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.15rem;
+  }
+}

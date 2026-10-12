@@ -9,6 +9,7 @@
 // - 이미지 올리기 (specs/005 US4): 받은 주소를 본문의 커서 자리에 ![](주소)로 넣는다
 // - 나란히 미리보기 (specs/007 US7): 넓은 화면은 왼쪽에 쓰고 오른쪽 원고지 종이에 바로 보인다(스크롤도 같이). 좁으면 쓰기/미리보기 탭
 // - 서식 도구 막대(MarkdownToolbar)와 원고지 매수 실시간 표시
+// - 본문에 이미지가 있으면 대표 이미지(카드 썸네일) 고르기 (specs/008, CoverPicker)
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
@@ -20,6 +21,7 @@ import '../pages/auth-layout.css'
 import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import EditorPreview from './EditorPreview'
+import CoverPicker from './CoverPicker'
 import MarkdownToolbar from './MarkdownToolbar'
 import TagInput from './TagInput'
 import './post-detail.css'
@@ -436,6 +438,7 @@ export default function PostEditorPage() {
                 마크다운 기호와 이미지 주소도 글자 수에 들어갑니다
               </p>
             )}
+            <CoverPicker content={input.content} disabled={busy} onChange={(value) => update('content', value)} />
           </div>
         </section>
 

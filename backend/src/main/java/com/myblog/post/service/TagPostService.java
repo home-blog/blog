@@ -40,7 +40,8 @@ public class TagPostService {
         List<SearchRow> rows = tag.isEmpty() || totalCount == 0 ? List.of()
                 : tagPosts.find(tag.get(), slice.offset(), slice.pageSize()).stream()
                         .map(match -> new SearchRow(match.postId(), match.blogId(), match.blogName(), match.title(),
-                                match.categoryId(), match.categoryName(), match.createdAt(), preview.of(match.content())))
+                                match.categoryId(), match.categoryName(), match.createdAt(), preview.of(match.content()),
+                                PostThumbnail.of(match.content()).orElse(null)))
                         .toList();
         return new TagPostsView(tag.orElse(tagName == null ? "" : tagName.strip()), totalCount, slice.page(),
                 slice.totalPages(), slice.pageSize(), rows);

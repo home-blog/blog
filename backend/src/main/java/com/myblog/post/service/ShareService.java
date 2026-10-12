@@ -14,8 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -37,7 +35,6 @@ public class ShareService {
     static final String DEFAULT_IMAGE = "/og-default.png";
 
     /** 마크다운 본문의 첫 그림 주소: ![설명](주소) 또는 ![설명](<주소>) */
-    private static final Pattern FIRST_IMAGE = Pattern.compile("!\\[[^\\]]*]\\(\\s*<?([^)\\s>]+)");
     private static final DateTimeFormatter RFC_1123 = DateTimeFormatter.RFC_1123_DATE_TIME;
 
     private final PostReadService postReadService;
@@ -134,23 +131,9 @@ public class ShareService {
         return intro.isEmpty() ? blog.name() + "의 글을 " + SITE_NAME + "에서 읽어 보세요." : intro;
     }
 
-    /** 본문 첫 그림의 절대 주소. 이 사이트의 주소(/api/images/…)와 http(s) 주소만 쓴다. */
+    /** 카드 썸네일(대표 이미지, 없으면 본문 첫 그림)의 절대 주소. 이 사이트의 주소(/api/images/…)와 http(s) 주소만 쓴다. */
     static Optional<String> firstImage(String base, String markdown) {
-        if (markdown == null) {
-            return Optional.empty();
-        }
-        Matcher matcher = FIRST_IMAGE.matcher(markdown);
-        if (!matcher.find()) {
-            return Optional.empty();
-        }
-        String src = matcher.group(1);
-        if (src.startsWith("https://") || src.startsWith("http://")) {
-            return Optional.of(src);
-        }
-        if (src.startsWith("/") && !src.startsWith("//")) {
-            return Optional.of(base + src);
-        }
-        return Optional.empty();
+        return PostThumbnail.of(markdown).map(src -> src.startsWith("/") ? base + src : src);
     }
 
     private static String card(Card card) {

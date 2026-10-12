@@ -9,11 +9,23 @@
 }
 
 .site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--font-letter);
   font-weight: 700;
   font-size: var(--step-1);
   color: var(--ink);
   text-decoration: none;
+}
+
+.brand-mark {
+  flex: none;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.site-brand:hover .brand-mark {
+  transform: rotate(-6deg) scale(1.06);
 }
 
 .site-nav {

@@ -121,6 +121,8 @@ export interface TagPost {
   categoryName: string
   createdAt: string
   preview: string
+  /** 카드 썸네일 주소 (없으면 null) */
+  thumbnail: string | null
 }
 
 export interface TagPostsPage {
