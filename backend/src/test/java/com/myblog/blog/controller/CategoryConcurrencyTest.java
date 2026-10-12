@@ -81,8 +81,8 @@ class CategoryConcurrencyTest {
         Long topicId = jdbc.queryForObject("select min(topic_id) from topic", Long.class);
         for (int round = 0; round < 5; round++) {
             Long categoryId = members.addCategory(owner.blogId(), "잠깐" + round, "public", 10 + round);
-            RequestBuilder remove = delete("/api/me/blog/categories/{id}", categoryId).with(csrf()).session(session);
-            RequestBuilder write = post("/api/posts").with(csrf()).session(otherSession).contentType(MediaType.APPLICATION_JSON)
+            RequestBuilder remove = delete("/api/v1/me/blog/categories/{id}", categoryId).with(csrf()).session(session);
+            RequestBuilder write = post("/api/v1/posts").with(csrf()).session(otherSession).contentType(MediaType.APPLICATION_JSON)
                     .content(TestJson.of("title", "글", "content", "본문", "categoryId", categoryId, "topicId", topicId));
             List<Integer> statuses = together(remove, write);
             // 둘 다 성공하는 일은 없다: 삭제가 먼저면 글쓰기는 INVALID_CATEGORY(400), 글이 먼저면 삭제는 CATEGORY_HAS_POSTS(409)
@@ -93,7 +93,7 @@ class CategoryConcurrencyTest {
     }
 
     private static RequestBuilder add(MockHttpSession on) {
-        return post("/api/me/blog/categories").with(csrf()).session(on)
+        return post("/api/v1/me/blog/categories").with(csrf()).session(on)
                 .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "daily"));
     }
 

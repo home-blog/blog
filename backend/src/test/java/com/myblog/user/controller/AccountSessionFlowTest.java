@@ -73,21 +73,21 @@ class AccountSessionFlowTest {
         Cookie pc = login();
         long createdBefore = creationTime(phone);
 
-        mvc.perform(post("/api/account/password").with(csrf()).cookie(phone).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/password").with(csrf()).cookie(phone).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"" + NEW_PASSWORD
                                 + "\",\"newPasswordConfirm\":\"" + NEW_PASSWORD + "\"}"))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/api/auth/me").cookie(phone)).andExpect(status().isOk());
-        mvc.perform(get("/api/auth/me").cookie(laptop)).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/auth/me").cookie(pc)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").cookie(phone)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/me").cookie(laptop)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").cookie(pc)).andExpect(status().isUnauthorized());
         assertThat(creationTime(phone)).isEqualTo(createdBefore); // 남은 세션은 새로 만든 것이 아니다
         assertThat(jdbc.queryForObject("select count(*) from spring_session where principal_name = ?", Integer.class,
                 String.valueOf(member.getId()))).isEqualTo(1);
     }
 
     private Cookie login() throws Exception {
-        Cookie cookie = mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        Cookie cookie = mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + member.getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getCookie(SessionConfig.COOKIE_NAME);

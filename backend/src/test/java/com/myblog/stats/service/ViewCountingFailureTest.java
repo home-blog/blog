@@ -71,19 +71,19 @@ class ViewCountingFailureTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public");
         MockHttpSession readerSession = members.login(mvc, reader);
 
-        mvc.perform(get("/api/posts/{id}", postId).session(readerSession))
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(readerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("글"));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(status().isOk());
-        mvc.perform(get("/api/blogs/{id}", owner.blogId())).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId())).andExpect(status().isOk());
         assertThat(jdbc.queryForObject("select views from post where post_id = ?", Integer.class, postId)).isZero();
         assertThat(jdbc.queryForObject("select count(*) from blog_daily_stat where blog_id = ?", Long.class, owner.blogId()))
                 .isZero();
 
         MockHttpSession ownerSession = members.login(mvc, owner);
-        mvc.perform(get("/api/manage/dashboard").session(ownerSession)).andExpect(status().isOk());
-        mvc.perform(get("/api/manage/stats").session(ownerSession)).andExpect(status().isOk());
-        mvc.perform(get("/api/manage/posts").session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/manage/dashboard").session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/manage/stats").session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/manage/posts").session(ownerSession)).andExpect(status().isOk());
     }
 
     private Member register(String prefix) {

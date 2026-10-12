@@ -29,7 +29,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * 새 댓글 표시 (specs/006 US5, T030, quickstart S-5의 1 ~ 6, FR-027 ~ FR-029, SC-008).
- * 메뉴 옆(GET /api/manage/blog)과 new-count가 같은 숫자다. 대시보드 숫자는 DashboardTest에서 본다.
+ * 메뉴 옆(GET /api/v1/manage/blog)과 new-count가 같은 숫자다. 대시보드 숫자는 DashboardTest에서 본다.
  */
 @SpringBootTest
 @Transactional
@@ -72,7 +72,7 @@ class NewCommentCountTest {
     @Test
     void S5_2_3_4_읽음_처리하면_0이고_그_뒤에_달린_하나만_1() throws Exception {
         addComment(reader.id(), Instant.now().minus(1, ChronoUnit.HOURS));
-        String read = mvc.perform(post("/api/manage/comments/read").with(csrf()).session(session))
+        String read = mvc.perform(post("/api/v1/manage/comments/read").with(csrf()).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.previousReadAt").doesNotExist())
                 .andExpect(jsonPath("$.readAt").exists())
@@ -83,7 +83,7 @@ class NewCommentCountTest {
         addComment(owner.id(), Instant.now().plus(2, ChronoUnit.MINUTES));
         expectCount(1);
 
-        String again = mvc.perform(post("/api/manage/comments/read").with(csrf()).session(session))
+        String again = mvc.perform(post("/api/v1/manage/comments/read").with(csrf()).session(session))
                 .andReturn().getResponse().getContentAsString();
         assertThat((String) JsonPath.read(again, "$.previousReadAt")).isEqualTo(JsonPath.read(read, "$.readAt"));
     }
@@ -96,9 +96,9 @@ class NewCommentCountTest {
         }
         addComment(owner.id(), since.plusSeconds(3600)); // 주인이 쓴 것은 NEW가 아니다
         String newSince = "2026-09-10T09:00:00+09:00";
-        String page1 = mvc.perform(get("/api/manage/comments").param("newSince", newSince).session(session))
+        String page1 = mvc.perform(get("/api/v1/manage/comments").param("newSince", newSince).session(session))
                 .andReturn().getResponse().getContentAsString();
-        String page2 = mvc.perform(get("/api/manage/comments").param("newSince", newSince).param("page", "2").session(session))
+        String page2 = mvc.perform(get("/api/v1/manage/comments").param("newSince", newSince).param("page", "2").session(session))
                 .andReturn().getResponse().getContentAsString();
         List<Boolean> flags = new java.util.ArrayList<>(JsonPath.<List<Boolean>>read(page1, "$.items[*].isNew"));
         flags.addAll(JsonPath.<List<Boolean>>read(page2, "$.items[*].isNew"));
@@ -106,8 +106,8 @@ class NewCommentCountTest {
         assertThat(flags).containsExactly(false, true, true, false, false, false, false, false, false, false, false, false,
                 false);
         // newSince가 없으면 NEW 없음, never면 남이 쓴 모든 댓글
-        mvc.perform(get("/api/manage/comments").session(session)).andExpect(jsonPath("$.items[1].isNew").value(false));
-        mvc.perform(get("/api/manage/comments").param("newSince", "never").session(session))
+        mvc.perform(get("/api/v1/manage/comments").session(session)).andExpect(jsonPath("$.items[1].isNew").value(false));
+        mvc.perform(get("/api/v1/manage/comments").param("newSince", "never").session(session))
                 .andExpect(jsonPath("$.items[0].isNew").value(false))
                 .andExpect(jsonPath("$.items[1].isNew").value(true))
                 .andExpect(jsonPath("$.items[9].isNew").value(true));
@@ -116,7 +116,7 @@ class NewCommentCountTest {
     @Test
     void CSRF_토큰_없이_읽음_처리하면_거절되고_숫자는_그대로() throws Exception {
         addComment(reader.id(), Instant.now().minus(1, ChronoUnit.HOURS));
-        mvc.perform(post("/api/manage/comments/read").session(session)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/manage/comments/read").session(session)).andExpect(status().isForbidden());
         expectCount(1);
     }
 
@@ -128,8 +128,8 @@ class NewCommentCountTest {
     }
 
     private void expectCount(long count) throws Exception {
-        mvc.perform(get("/api/manage/comments/new-count").session(session)).andExpect(jsonPath("$.count").value(count));
-        mvc.perform(get("/api/manage/blog").session(session)).andExpect(jsonPath("$.newCommentCount").value(count));
+        mvc.perform(get("/api/v1/manage/comments/new-count").session(session)).andExpect(jsonPath("$.count").value(count));
+        mvc.perform(get("/api/v1/manage/blog").session(session)).andExpect(jsonPath("$.newCommentCount").value(count));
     }
 
     private void addComment(Long memberId, Instant createdAt) {

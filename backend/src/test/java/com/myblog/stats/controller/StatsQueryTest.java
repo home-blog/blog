@@ -74,13 +74,13 @@ class StatsQueryTest {
 
     @Test
     void S8_1_2_기간이_없으면_30일이고_7이면_7개_날짜_오늘이_마지막() throws Exception {
-        mvc.perform(get("/api/manage/stats").session(session))
+        mvc.perform(get("/api/v1/manage/stats").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.days").value(30))
                 .andExpect(jsonPath("$.daily", hasSize(30)))
                 .andExpect(jsonPath("$.daily[0].date").value("2026-09-09"))
                 .andExpect(jsonPath("$.daily[29].date").value("2026-10-08"));
-        mvc.perform(get("/api/manage/stats").param("days", "7").session(session))
+        mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(session))
                 .andExpect(jsonPath("$.days").value(7))
                 .andExpect(jsonPath("$.daily", hasSize(7)))
                 .andExpect(jsonPath("$.daily[0].date").value("2026-10-02"));
@@ -90,7 +90,7 @@ class StatsQueryTest {
     void S8_4_기록이_없는_날도_빠지지_않고_0() throws Exception {
         stats.addBlogDay(owner.blogId(), TODAY.minusDays(2), 12, 8);
         stats.addBlogDay(owner.blogId(), TODAY.minusDays(40), 99, 99); // 기간 밖
-        mvc.perform(get("/api/manage/stats").param("days", "7").session(session))
+        mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(session))
                 .andExpect(jsonPath("$.daily[4].date").value("2026-10-06"))
                 .andExpect(jsonPath("$.daily[4].views").value(12))
                 .andExpect(jsonPath("$.daily[4].visitors").value(8))
@@ -102,11 +102,11 @@ class StatsQueryTest {
     @Test
     void S8_5_기간이_7_30이_아니면_400() throws Exception {
         for (String days : new String[] {"10", "0", "-7", "abc", "' OR 1=1 --"}) {
-            mvc.perform(get("/api/manage/stats").param("days", days).session(session))
+            mvc.perform(get("/api/v1/manage/stats").param("days", days).session(session))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }
-        mvc.perform(get("/api/manage/stats")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/manage/stats")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -116,7 +116,7 @@ class StatsQueryTest {
         addComment(postId, reader.id(), KST_0800);                             // 한국 10-08 08:00 → 오늘
         addComment(postId, reader.id(), Instant.parse("2026-10-07T14:59:59Z")); // 한국 10-07 23:59:59 → 어제
         addComment(postId, reader.id(), Instant.parse("2026-10-07T15:00:00Z")); // 한국 10-08 00:00 → 오늘
-        mvc.perform(get("/api/manage/stats").param("days", "7").session(session))
+        mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(session))
                 .andExpect(jsonPath("$.daily[6].date").value("2026-10-08"))
                 .andExpect(jsonPath("$.daily[6].comments").value(2))
                 .andExpect(jsonPath("$.daily[5].comments").value(1));
@@ -124,7 +124,7 @@ class StatsQueryTest {
 
     @Test
     void S8_6_응답에_유입_경로_시간대_기기_칸이_없다() throws Exception {
-        String body = mvc.perform(get("/api/manage/stats").param("days", "7").session(session))
+        String body = mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(session))
                 .andReturn().getResponse().getContentAsString();
         assertThat(body).doesNotContain("referrer", "referer", "hour", "device", "userAgent");
     }
@@ -134,7 +134,7 @@ class StatsQueryTest {
         stats.addBlogDay(owner.blogId(), TODAY, 50, 40);
         Member b = members.register("b");
         MockHttpSession bSession = members.login(mvc, b);
-        mvc.perform(get("/api/manage/stats").param("days", "7").session(bSession))
+        mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(bSession))
                 .andExpect(jsonPath("$.daily[6].views").value(0))
                 .andExpect(jsonPath("$.daily[6].visitors").value(0));
     }

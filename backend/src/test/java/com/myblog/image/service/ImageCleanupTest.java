@@ -139,7 +139,7 @@ class ImageCleanupTest {
         String a = upload(session);
         String b = upload(session);
         Long postId = write("![](" + a + ")\n![](" + b + ")");
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("select count(*) from post_image where post_id = ?", Long.class, postId)).isZero();
         assertThat(storage.has(key(a)) || storage.has(key(b))).isFalse();
         mvc.perform(get(a).session(session)).andExpect(status().isNotFound());
@@ -150,7 +150,7 @@ class ImageCleanupTest {
         String a = upload(session);
         Long postId = write("![](" + a + ")");
         storage.failDelete = true;
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("select count(*) from post where post_id = ?", Long.class, postId)).isZero();
         assertThat(storage.has(key(a))).isTrue();
 
@@ -191,12 +191,12 @@ class ImageCleanupTest {
     }
 
     private String upload(MockHttpSession who) throws Exception {
-        return JsonPath.read(mvc.perform(multipart("/api/images").file(TestImages.png()).with(csrf()).session(who))
+        return JsonPath.read(mvc.perform(multipart("/api/v1/images").file(TestImages.png()).with(csrf()).session(who))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.url");
     }
 
     private Long write(String content) throws Exception {
-        String response = mvc.perform(post("/api/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        String response = mvc.perform(post("/api/v1/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("title", "이미지 글", "content", content, "categoryId", writer.defaultCategoryId(),
                                 "topicId", topicId)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
@@ -204,7 +204,7 @@ class ImageCleanupTest {
     }
 
     private ResultActions updateContent(Long postId, String content) throws Exception {
-        return mvc.perform(put("/api/posts/{id}", postId).with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                 .content(TestJson.of("title", "이미지 글", "content", content, "categoryId", writer.defaultCategoryId(),
                         "topicId", topicId, "visibility", "public")));
     }

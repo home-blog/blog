@@ -20,10 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 분류 관리 (specs/003 contracts 5 ~ 8). 모두 로그인해야 하고, 내 블로그는 세션으로만 정한다 (주소에 블로그 번호가 없다).
- * 분류 목록 보기는 BlogController의 GET /api/blogs/{blogId}/categories를 쓴다.
+ * 분류 목록 보기는 BlogController의 GET /api/v1/blogs/{blogId}/categories를 쓴다.
  */
 @RestController
-@RequestMapping("/api/me/blog/categories")
+@RequestMapping("/api/{version}/me/blog/categories")
 public class CategoryController {
 
     private final LoggedInMember loggedInMember;

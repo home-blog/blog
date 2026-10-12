@@ -23,20 +23,20 @@ export interface MessageResult {
 }
 
 export function getAccount(signal?: AbortSignal): Promise<Account> {
-  return api<Account>('/api/account', { signal })
+  return api<Account>('/api/v1/account', { signal })
 }
 
 export function updateProfile(nickname: string, intro: string): Promise<ProfileUpdated> {
-  return api<ProfileUpdated>('/api/account/profile', { method: 'PATCH', body: { nickname, intro } })
+  return api<ProfileUpdated>('/api/v1/account/profile', { method: 'PATCH', body: { nickname, intro } })
 }
 
 export function changePassword(currentPassword: string, newPassword: string, newPasswordConfirm: string): Promise<MessageResult> {
-  return api<MessageResult>('/api/account/password', {
+  return api<MessageResult>('/api/v1/account/password', {
     method: 'POST',
     body: { currentPassword, newPassword, newPasswordConfirm },
   })
 }
 
 export function withdraw(password: string, agreed: boolean): Promise<MessageResult> {
-  return api<MessageResult>('/api/account/withdrawal', { method: 'POST', body: { password, agreed } })
+  return api<MessageResult>('/api/v1/account/withdrawal', { method: 'POST', body: { password, agreed } })
 }

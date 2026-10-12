@@ -9,6 +9,13 @@ spring:
     # 실행 위치가 달라도 읽도록 둘 다 본다
     import: optional:file:./.env[.properties],optional:file:../.env[.properties]
 
+# API 문서: 서버를 켜고 http://localhost:8080/swagger-ui.html (주소 버전 v1, 릴리스 번호가 머리에 보인다)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 myblog:
   mail:
     sender: ${MAIL_SENDER:log}

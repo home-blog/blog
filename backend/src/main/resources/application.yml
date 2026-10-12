@@ -175,7 +175,16 @@ stats:
     cookie-max-age: 365d   # 비회원 방문자 쿠키 (D-2, 가안)
     visit-margin: 1h       # "오늘 왔다" 표시를 다음 한국 자정보다 이만큼 더 둔다 (시계 차이 여유)
 
+# API 문서(Swagger)는 기본으로 끈다. 개발 설정(application-dev.yml)에서만 켠다
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 myblog:
+  # 지금 릴리스 번호 (pom.xml의 version을 빌드할 때 채운다). API 문서 머리에 API 버전과 같이 보인다
+  release: "@project.version@"
   mail:
     sender: smtp   # smtp(실제 발송) 또는 log(서버 로그에 인증번호만 찍기). dev 설정은 log가 기본
     from-name: 글결   # 받는 사람에게 보이는 보내는 사람 이름 (주소는 MAIL_USERNAME)

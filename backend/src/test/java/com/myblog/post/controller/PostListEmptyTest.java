@@ -44,11 +44,11 @@ class PostListEmptyTest {
     @Test
     void S3_1_2_5_글이_없는_블로그는_방문자에게_0개이고_주인이면_isOwner() throws Exception {
         Member empty = members.register("c");
-        mvc.perform(get("/api/blogs/{id}/posts", empty.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", empty.blogId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0))
                 .andExpect(jsonPath("$.isOwner").value(false));
-        mvc.perform(get("/api/blogs/{id}/posts", empty.blogId()).session(members.login(mvc, empty)))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", empty.blogId()).session(members.login(mvc, empty)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0))
                 .andExpect(jsonPath("$.isOwner").value(true));
@@ -58,10 +58,10 @@ class PostListEmptyTest {
     void S3_3_4_비공개_글만_있으면_방문자에게_0개이고_주인에게는_보인다() throws Exception {
         Member onlyPrivate = members.register("d");
         posts.add(onlyPrivate.defaultCategoryId(), "비공개", "본문", "private", Instant.parse("2026-01-01T00:00:00Z"));
-        mvc.perform(get("/api/blogs/{id}/posts", onlyPrivate.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", onlyPrivate.blogId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0));
-        mvc.perform(get("/api/blogs/{id}/posts", onlyPrivate.blogId()).session(members.login(mvc, onlyPrivate)))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", onlyPrivate.blogId()).session(members.login(mvc, onlyPrivate)))
                 .andExpect(jsonPath("$.totalCount").value(1))
                 .andExpect(jsonPath("$.posts[0].visibility").value("private"));
     }

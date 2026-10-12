@@ -70,15 +70,15 @@ class PostVisibilityTest {
     @Test
     void S9_1_2_10_비공개_글은_주인만_읽고_공개에서_비공개로_바꾸면_바로_404() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public", T0);
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
 
         setVisibility(postId, owner.defaultCategoryId(), "private");
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/posts/{id}", postId).session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(ownerSession)).andExpect(status().isOk());
 
         setVisibility(postId, owner.defaultCategoryId(), "public");
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
     }
 
     @Test
@@ -86,13 +86,13 @@ class PostVisibilityTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "미분류의 글", "public", T0);
         setCategoryVisibility(owner.defaultCategoryId(), "private");
 
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(status().isNotFound());
         assertThat(jdbc.queryForObject("select visibility from post where post_id = ?", String.class, postId)).isEqualTo("public");
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(otherSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(otherSession))
                 .andExpect(jsonPath("$.categories.length()").value(0));
 
         setCategoryVisibility(owner.defaultCategoryId(), "public");
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(status().isOk());
     }
 
     @Test
@@ -102,8 +102,8 @@ class PostVisibilityTest {
         Long stays = members.addPost(diary, "남을 글", "public", T0.plus(1, ChronoUnit.HOURS));
 
         setVisibility(moved, owner.defaultCategoryId(), "public");
-        mvc.perform(get("/api/posts/{id}", moved).session(otherSession)).andExpect(status().isOk());
-        mvc.perform(get("/api/posts/{id}", stays).session(otherSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", moved).session(otherSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", stays).session(otherSession)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -114,12 +114,12 @@ class PostVisibilityTest {
         members.addPost(diary, "비공개 분류의 글", "public", T0.plus(2, ChronoUnit.HOURS));
         Long last = members.addPost(owner.defaultCategoryId(), "2", "public", T0.plus(3, ChronoUnit.HOURS));
 
-        mvc.perform(get("/api/posts/{id}", first).session(otherSession)).andExpect(jsonPath("$.nextPostId").value(last));
-        mvc.perform(get("/api/posts/{id}", last).session(ownerSession)).andExpect(jsonPath("$.prevPostId").value(first));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(otherSession))
+        mvc.perform(get("/api/v1/posts/{id}", first).session(otherSession)).andExpect(jsonPath("$.nextPostId").value(last));
+        mvc.perform(get("/api/v1/posts/{id}", last).session(ownerSession)).andExpect(jsonPath("$.prevPostId").value(first));
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(otherSession))
                 .andExpect(jsonPath("$.categories.length()").value(1))
                 .andExpect(jsonPath("$.categories[0].postCount").value(2));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(ownerSession))
                 .andExpect(jsonPath("$.categories[0].postCount").value(3))
                 .andExpect(jsonPath("$.categories[1].postCount").value(1));
     }
@@ -132,7 +132,7 @@ class PostVisibilityTest {
     }
 
     private void setVisibility(Long postId, Long categoryId, String visibility) throws Exception {
-        mvc.perform(put("/api/posts/{id}", postId).with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("title", jdbc.queryForObject("select title from post where post_id = ?", String.class, postId),
                                 "content", "본문", "categoryId", categoryId, "topicId", topicId, "visibility", visibility)))
                 .andExpect(status().isOk());

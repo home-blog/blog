@@ -14,6 +14,7 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, "※ 권한이 없습니다"),
     CSRF_TOKEN_INVALID(HttpStatus.FORBIDDEN, "※ 요청이 만료되었습니다. 새로고침한 뒤 다시 시도해 주세요"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "※ 찾을 수 없습니다"),
+    API_VERSION_UNSUPPORTED(HttpStatus.BAD_REQUEST, "※ 지원하지 않는 API 버전입니다"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "※ 지원하지 않는 요청입니다"),
     SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "※ 잠시 뒤 다시 시도해 주세요"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "※ 잠시 뒤 다시 시도해 주세요"),

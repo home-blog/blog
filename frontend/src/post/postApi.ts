@@ -34,12 +34,12 @@ export interface PostInput {
 }
 
 export function getPostForm(signal?: AbortSignal): Promise<PostForm> {
-  return api<PostForm>('/api/me/blog/post-form', { signal })
+  return api<PostForm>('/api/v1/me/blog/post-form', { signal })
 }
 
 /** 같은 requestKey로 다시 보내면 서버가 새 글을 만들지 않고 처음 글 번호를 돌려준다 (D-6) */
 export function createPost(input: PostInput, requestKey: string): Promise<{ postId: number }> {
-  return api<{ postId: number }>('/api/posts', { method: 'POST', body: { ...input, requestKey } })
+  return api<{ postId: number }>('/api/v1/posts', { method: 'POST', body: { ...input, requestKey } })
 }
 
 export interface PostDetail {
@@ -76,7 +76,7 @@ export interface PostDetail {
 }
 
 export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetail> {
-  return api<PostDetail>(`/api/posts/${postId}`, { signal })
+  return api<PostDetail>(`/api/v1/posts/${postId}`, { signal })
 }
 
 export interface PostEdit {
@@ -100,15 +100,15 @@ export interface PostUpdated {
 
 /** 남의 글이면 서버가 404로 답한다 */
 export function getPostEdit(postId: number, signal?: AbortSignal): Promise<PostEdit> {
-  return api<PostEdit>(`/api/posts/${postId}/edit`, { signal })
+  return api<PostEdit>(`/api/v1/posts/${postId}/edit`, { signal })
 }
 
 export function updatePost(postId: number, input: PostInput): Promise<PostUpdated> {
-  return api<PostUpdated>(`/api/posts/${postId}`, { method: 'PUT', body: input })
+  return api<PostUpdated>(`/api/v1/posts/${postId}`, { method: 'PUT', body: input })
 }
 
 export function deletePost(postId: number): Promise<void> {
-  return api<void>(`/api/posts/${postId}`, { method: 'DELETE' })
+  return api<void>(`/api/v1/posts/${postId}`, { method: 'DELETE' })
 }
 
 /** 같은 태그의 공개 글 한 줄. 검색 결과(specs/004)와 같은 모양 */
@@ -138,5 +138,5 @@ export interface TagPostsPage {
 /** 누가 봐도 공개 분류의 공개 글만 온다 (specs/005 contracts 9). 없는 태그면 빈 목록 */
 export function getTagPosts(tag: string, page: number, signal?: AbortSignal): Promise<TagPostsPage> {
   const query = page > 1 ? `?page=${page}` : ''
-  return api<TagPostsPage>(`/api/tags/${encodeURIComponent(tag)}/posts${query}`, { signal })
+  return api<TagPostsPage>(`/api/v1/tags/${encodeURIComponent(tag)}/posts${query}`, { signal })
 }

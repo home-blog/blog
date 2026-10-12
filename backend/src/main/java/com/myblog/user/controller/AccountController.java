@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 회원은 세션(@AuthenticationPrincipal) → CurrentMemberService로만 정한다. 주소·본문에서 회원 번호를 받지 않는다 (FR-002, FR-029).
  */
 @RestController
-@RequestMapping("/api/account")
+@RequestMapping("/api/{version}/account")
 public class AccountController {
 
     private final CurrentMemberService currentMember;

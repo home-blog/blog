@@ -61,10 +61,10 @@ class BlogSettingsTest {
                 .andExpect(jsonPath("$.name").value("철수의 여행 일기"))
                 .andExpect(jsonPath("$.intro").value("주말마다 떠납니다"));
 
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()))
                 .andExpect(jsonPath("$.name").value("철수의 여행 일기"))
                 .andExpect(jsonPath("$.intro").value("주말마다 떠납니다"));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.blogName").value("철수의 여행 일기"));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.blogName").value("철수의 여행 일기"));
     }
 
     @Test
@@ -86,7 +86,7 @@ class BlogSettingsTest {
         save(TestJson.of("name", "이름", "intro", "   ")).andExpect(jsonPath("$.intro").value(""));
         save(TestJson.of("name", "이름")).andExpect(jsonPath("$.intro").value(""));
         assertThat(jdbc.queryForObject("select intro from blog where blog_id = ?", String.class, owner.blogId())).isNull();
-        mvc.perform(get("/api/me/blog").session(session)).andExpect(jsonPath("$.intro").value(""));
+        mvc.perform(get("/api/v1/me/blog").session(session)).andExpect(jsonPath("$.intro").value(""));
     }
 
     @Test
@@ -100,15 +100,15 @@ class BlogSettingsTest {
 
     @Test
     void S11_7_블로그를_지우는_주소는_없다() throws Exception {
-        mvc.perform(delete("/api/me/blog").with(csrf()).session(session)).andExpect(status().isMethodNotAllowed());
+        mvc.perform(delete("/api/v1/me/blog").with(csrf()).session(session)).andExpect(status().isMethodNotAllowed());
         assertThat(jdbc.queryForObject("select count(*) from blog where blog_id = ?", Long.class, owner.blogId())).isOne();
     }
 
     @Test
     void 로그인하지_않으면_401이고_CSRF가_없으면_거절() throws Exception {
-        mvc.perform(put("/api/me/blog").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "x")))
+        mvc.perform(put("/api/v1/me/blog").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "x")))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/me/blog").session(session).contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "x")))
+        mvc.perform(put("/api/v1/me/blog").session(session).contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "x")))
                 .andExpect(status().isForbidden());
     }
 
@@ -119,13 +119,13 @@ class BlogSettingsTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.intro").value(intro));
         // specs/006 T037, FR-040: 관리 화면 위쪽 이름은 다음 요청부터 새 값
-        mvc.perform(get("/api/manage/blog").session(session))
+        mvc.perform(get("/api/v1/manage/blog").session(session))
                 .andExpect(jsonPath("$.name").value("새 이름"))
                 .andExpect(jsonPath("$.intro").value(intro));
     }
 
     private ResultActions save(String json) throws Exception {
-        return mvc.perform(put("/api/me/blog").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON).content(json));
+        return mvc.perform(put("/api/v1/me/blog").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private static void expectFieldError(ResultActions result, String field, String message) throws Exception {

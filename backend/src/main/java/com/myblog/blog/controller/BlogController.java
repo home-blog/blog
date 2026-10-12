@@ -39,14 +39,14 @@ public class BlogController {
     }
 
     /** 내 블로그 (contracts 3). */
-    @GetMapping("/api/me/blog")
+    @GetMapping("/api/{version}/me/blog")
     public MyBlogResponse myBlog(Authentication authentication) {
         BlogView blog = queryService.myBlog(loggedInMember.requireIdOf(authentication));
         return new MyBlogResponse(blog.blogId(), blog.name(), blog.intro());
     }
 
     /** 내 블로그 이름·소개 고치기 (contracts 4). 블로그 삭제 주소는 없다 (FR-007). */
-    @PutMapping("/api/me/blog")
+    @PutMapping("/api/{version}/me/blog")
     public MyBlogResponse changeProfile(Authentication authentication, @Valid @RequestBody BlogRequests.UpdateProfile request) {
         BlogView blog = settingsService.changeProfile(loggedInMember.requireIdOf(authentication), request.name(), request.intro());
         return new MyBlogResponse(blog.blogId(), blog.name(), blog.intro());
@@ -57,7 +57,7 @@ public class BlogController {
      * 블로그 첫 화면·분류별 목록이 열 때마다 부르므로 여기서 방문을 알린다. 방문자는 통계 모듈이 센다 (specs/006 T056, D-5 B).
      * 읽기 트랜잭션이 끝난 뒤에 알린다 (PostController.read와 같은 까닭).
      */
-    @GetMapping("/api/blogs/{blogId}")
+    @GetMapping("/api/{version}/blogs/{blogId}")
     public BlogView blog(@PathVariable Long blogId, Authentication authentication) {
         Long viewerId = loggedInMember.idOf(authentication).orElse(null);
         BlogView blog = queryService.blog(blogId, viewerId);
@@ -66,7 +66,7 @@ public class BlogController {
     }
 
     /** 분류 목록과 글 개수 (contracts 2). 보는 사람에 따라 비공개 분류와 개수가 다르다. */
-    @GetMapping("/api/blogs/{blogId}/categories")
+    @GetMapping("/api/{version}/blogs/{blogId}/categories")
     public CategoriesResponse categories(@PathVariable Long blogId, Authentication authentication) {
         return new CategoriesResponse(queryService.categories(blogId, loggedInMember.idOf(authentication).orElse(null)));
     }

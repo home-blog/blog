@@ -4,6 +4,7 @@ import com.myblog.image.service.ImageReadService;
 import com.myblog.image.service.ImageReadService.ImageFile;
 import com.myblog.image.service.ImageUploadService;
 import com.myblog.image.service.ImageUploadService.Uploaded;
+import com.myblog.image.service.ImageUrls;
 import com.myblog.user.LoggedInMember;
 import java.time.Duration;
 import org.springframework.core.io.InputStreamResource;
@@ -41,7 +42,7 @@ public class ImageController {
     }
 
     /** 이미지 한 장 올리기. postId는 수정 중인 글의 번호 (선택). */
-    @PostMapping(path = "/api/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/api/{version}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Uploaded upload(Authentication authentication, @RequestParam(name = "file", required = false) MultipartFile file,
             @RequestParam(name = "postId", required = false) Long postId) {
@@ -49,7 +50,7 @@ public class ImageController {
     }
 
     /** 이미지 보기. Content-Type은 올릴 때 확인한 형식이고, 브라우저가 다른 형식으로 짐작하지 않게 nosniff를 붙인다. */
-    @GetMapping("/api/images/{fileName}")
+    @GetMapping(ImageUrls.PATH + "{fileName}")
     public ResponseEntity<InputStreamResource> view(@PathVariable String fileName, Authentication authentication) {
         ImageFile image = readService.open(fileName, loggedInMember.idOf(authentication).orElse(null));
         return ResponseEntity.ok()

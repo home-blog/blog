@@ -21,12 +21,12 @@ public class LikeController {
         this.likeService = likeService;
     }
 
-    @PutMapping("/api/posts/{postId}/like")
+    @PutMapping("/api/{version}/posts/{postId}/like")
     public LikeSummary like(@PathVariable Long postId, Authentication authentication) {
         return likeService.like(loggedInMember.requireIdOf(authentication), postId);
     }
 
-    @DeleteMapping("/api/posts/{postId}/like")
+    @DeleteMapping("/api/{version}/posts/{postId}/like")
     public LikeSummary unlike(@PathVariable Long postId, Authentication authentication) {
         return likeService.unlike(loggedInMember.requireIdOf(authentication), postId);
     }

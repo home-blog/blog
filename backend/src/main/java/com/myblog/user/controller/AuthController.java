@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 이메일 인증, 가입, 로그인 (specs/001 contracts 2 ~ 8). 문구는 상세/01 `안내 문구` 표를 따른다.
- * 로그아웃(POST /api/auth/logout)은 Spring Security의 LogoutFilter가 처리한다 (SecurityConfig).
+ * 로그아웃(POST /api/v1/auth/logout)은 Spring Security의 LogoutFilter가 처리한다 (SecurityConfig).
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/{version}/auth")
 public class AuthController {
 
     private final EmailVerificationService verification;

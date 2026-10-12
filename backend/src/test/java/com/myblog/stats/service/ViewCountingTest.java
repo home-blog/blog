@@ -141,8 +141,8 @@ class ViewCountingTest {
     @Test
     void S6_7_없는_글과_남의_비공개_글은_세지_않는다() throws Exception {
         Long secret = members.addPost(owner.defaultCategoryId(), "비공개", "private");
-        mvc.perform(get("/api/posts/{id}", secret).session(readerSession)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/posts/{id}", 99_999_999L).session(readerSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", secret).session(readerSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}", 99_999_999L).session(readerSession)).andExpect(status().isNotFound());
         assertThat(postViews(secret)).isZero();
         assertThat(blogViews(today())).isZero();
         assertThat(blogVisitors(today())).isZero();
@@ -178,7 +178,7 @@ class ViewCountingTest {
     @Test
     void S6_4_S7_5_비회원은_쿠키로_한_사람이고_다른_브라우저는_다른_사람() throws Exception {
         Long second = members.addPost(owner.defaultCategoryId(), "둘째", "public");
-        MockHttpServletResponse first = mvc.perform(get("/api/posts/{id}", postId)).andExpect(status().isOk())
+        MockHttpServletResponse first = mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(status().isOk())
                 .andReturn().getResponse();
         Cookie visitor = first.getCookie("MYBLOG_VISITOR");
         assertThat(visitor).isNotNull();
@@ -188,14 +188,14 @@ class ViewCountingTest {
         assertThat(first.getHeader("Set-Cookie")).contains("SameSite=Lax");
 
         // 같은 브라우저: 같은 글은 그대로, 다른 글은 조회수만 (방문자는 그대로), 쿠키를 다시 내려 주지 않는다
-        MockHttpServletResponse again = mvc.perform(get("/api/posts/{id}", postId).cookie(visitor)).andReturn().getResponse();
+        MockHttpServletResponse again = mvc.perform(get("/api/v1/posts/{id}", postId).cookie(visitor)).andReturn().getResponse();
         assertThat(again.getCookie("MYBLOG_VISITOR")).isNull();
-        mvc.perform(get("/api/posts/{id}", second).cookie(visitor)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", second).cookie(visitor)).andExpect(status().isOk());
         assertThat(postViews(postId)).isEqualTo(1);
         assertThat(blogVisitors(today())).isEqualTo(1);
 
         // 다른 브라우저 (쿠키 없음): 다른 사람
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(status().isOk());
         assertThat(postViews(postId)).isEqualTo(2);
         assertThat(blogVisitors(today())).isEqualTo(2);
     }
@@ -204,7 +204,7 @@ class ViewCountingTest {
     void S6_6_블로그_주인이_자기_글을_열면_조회수도_방문자도_그대로() throws Exception {
         MockHttpSession ownerSession = members.login(mvc, owner);
         open(postId, ownerSession);
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(ownerSession)).andExpect(status().isOk());
         Long secret = members.addPost(owner.defaultCategoryId(), "비공개", "private");
         open(secret, ownerSession);
         assertThat(postViews(postId)).isZero();
@@ -215,8 +215,8 @@ class ViewCountingTest {
 
     @Test
     void S7_2_블로그_첫_화면만_봐도_방문자_1이고_조회수는_그대로() throws Exception {
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
         assertThat(blogVisitors(today())).isEqualTo(1);
         assertThat(blogViews(today())).isZero();
         open(postId, readerSession);
@@ -228,12 +228,12 @@ class ViewCountingTest {
     void 조회_방문_알림은_읽기_트랜잭션이_끝난_뒤에_온다_한_요청이_DB_연결_둘을_같이_쥐지_않는다() throws Exception {
         txProbe.seen.clear();
         open(postId, readerSession);
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(readerSession)).andExpect(status().isOk());
         assertThat(txProbe.seen).containsExactly("post:false", "blog:false");
     }
 
     private void open(Long id, MockHttpSession session) throws Exception {
-        mvc.perform(get("/api/posts/{id}", id).session(session)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/{id}", id).session(session)).andExpect(status().isOk());
     }
 
     private LocalDate today() {

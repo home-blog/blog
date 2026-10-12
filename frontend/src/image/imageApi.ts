@@ -12,5 +12,5 @@ export function uploadImage(file: File, postId: number | null): Promise<Uploaded
   const form = new FormData()
   form.append('file', file)
   if (postId !== null) form.append('postId', String(postId))
-  return api<UploadedImage>('/api/images', { method: 'POST', body: form })
+  return api<UploadedImage>('/api/v1/images', { method: 'POST', body: form })
 }

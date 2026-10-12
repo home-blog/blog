@@ -23,7 +23,7 @@ public class ReportController {
         this.reportService = reportService;
     }
 
-    @PostMapping("/api/posts/{postId}/reports")
+    @PostMapping("/api/{version}/posts/{postId}/reports")
     @ResponseStatus(HttpStatus.CREATED)
     public Received report(@PathVariable Long postId, Authentication authentication, @RequestBody ReportRequest request) {
         reportService.report(loggedInMember.requireIdOf(authentication), postId, request);

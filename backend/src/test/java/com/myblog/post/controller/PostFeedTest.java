@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * 첫 화면 글 모음 (GET /api/posts, /api/posts/popular): 여러 블로그의 공개 글을 최신순·주제별로, 이번 주 인기 글.
+ * 첫 화면 글 모음 (GET /api/v1/posts, /api/posts/popular): 여러 블로그의 공개 글을 최신순·주제별로, 이번 주 인기 글.
  * 글 모음은 서비스 전체를 보여 주므로, 다른 테스트·개발 데이터보다 늘 위에 오도록 먼 미래 시각으로 글을 만든다.
  */
 @SpringBootTest
@@ -71,7 +71,7 @@ class PostFeedTest {
 
     @Test
     void 여러_블로그의_공개_글을_최신순으로_블로그_이름과_글쓴이를_붙여_보여_준다() throws Exception {
-        String body = mvc.perform(get("/api/posts"))
+        String body = mvc.perform(get("/api/v1/posts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topic").doesNotExist())
                 .andExpect(jsonPath("$.topics.length()").value(5))
@@ -90,7 +90,7 @@ class PostFeedTest {
 
     @Test
     void 주제를_고르면_그_주제의_글만() throws Exception {
-        String body = mvc.perform(get("/api/posts").param("topic", "여행"))
+        String body = mvc.perform(get("/api/v1/posts").param("topic", "여행"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topic").value("여행"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -101,10 +101,10 @@ class PostFeedTest {
 
     @Test
     void 없는_주제는_400() throws Exception {
-        mvc.perform(get("/api/posts").param("topic", "없는주제"))
+        mvc.perform(get("/api/v1/posts").param("topic", "없는주제"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("TOPIC_NOT_FOUND"));
-        mvc.perform(get("/api/posts/popular").param("topic", "없는주제"))
+        mvc.perform(get("/api/v1/posts/popular").param("topic", "없는주제"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("TOPIC_NOT_FOUND"));
     }
@@ -117,7 +117,7 @@ class PostFeedTest {
                 a.blogId());
         Long inHidden = add(hiddenCategory, "여행", "숨긴 분류의 글", "public", 11);
 
-        String body = mvc.perform(get("/api/posts")).andReturn().getResponse()
+        String body = mvc.perform(get("/api/v1/posts")).andReturn().getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
         assertThat(ids(body)).doesNotContain(secret, inHidden).startsWith(travelB);
     }
@@ -131,7 +131,7 @@ class PostFeedTest {
         jdbc.update("insert into post_like (post_id, users_id, created_at) values (?, ?, now())", travelB,
                 a.user().getId());
 
-        mvc.perform(get("/api/posts"))
+        mvc.perform(get("/api/v1/posts"))
                 .andExpect(jsonPath("$.posts[0].postId").value(travelB))
                 .andExpect(jsonPath("$.posts[0].commentCount").value(2))
                 .andExpect(jsonPath("$.posts[0].likeCount").value(1))
@@ -140,9 +140,9 @@ class PostFeedTest {
 
     @Test
     void 페이지는_12개씩이고_범위를_넘으면_마지막_페이지() throws Exception {
-        mvc.perform(get("/api/posts"))
+        mvc.perform(get("/api/v1/posts"))
                 .andExpect(jsonPath("$.pageSize").value(12));
-        mvc.perform(get("/api/posts").param("page", "99999"))
+        mvc.perform(get("/api/v1/posts").param("page", "99999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(org.hamcrest.Matchers.lessThan(99999)));
     }
@@ -155,7 +155,7 @@ class PostFeedTest {
         stat(travelB, today.minusDays(7), 5_000_000); // 기간 밖 (지난 날)
         stat(travelB, today.plusDays(1), 5_000_000); // 기간 밖 (아직 오지 않은 날)
 
-        String body = mvc.perform(get("/api/posts/popular"))
+        String body = mvc.perform(get("/api/v1/posts/popular"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.days").value(7))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -163,7 +163,7 @@ class PostFeedTest {
         // 기간 밖 조회수(500만)는 세지 않으므로 travelB는 최근 조회수가 있는 두 글보다 앞에 올 수 없다
         assertThat(popular).hasSizeLessThanOrEqualTo(5).startsWith(sportB, travelA);
 
-        String travel = mvc.perform(get("/api/posts/popular").param("topic", "여행"))
+        String travel = mvc.perform(get("/api/v1/posts/popular").param("topic", "여행"))
                 .andExpect(jsonPath("$.topic").value("여행"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(ids(travel)).startsWith(travelA).doesNotContain(sportB);
@@ -171,8 +171,8 @@ class PostFeedTest {
 
     @Test
     void 로그인하지_않아도_볼_수_있다() throws Exception {
-        mvc.perform(get("/api/posts")).andExpect(status().isOk());
-        mvc.perform(get("/api/posts/popular")).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts")).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/posts/popular")).andExpect(status().isOk());
     }
 
     private Long add(Long categoryId, String topic, String title, String visibility, int hours) {

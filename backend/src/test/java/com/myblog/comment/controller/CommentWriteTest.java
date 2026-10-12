@@ -72,7 +72,7 @@ class CommentWriteTest {
 
     @Test
     void S1_2_로그인하지_않으면_401이고_댓글이_생기지_않는다() throws Exception {
-        mvc.perform(post("/api/posts/{id}/comments", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts/{id}/comments", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("body", "안녕하세요")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
@@ -81,7 +81,7 @@ class CommentWriteTest {
 
     @Test
     void CSRF_토큰이_없으면_거절한다() throws Exception {
-        mvc.perform(post("/api/posts/{id}/comments", postId).session(readerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts/{id}/comments", postId).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("body", "안녕하세요")))
                 .andExpect(status().isForbidden());
         assertThat(commentCount()).isZero();
@@ -110,7 +110,7 @@ class CommentWriteTest {
         MockHttpSession ownerSession = members.login(mvc, owner);
         write(ownerSession, "주인의 답").andExpect(status().isCreated());
 
-        mvc.perform(get("/api/posts/{id}/comments", postId))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(3))
                 .andExpect(jsonPath("$.comments[0].body").value("첫 댓글"))
@@ -118,14 +118,14 @@ class CommentWriteTest {
                 .andExpect(jsonPath("$.comments[2].body").value("주인의 답"))
                 .andExpect(jsonPath("$.comments[0].canDelete").value(false));
         // 작성자는 자기 댓글만, 블로그 주인은 모든 댓글을 지울 수 있다 (canDelete는 화면용 값)
-        mvc.perform(get("/api/posts/{id}/comments", postId).session(readerSession))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postId).session(readerSession))
                 .andExpect(jsonPath("$.comments[0].canDelete").value(true))
                 .andExpect(jsonPath("$.comments[2].canDelete").value(false));
-        mvc.perform(get("/api/posts/{id}/comments", postId).session(ownerSession))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postId).session(ownerSession))
                 .andExpect(jsonPath("$.comments[0].canDelete").value(true))
                 .andExpect(jsonPath("$.comments[1].canDelete").value(true));
         // 글 상세의 댓글 수 (contracts 7)
-        mvc.perform(get("/api/posts/{id}", postId))
+        mvc.perform(get("/api/v1/posts/{id}", postId))
                 .andExpect(jsonPath("$.commentCount").value(3))
                 .andExpect(jsonPath("$.likeCount").value(0))
                 .andExpect(jsonPath("$.likedByMe").value(false));
@@ -141,7 +141,7 @@ class CommentWriteTest {
                     .andExpect(jsonPath("$.fieldErrors[0].code").value("COMMENT_EMPTY"))
                     .andExpect(jsonPath("$.fieldErrors[0].message").value("※ 댓글 내용을 입력해 주세요"));
         }
-        mvc.perform(post("/api/posts/{id}/comments", postId).with(csrf()).session(readerSession)
+        mvc.perform(post("/api/v1/posts/{id}/comments", postId).with(csrf()).session(readerSession)
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(jsonPath("$.fieldErrors[0].code").value("COMMENT_EMPTY"));
         assertThat(commentCount()).isZero();
@@ -173,11 +173,11 @@ class CommentWriteTest {
         assertThat(hiddenBody).isEqualTo(missingBody).contains("POST_NOT_FOUND");
         // 형식이 틀린 내용을 보내도 볼 수 없는 글이면 404가 먼저다 (요청 검사 순서)
         write(readerSession, " ", hidden).andExpect(status().isNotFound());
-        mvc.perform(get("/api/posts/{id}/comments", hidden).session(readerSession)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/posts/{id}/comments", hidden).session(readerSession)).andExpect(status().isNotFound());
         // 주인은 자기 비공개 글에 댓글을 쓰고 읽는다
         MockHttpSession ownerSession = members.login(mvc, owner);
         write(ownerSession, "메모", hidden).andExpect(status().isCreated());
-        mvc.perform(get("/api/posts/{id}/comments", hidden).session(ownerSession)).andExpect(jsonPath("$.count").value(1));
+        mvc.perform(get("/api/v1/posts/{id}/comments", hidden).session(ownerSession)).andExpect(jsonPath("$.count").value(1));
     }
 
     @Test
@@ -187,7 +187,7 @@ class CommentWriteTest {
             write(readerSession, body).andExpect(status().isCreated()).andExpect(jsonPath("$.body").value(body));
             testComments.rewind(reader.id());
         }
-        mvc.perform(get("/api/posts/{id}/comments", postId))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postId))
                 .andExpect(jsonPath("$.count").value(3))
                 .andExpect(jsonPath("$.comments[2].body").value("' OR 1=1 --"))
                 .andExpect(jsonPath("$.comments[2].author.id").value(reader.id()));
@@ -198,7 +198,7 @@ class CommentWriteTest {
     void 탈퇴한_작성자는_번호와_닉네임_없이_withdrawn() throws Exception {
         write(readerSession, "남는 댓글").andExpect(status().isCreated());
         jdbc.update("update users set deleted_at = now(), nickname = ? where users_id = ?", "탈퇴한사용자" + reader.id(), reader.id());
-        mvc.perform(get("/api/posts/{id}/comments", postId))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postId))
                 .andExpect(jsonPath("$.comments[0].author.withdrawn").value(true))
                 .andExpect(jsonPath("$.comments[0].author.id").value(nullValue()))
                 .andExpect(jsonPath("$.comments[0].author.nickname").value(nullValue()));
@@ -209,7 +209,7 @@ class CommentWriteTest {
     }
 
     private ResultActions write(MockHttpSession session, String body, Long target) throws Exception {
-        return mvc.perform(post("/api/posts/{id}/comments", target).with(csrf()).session(session)
+        return mvc.perform(post("/api/v1/posts/{id}/comments", target).with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", body)));
     }
 

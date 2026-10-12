@@ -57,10 +57,10 @@ class CategoryColorTest {
     void 분류_목록_추가_고치기_응답에_색_번호가_있고_새_분류는_차례로_색을_받는다() throws Exception {
         add("여행").andExpect(status().isCreated()).andExpect(jsonPath("$.colorIndex").value(1));
         Long food = idOf(add("음식").andExpect(jsonPath("$.colorIndex").value(2)));
-        mvc.perform(patch("/api/me/blog/categories/{id}", food).with(csrf()).session(session)
+        mvc.perform(patch("/api/v1/me/blog/categories/{id}", food).with(csrf()).session(session)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", "맛집")))
                 .andExpect(jsonPath("$.colorIndex").value(2));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(session))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(session))
                 .andExpect(jsonPath("$.categories[0].colorIndex").value(0))
                 .andExpect(jsonPath("$.categories[1].colorIndex").value(1))
                 .andExpect(jsonPath("$.categories[2].colorIndex").value(2));
@@ -78,7 +78,7 @@ class CategoryColorTest {
     void S3_4_순서를_바꿔도_각_분류의_색은_그대로() throws Exception {
         Long travel = idOf(add("여행"));
         Long food = idOf(add("음식"));
-        mvc.perform(put("/api/me/blog/categories/order").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/v1/me/blog/categories/order").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"categoryIds\":[" + food + "," + owner.defaultCategoryId() + "," + travel + "]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories[0].categoryId").value(food))
@@ -92,7 +92,7 @@ class CategoryColorTest {
         Long secret = members.addCategory(owner.blogId(), "비밀", "private", 2);
         members.addPost(secret, "비공개 글", "private");
         members.addPost(secret, "공개 글", "public");
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(session))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(session))
                 .andExpect(jsonPath("$.categories[1].postCount").value(2))
                 .andExpect(jsonPath("$.categories[1].visibility").value("private"));
     }
@@ -102,18 +102,18 @@ class CategoryColorTest {
         Long travel = idOf(add("여행"));
         Member b = members.register("b");
         MockHttpSession bSession = members.login(mvc, b);
-        mvc.perform(patch("/api/me/blog/categories/{id}", travel).with(csrf()).session(bSession)
+        mvc.perform(patch("/api/v1/me/blog/categories/{id}", travel).with(csrf()).session(bSession)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("visibility", "private")))
                 .andExpect(status().isNotFound());
-        mvc.perform(delete("/api/me/blog/categories/{id}", travel).with(csrf()).session(bSession))
+        mvc.perform(delete("/api/v1/me/blog/categories/{id}", travel).with(csrf()).session(bSession))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(session))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(session))
                 .andExpect(jsonPath("$.categories[1].name").value("여행"))
                 .andExpect(jsonPath("$.categories[1].visibility").value("public"));
     }
 
     private ResultActions add(String name) throws Exception {
-        return mvc.perform(post("/api/me/blog/categories").with(csrf()).session(session)
+        return mvc.perform(post("/api/v1/me/blog/categories").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("name", name)));
     }
 

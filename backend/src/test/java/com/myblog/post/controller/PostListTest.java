@@ -68,7 +68,7 @@ class PostListTest {
 
     @Test
     void S1_1_2_최신_글이_맨_위이고_29개의_글_첫_페이지는_10개() throws Exception {
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.blogId").value(owner.blogId()))
                 .andExpect(jsonPath("$.isOwner").value(false))
@@ -92,7 +92,7 @@ class PostListTest {
         List<String> times = new ArrayList<>();
         List<Long> ids = new ArrayList<>();
         for (int page = 1; page <= 3; page++) {
-            String body = read("/api/blogs/" + owner.blogId() + "/posts?page=" + page);
+            String body = read("/api/v1/blogs/" + owner.blogId() + "/posts?page=" + page);
             List<String> pageTimes = JsonPath.read(body, "$.posts[*].createdAt");
             List<Number> pageIds = JsonPath.read(body, "$.posts[*].postId");
             assertThat(pageTimes).hasSizeLessThanOrEqualTo(10);
@@ -109,7 +109,7 @@ class PostListTest {
 
     @Test
     void S1_7_너무_큰_페이지는_마지막_페이지() throws Exception {
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).param("page", "99"))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).param("page", "99"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(3))
                 .andExpect(jsonPath("$.posts.length()").value(9));
@@ -118,7 +118,7 @@ class PostListTest {
     @Test
     void S9_2_1보다_작거나_숫자가_아닌_페이지는_1페이지이고_오류가_아니다() throws Exception {
         for (String page : new String[] {"0", "-1", "abc", "1 OR 1=1", "99999999999999999999"}) {
-            mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).param("page", page))
+            mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).param("page", page))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.page").value(page.startsWith("9") ? 3 : 1));
         }
@@ -126,7 +126,7 @@ class PostListTest {
 
     @Test
     void S1_8_9_긴_본문은_한_줄_100자와_말줄임표_짧은_본문은_그대로() throws Exception {
-        String body = read("/api/blogs/" + owner.blogId() + "/posts");
+        String body = read("/api/v1/blogs/" + owner.blogId() + "/posts");
         String longPreview = JsonPath.read(body, "$.posts[0].preview");
         assertThat(longPreview).doesNotContain("\n").endsWith("…");
         assertThat(longPreview.codePointCount(0, longPreview.length())).isEqualTo(101);
@@ -137,7 +137,7 @@ class PostListTest {
     @Test
     void 글이_0개면_1페이지뿐이고_오류가_아니다() throws Exception {
         Member empty = members.register("e");
-        mvc.perform(get("/api/blogs/{id}/posts", empty.blogId()).param("page", "5"))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", empty.blogId()).param("page", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0))
                 .andExpect(jsonPath("$.page").value(1))
@@ -147,10 +147,10 @@ class PostListTest {
 
     @Test
     void 없는_블로그는_404() throws Exception {
-        mvc.perform(get("/api/blogs/999999999/posts"))
+        mvc.perform(get("/api/v1/blogs/999999999/posts"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BLOG_NOT_FOUND"));
-        mvc.perform(get("/api/blogs/abc/posts")).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/blogs/abc/posts")).andExpect(status().isNotFound());
     }
 
     private String read(String url) throws Exception {

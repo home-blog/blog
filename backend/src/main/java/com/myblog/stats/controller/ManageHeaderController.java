@@ -29,7 +29,7 @@ public class ManageHeaderController {
         this.newCommentCounter = newCommentCounter;
     }
 
-    @GetMapping("/api/manage/blog")
+    @GetMapping("/api/{version}/manage/blog")
     public ManageHeader header(Authentication authentication) {
         Long memberId = loggedInMember.requireIdOf(authentication);
         BlogInfo blog = blogDirectory.myBlog(memberId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));

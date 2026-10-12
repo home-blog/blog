@@ -65,7 +65,7 @@ class ManageCommentListTest {
     @Test
     void S4_1_댓글이_없으면_빈_목록() throws Exception {
         members.addPost(owner.defaultCategoryId(), "글", "public");
-        mvc.perform(get("/api/manage/comments").session(session))
+        mvc.perform(get("/api/v1/manage/comments").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.totalCount").value(0));
@@ -79,12 +79,12 @@ class ManageCommentListTest {
         for (int i = 0; i < 11; i++) {
             ids.add(addComment(i % 2 == 0 ? first : second, reader.id(), "댓글" + i, BASE.plusSeconds(i * 60L)));
         }
-        String page1 = mvc.perform(get("/api/manage/comments").session(session))
+        String page1 = mvc.perform(get("/api/v1/manage/comments").session(session))
                 .andExpect(jsonPath("$.items", hasSize(10)))
                 .andExpect(jsonPath("$.totalCount").value(11))
                 .andExpect(jsonPath("$.pageSize").value(10))
                 .andReturn().getResponse().getContentAsString();
-        String page2 = mvc.perform(get("/api/manage/comments").param("page", "2").session(session))
+        String page2 = mvc.perform(get("/api/v1/manage/comments").param("page", "2").session(session))
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andReturn().getResponse().getContentAsString();
         List<Long> seen = new ArrayList<>(commentIds(page1));
@@ -97,7 +97,7 @@ class ManageCommentListTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "여행 글", "public");
         String body = "😀".repeat(10) + "가".repeat(50);
         addComment(postId, reader.id(), body, BASE);
-        mvc.perform(get("/api/manage/comments").session(session))
+        mvc.perform(get("/api/v1/manage/comments").session(session))
                 .andExpect(jsonPath("$.items[0].author.nickname").value(reader.user().getNickname()))
                 .andExpect(jsonPath("$.items[0].author.withdrawn").value(false))
                 .andExpect(jsonPath("$.items[0].createdAt").value("2026-09-01T00:00:00Z"))
@@ -112,7 +112,7 @@ class ManageCommentListTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public");
         addComment(postId, reader.id(), "탈퇴 전에 쓴 댓글", BASE);
         jdbc.update("update users set deleted_at = now(), nickname = '탈퇴한사용자' || users_id where users_id = ?", reader.id());
-        mvc.perform(get("/api/manage/comments").session(session))
+        mvc.perform(get("/api/v1/manage/comments").session(session))
                 .andExpect(jsonPath("$.items[0].author.withdrawn").value(true))
                 .andExpect(jsonPath("$.items[0].author.nickname").doesNotExist());
     }
@@ -121,15 +121,15 @@ class ManageCommentListTest {
     void S4_6_주인은_남의_댓글을_005의_주소로_지운다() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public");
         Long commentId = addComment(postId, reader.id(), "지울 댓글", BASE);
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(session)).andExpect(status().isNoContent());
-        mvc.perform(get("/api/manage/comments").session(session)).andExpect(jsonPath("$.items", hasSize(0)));
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(session)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/manage/comments").session(session)).andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test
     void S4_7_스크립트가_든_댓글은_글자_그대로() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public");
         addComment(postId, reader.id(), "<script>alert(1)</script>", BASE);
-        mvc.perform(get("/api/manage/comments").session(session))
+        mvc.perform(get("/api/v1/manage/comments").session(session))
                 .andExpect(jsonPath("$.items[0].preview").value("<script>alert(1)</script>"));
     }
 
@@ -138,7 +138,7 @@ class ManageCommentListTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "A의 글", "public");
         addComment(postId, reader.id(), "A 글의 댓글", BASE);
         MockHttpSession readerSession = members.login(mvc, reader);
-        mvc.perform(get("/api/manage/comments").session(readerSession))
+        mvc.perform(get("/api/v1/manage/comments").session(readerSession))
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.totalCount").value(0));
     }
@@ -147,13 +147,13 @@ class ManageCommentListTest {
     void 쪽_번호와_newSince가_틀리면_400이고_로그인하지_않으면_401() throws Exception {
         for (String[] query : List.of(new String[] {"page", "0"}, new String[] {"page", "-1"}, new String[] {"page", "abc"},
                 new String[] {"newSince", "어제"}, new String[] {"newSince", "' OR 1=1 --"})) {
-            mvc.perform(get("/api/manage/comments").param(query[0], query[1]).session(session))
+            mvc.perform(get("/api/v1/manage/comments").param(query[0], query[1]).session(session))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
         }
-        mvc.perform(get("/api/manage/comments")).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/manage/comments/read").with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/manage/comments/new-count")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/manage/comments")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/manage/comments/read").with(csrf())).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/manage/comments/new-count")).andExpect(status().isUnauthorized());
     }
 
     private Long addComment(Long postId, Long memberId, String body, Instant createdAt) {

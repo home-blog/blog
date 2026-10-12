@@ -70,7 +70,7 @@ class ManagePostListTest {
 
     @Test
     void S2_1_글이_없으면_빈_목록이고_hasAnyPost가_거짓() throws Exception {
-        mvc.perform(get("/api/manage/posts").session(session))
+        mvc.perform(get("/api/v1/manage/posts").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.totalCount").value(0))
@@ -80,7 +80,7 @@ class ManagePostListTest {
     @Test
     void S2_2_공개_6_비공개_5면_1쪽_10개_2쪽_1개이고_빠짐도_겹침도_없다() throws Exception {
         List<Long> ids = addMixed(6, 5);
-        String first = mvc.perform(get("/api/manage/posts").session(session))
+        String first = mvc.perform(get("/api/v1/manage/posts").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(10)))
                 .andExpect(jsonPath("$.page").value(1))
@@ -88,7 +88,7 @@ class ManagePostListTest {
                 .andExpect(jsonPath("$.totalCount").value(11))
                 .andExpect(jsonPath("$.hasAnyPost").value(true))
                 .andReturn().getResponse().getContentAsString();
-        String second = mvc.perform(get("/api/manage/posts").param("page", "2").session(session))
+        String second = mvc.perform(get("/api/v1/manage/posts").param("page", "2").session(session))
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andReturn().getResponse().getContentAsString();
 
@@ -103,7 +103,7 @@ class ManagePostListTest {
         Instant same = BASE.plus(1, ChronoUnit.DAYS);
         Long older = members.addPost(owner.defaultCategoryId(), "먼저", "public", same);
         Long newer = members.addPost(owner.defaultCategoryId(), "나중", "public", same);
-        String body = mvc.perform(get("/api/manage/posts").session(session)).andReturn().getResponse().getContentAsString();
+        String body = mvc.perform(get("/api/v1/manage/posts").session(session)).andReturn().getResponse().getContentAsString();
         assertThat(postIds(body)).containsExactly(newer, older);
     }
 
@@ -116,13 +116,13 @@ class ManagePostListTest {
         Long commented = members.addPost(owner.defaultCategoryId(), "댓글 달린 글", "public", BASE.plusSeconds(60));
         MockHttpSession readerSession = members.login(mvc, reader);
         for (int i = 0; i < 2; i++) {
-            mvc.perform(post("/api/posts/{id}/comments", commented).with(csrf()).session(readerSession)
+            mvc.perform(post("/api/v1/posts/{id}/comments", commented).with(csrf()).session(readerSession)
                             .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "댓글" + i)))
                     .andExpect(status().isCreated());
             jdbc.update("update comment set created_at = created_at - interval '1 minute' where users_id = ?", reader.id());
         }
 
-        mvc.perform(get("/api/manage/posts").session(session))
+        mvc.perform(get("/api/v1/manage/posts").session(session))
                 .andExpect(jsonPath("$.items[0].postId").value(commented))
                 .andExpect(jsonPath("$.items[0].commentCount").value(2))
                 .andExpect(jsonPath("$.items[1].postId").value(postId))
@@ -138,12 +138,12 @@ class ManagePostListTest {
     @Test
     void S2_4_공개여부로_거르면_11_6_5() throws Exception {
         addMixed(6, 5);
-        mvc.perform(get("/api/manage/posts").param("visibility", "all").session(session))
+        mvc.perform(get("/api/v1/manage/posts").param("visibility", "all").session(session))
                 .andExpect(jsonPath("$.totalCount").value(11));
-        mvc.perform(get("/api/manage/posts").param("visibility", "public").session(session))
+        mvc.perform(get("/api/v1/manage/posts").param("visibility", "public").session(session))
                 .andExpect(jsonPath("$.totalCount").value(6))
                 .andExpect(jsonPath("$.items[*].visibility", everyIs("public")));
-        mvc.perform(get("/api/manage/posts").param("visibility", "private").session(session))
+        mvc.perform(get("/api/v1/manage/posts").param("visibility", "private").session(session))
                 .andExpect(jsonPath("$.totalCount").value(5))
                 .andExpect(jsonPath("$.items[*].visibility", everyIs("private")));
     }
@@ -155,14 +155,14 @@ class ManagePostListTest {
         members.addPost(daily, "일상 공개", "public", BASE.plusSeconds(1));
         members.addPost(owner.defaultCategoryId(), "미분류 비공개", "private", BASE.plusSeconds(2));
 
-        String body = mvc.perform(get("/api/manage/posts").param("categoryId", daily.toString())
+        String body = mvc.perform(get("/api/v1/manage/posts").param("categoryId", daily.toString())
                         .param("visibility", "private").session(session))
                 .andExpect(jsonPath("$.totalCount").value(1))
                 .andReturn().getResponse().getContentAsString();
         assertThat(postIds(body)).containsExactly(match);
 
         Long empty = members.addCategory(owner.blogId(), "빈 분류", "public", 3);
-        mvc.perform(get("/api/manage/posts").param("categoryId", empty.toString()).session(session))
+        mvc.perform(get("/api/v1/manage/posts").param("categoryId", empty.toString()).session(session))
                 .andExpect(jsonPath("$.items", hasSize(0)))
                 .andExpect(jsonPath("$.hasAnyPost").value(true));
     }
@@ -171,7 +171,7 @@ class ManagePostListTest {
     void 비공개_분류의_글도_주인에게는_나온다() throws Exception {
         Long secret = members.addCategory(owner.blogId(), "비밀", "private", 2);
         Long postId = members.addPost(secret, "비밀 분류의 공개 글", "public", BASE);
-        String body = mvc.perform(get("/api/manage/posts").session(session)).andReturn().getResponse().getContentAsString();
+        String body = mvc.perform(get("/api/v1/manage/posts").session(session)).andReturn().getResponse().getContentAsString();
         assertThat(postIds(body)).containsExactly(postId);
     }
 
@@ -180,7 +180,7 @@ class ManagePostListTest {
         for (String[] query : List.of(new String[] {"visibility", "abc"}, new String[] {"page", "-1"},
                 new String[] {"page", "0"}, new String[] {"page", "abc"}, new String[] {"categoryId", "' OR 1=1 --"},
                 new String[] {"visibility", "' OR 1=1 --"})) {
-            String body = mvc.perform(get("/api/manage/posts").param(query[0], query[1]).session(session))
+            String body = mvc.perform(get("/api/v1/manage/posts").param(query[0], query[1]).session(session))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                     .andReturn().getResponse().getContentAsString();
@@ -199,7 +199,7 @@ class ManagePostListTest {
     void 남의_분류_번호로_거르면_없는_분류와_같은_404() throws Exception {
         Member other = members.register("x");
         members.addPost(other.defaultCategoryId(), "남의 글", "public", BASE);
-        mvc.perform(get("/api/manage/posts").param("categoryId", other.defaultCategoryId().toString()).session(session))
+        mvc.perform(get("/api/v1/manage/posts").param("categoryId", other.defaultCategoryId().toString()).session(session))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("CATEGORY_NOT_FOUND"));
     }
@@ -210,7 +210,7 @@ class ManagePostListTest {
         Member b = members.register("b");
         Long bPost = members.addPost(b.defaultCategoryId(), "B의 글", "private", BASE);
         MockHttpSession bSession = members.login(mvc, b);
-        String body = mvc.perform(get("/api/manage/posts").session(bSession))
+        String body = mvc.perform(get("/api/v1/manage/posts").session(bSession))
                 .andExpect(jsonPath("$.totalCount").value(1))
                 .andReturn().getResponse().getContentAsString();
         assertThat(postIds(body)).containsExactly(bPost);
@@ -218,7 +218,7 @@ class ManagePostListTest {
 
     @Test
     void 로그인하지_않으면_401() throws Exception {
-        mvc.perform(get("/api/manage/posts")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/manage/posts")).andExpect(status().isUnauthorized());
     }
 
     /** 공개 글 publicCount개, 이어서 비공개 글 privateCount개를 1분 간격으로 쓴다. 쓴 순서대로 번호를 돌려준다. */

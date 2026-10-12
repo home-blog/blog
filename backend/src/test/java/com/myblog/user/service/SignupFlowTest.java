@@ -268,7 +268,7 @@ class SignupFlowTest {
     }
 
     private ResultActions sendCode(String nick, String mailAddress) throws Exception {
-        return mvc.perform(post("/api/auth/email-verifications").with(csrf())
+        return mvc.perform(post("/api/v1/auth/email-verifications").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("nickname", nick, "email", mailAddress))));
     }
 
@@ -281,18 +281,18 @@ class SignupFlowTest {
     }
 
     private ResultActions confirm(String mailAddress, String code, String token) throws Exception {
-        return mvc.perform(post("/api/auth/email-verifications/confirm").with(csrf())
+        return mvc.perform(post("/api/v1/auth/email-verifications/confirm").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of("email", mailAddress, "code", code, "verificationToken", token))));
     }
 
     private ResultActions cancel(String mailAddress, String token) throws Exception {
-        return mvc.perform(post("/api/auth/email-verifications/cancel").with(csrf())
+        return mvc.perform(post("/api/v1/auth/email-verifications/cancel").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(json(Map.of("email", mailAddress, "verificationToken", token))));
     }
 
     private ResultActions signup(String nick, String mailAddress, String password, String confirm, String token) throws Exception {
-        return mvc.perform(post("/api/auth/signup").with(csrf())
+        return mvc.perform(post("/api/v1/auth/signup").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json(Map.of("nickname", nick, "email", mailAddress, "password", password,
                         "passwordConfirm", confirm, "verificationToken", token))));

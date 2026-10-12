@@ -1,6 +1,6 @@
 # 실습 서버에 올리기
 
-`main`에 코드가 합쳐지고 CI가 통과하면 **GitHub Actions(`.github/workflows/deploy.yml`)가 알아서 배포한다.** 서버에 들어가 있을 필요가 없다.
+**릴리스를 낼 때**(Actions → `배포`에 릴리스 번호를 넣어 손으로 돌리거나, GitHub에서 릴리스를 직접 내면) **GitHub Actions(`.github/workflows/deploy.yml`)가 배포한다.** `main`에 합친다고 바로 배포되지는 않는다(아래 `릴리스로`). 서버에 들어가 있을 필요가 없다.
 
 1. Actions가 서버·화면 Docker 이미지를 만든다.
 2. SSH로 실습 서버에 접속해 이미지와 배포 파일을 `~/geulgyeol/`에 올린다. 접속 정보는 GitHub Secrets에서 읽는다.
@@ -43,7 +43,13 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
 
 ## 배포하기
 
-- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 화면을 확인한 뒤 GitHub에서 릴리스(태그 `v0.2.0`처럼, 대상 `main`)를 내면 그 버전이 배포된다. 미리보기(pre-release)로 낸 릴리스는 배포하지 않는다. 진행은 Actions 탭 → `배포`에서 본다.
+- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 릴리스를 낼 때 그 버전이 배포된다. **로컬에서 어느 정도 해 두고 → 버전을 올려 → 배포** (2026-10-12 사용자): 쓸 만한 묶음이 되면 화면을 확인하고 "배포해줘" 뒤에 낸다. 기능이 있으면 가운데 숫자(0.5.0), 버그 수정만이면 끝 숫자(0.4.1). 서비스가 멈추는 급한 버그만 따로 바로 낸다.
+- **릴리스 내는 순서** (맨 위 [`CHANGELOG.md`](../CHANGELOG.md)가 기록의 원본):
+  1. PR마다 `CHANGELOG.md`의 다음 번호 절(`## [0.5.0] - 준비 중`)에 화면·API·운영으로 나눠 쌓고(낼 때 날짜를 적는다), API가 바뀌었으면 주소 버전(v1 그대로인지, v2를 열었는지)도 적는다.
+  2. `backend/pom.xml`의 `<version>`, `frontend/package.json`(그리고 `package-lock.json` 맨 위)의 `version`을 같은 번호로 맞춘다.
+  3. "배포해줘"를 받으면 Actions → `배포` → Run workflow(브랜치 `main`)에 번호를 넣는다. 확인 → 배포 → 성공하면 태그 `v<번호>`와 GitHub 릴리스를 `CHANGELOG.md`의 그 절로 만든다.
+  4. 번호와 `pom.xml`·`package.json`·`package-lock.json`의 버전, `CHANGELOG.md`의 절이 다르거나 같은 태그가 이미 있으면 배포 전에 멈춘다.
+  - GitHub 화면에서 직접 릴리스(태그 `v<번호>`, 대상 `main`)를 내도 같은 확인을 거쳐 배포된다. 미리보기(pre-release)는 배포하지 않는다. **지난 버전을 기록용으로 새로 낼 때는 미리보기로** 낸다(옛 커밋에는 이 확인이 없어 그대로 배포된다).
 - **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 
 ## 서버에서 볼 때 (SSH 접속 후)

@@ -52,7 +52,7 @@ class BlogReadTest {
 
     @Test
     void S1_2_내_블로그는_닉네임의_블로그이고_소개는_비어_있다() throws Exception {
-        mvc.perform(get("/api/me/blog").session(ownerSession))
+        mvc.perform(get("/api/v1/me/blog").session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.blogId").value(owner.blogId()))
                 .andExpect(jsonPath("$.name").value(owner.user().getNickname() + "의 블로그"))
@@ -61,7 +61,7 @@ class BlogReadTest {
 
     @Test
     void S1_3_분류는_미분류_하나이고_기본_분류다() throws Exception {
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories.length()").value(1))
                 .andExpect(jsonPath("$.categories[0].name").value("미분류"))
@@ -78,36 +78,36 @@ class BlogReadTest {
 
     @Test
     void 로그인하지_않아도_블로그와_분류를_본다_주인이_아니다() throws Exception {
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(owner.user().getNickname() + "의 블로그"))
                 .andExpect(jsonPath("$.intro").value(""))
                 .andExpect(jsonPath("$.isOwner").value(false));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories[0].name").value("미분류"));
     }
 
     @Test
     void 주인이_보면_isOwner가_참이다() throws Exception {
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(ownerSession))
                 .andExpect(jsonPath("$.isOwner").value(true));
     }
 
     @Test
     void 없는_블로그는_404() throws Exception {
-        mvc.perform(get("/api/blogs/999999999"))
+        mvc.perform(get("/api/v1/blogs/999999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BLOG_NOT_FOUND"));
-        mvc.perform(get("/api/blogs/999999999/categories"))
+        mvc.perform(get("/api/v1/blogs/999999999/categories"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BLOG_NOT_FOUND"));
-        mvc.perform(get("/api/blogs/abc")).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/blogs/abc")).andExpect(status().isNotFound());
     }
 
     @Test
     void 로그인하지_않으면_내_블로그는_401() throws Exception {
-        mvc.perform(get("/api/me/blog"))
+        mvc.perform(get("/api/v1/me/blog"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
@@ -121,7 +121,7 @@ class BlogReadTest {
         members.addPost(daily, "공개", "public");
         members.addPost(secret, "비밀 분류의 공개 글", "public");
 
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(ownerSession))
                 .andExpect(jsonPath("$.categories.length()").value(3))
                 .andExpect(jsonPath("$.categories[0].categoryId").value(secret))
                 .andExpect(jsonPath("$.categories[0].visibility").value("private"))
@@ -131,7 +131,7 @@ class BlogReadTest {
 
         Member visitor = members.register("v");
         for (MockHttpSession session : new MockHttpSession[] {members.login(mvc, visitor), new MockHttpSession()}) {
-            mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(session))
+            mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(session))
                     .andExpect(jsonPath("$.categories.length()").value(2))
                     .andExpect(jsonPath("$.categories[0].name").value("미분류"))
                     .andExpect(jsonPath("$.categories[0].postCount").value(1))
@@ -143,9 +143,9 @@ class BlogReadTest {
     @Test
     void 탈퇴한_회원의_세션은_방문자로_본다() throws Exception {
         jdbc.update("update users set deleted_at = now() where users_id = ?", owner.id());
-        mvc.perform(get("/api/blogs/{id}", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}", owner.blogId()).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOwner").value(false));
-        mvc.perform(get("/api/me/blog").session(ownerSession)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/me/blog").session(ownerSession)).andExpect(status().isUnauthorized());
     }
 }
