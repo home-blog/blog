@@ -1,6 +1,6 @@
 # 실습 서버 배포: Docker 이미지를 만들어 SSH로 서버에 올리고 deploy/remote-deploy.sh로 켠다.
 # main에 합친다고 바로 배포하지 않는다. 화면을 눈으로 확인한 뒤 릴리스(버전 태그 v0.2.0 등)를 내면 그 버전을 배포한다 (2026-10-12 사용자).
-# 같은 버전을 다시 올리기: Actions → 배포 → Run workflow (main의 지금 코드)
+# 손으로 올리기: Actions → 배포 → Run workflow. 이때는 릴리스가 아니라 main의 지금 코드를 올린다 (설정·Secrets만 바꿨을 때)
 #
 # 준비 (Repository secrets): SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD (실습 서버 접속)
 #                            SSH_KNOWN_HOSTS (서버 지문. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과. 없으면 배포를 멈춘다)
@@ -41,6 +41,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}   # 릴리스면 그 태그의 커밋, 손으로 돌리면 main의 마지막 커밋
+          fetch-depth: 0            # 아래에서 릴리스 커밋이 main에 있는지 확인한다
+
+      - name: 릴리스가 main의 커밋인지 확인
+        if: github.event_name == 'release'
+        run: |
+          # main에 합쳐지지 않은 커밋에 태그를 붙여 릴리스를 내도 배포하지 않는다
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::릴리스 태그(${GITHUB_REF_NAME})가 main에 없는 커밋을 가리킵니다. main의 커밋으로 릴리스를 내 주세요"
+            exit 1
+          fi
 
       - name: 이미지 만들기
         env:

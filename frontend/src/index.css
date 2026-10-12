@@ -98,6 +98,16 @@ body {
     animation: none !important;
     transition: none !important;
   }
+
+  /* 마우스를 올리거나 누를 때 움직이는 것(떠오르기·돌기·눌림)도 끈다. 색·테두리·형광펜은 그대로 */
+  :is(.card, .theme-toggle, .header-write, .topic-tab, .user-menu-item, .popular-rank, .md-tool):is(
+      :hover,
+      :focus-within,
+      :active
+    ),
+  .popular-item:hover .popular-rank {
+    transform: none !important;
+  }
 }
 
 .visually-hidden {

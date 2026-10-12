@@ -5,18 +5,22 @@ const CHARS_PER_SHEET = 200
 const CHARS_PER_MINUTE = 500
 
 function plainText(markdown: string): string {
-  return markdown
-    .replace(/^\s*(```|~~~).*$/gm, '')
-    .replace(/!\[([^\]]*)]\([^)]*\)/g, '$1')
-    .replace(/\[([^\]]*)]\([^)]*\)/g, '$1')
-    .replace(/^\s*([-*_]\s*){3,}$/gm, '')
-    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-    .replace(/^\s{0,3}(>\s?)+/gm, '')
-    .replace(/^\s*([-*+]|\d+[.)])\s+(\[[ xX]]\s+)?/gm, '')
-    .replace(/(\*{1,3}|~~)(?=\S)(.+?)(?<=\S)\1/g, '$2')
-    .replace(/`+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return (
+    markdown
+      .replace(/^\s*(```|~~~).*$/gm, '')
+      .replace(/!\[([^\]]*)]\([^)]*\)/g, '$1')
+      .replace(/\[([^\]]*)]\([^)]*\)/g, '$1')
+      .replace(/^\s*([-*_]\s*){3,}$/gm, '')
+      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+      .replace(/^\s{0,3}(>\s?)+/gm, '')
+      .replace(/^\s*([-*+]|\d+[.)])\s+(\[[ xX]]\s+)?/gm, '')
+      .replace(/(\*{1,3}|~~)(?=\S)(.+?)(?<=\S)\1/g, '$2')
+      // 밑줄 강조(_기울임_)는 단어 안(snake_case)이 아닐 때만 (서버 UNDERSCORE_EMPHASIS와 같다)
+      .replace(/(?<![\p{L}\p{N}])(_{1,3})(?=\S)(.+?)(?<=\S)\1(?![\p{L}\p{N}])/gu, '$2')
+      .replace(/`+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
 }
 
 export interface Manuscript {

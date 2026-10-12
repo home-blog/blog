@@ -57,6 +57,7 @@ export default function UserMenu({ nickname, newCommentCount, onLogout }: Props)
         ref={button}
         type="button"
         className="user-menu-button"
+        aria-label={`${nickname}님의 메뉴`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
@@ -99,7 +100,8 @@ export default function UserMenu({ nickname, newCommentCount, onLogout }: Props)
             role="menuitem"
             className="user-menu-item is-quiet"
             onClick={() => {
-              close(false)
+              // 로그아웃이 실패하면 다시 누를 수 있게 메뉴 버튼으로 돌아간다
+              close()
               onLogout()
             }}
           >
