@@ -16,7 +16,9 @@
 
 ## 실습 서버에 넣기
 
-배포(GitHub Actions)가 끝나면 이 폴더가 서버의 `~/geulgyeol/deploy/seed/`에 올라가 있다. SSH로 들어가서:
+**GitHub에서**: Actions → `예시 데이터` → Run workflow → `add`(넣기) 또는 `remove`(지우기). 배포가 한 번은 끝나 있어야 한다.
+
+**서버에서 직접**: 배포(GitHub Actions)가 끝나면 이 폴더가 서버의 `~/geulgyeol/deploy/seed/`에 올라가 있다. SSH로 들어가서:
 
 ```bash
 bash ~/geulgyeol/deploy/seed/run.sh add      # 넣기

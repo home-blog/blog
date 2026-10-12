@@ -13,7 +13,7 @@ public interface VerificationMailSender {
     /** 메일 본문. 서비스 이름, 인증번호, 유효 시간, 본인이 요청하지 않았을 때의 안내를 넣는다 (research B-9). */
     static String body(String code, Duration validFor) {
         return """
-                MyBlog 이메일 인증번호입니다.
+                글결 이메일 인증번호입니다.
 
                 인증번호: %s
 
@@ -22,5 +22,5 @@ public interface VerificationMailSender {
                 """.formatted(code, validFor.toMinutes());
     }
 
-    String SUBJECT = "[MyBlog] 이메일 인증번호";
+    String SUBJECT = "[글결] 이메일 인증번호";
 }

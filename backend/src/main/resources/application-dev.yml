@@ -5,7 +5,9 @@
 # 처음이면 cp .env.example .env. 내 메일함으로 실제 인증 메일을 받으려면 .env의 MAIL_* 값을 채운다 (적는 법은 .env.example).
 spring:
   config:
-    import: optional:file:../.env[.properties]   # 서버는 backend 폴더에서 실행한다 (mvn, IntelliJ 실행 설정 모두)
+    # 맨 위 .env는 backend 폴더에서 실행하면(mvn, IntelliJ 실행 설정) ../.env, 저장소 맨 위에서 실행하면 ./.env다.
+    # 실행 위치가 달라도 읽도록 둘 다 본다
+    import: optional:file:./.env[.properties],optional:file:../.env[.properties]
 
 myblog:
   mail:
