@@ -1,10 +1,11 @@
-// 마이페이지 (specs/002 US1, T017): 내 정보 보기, 내 정보 수정, 비밀번호 변경·탈퇴로 가는 길
+// 마이페이지 (specs/002 US1, T017): 내 정보 보기, 내 정보 수정, 비밀번호 변경·탈퇴로 가는 길. 연결된 계정 (specs/010 US4)
 // 주소에 회원 번호가 없다. 서버가 세션의 회원만 돌려준다 (FR-002)
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { getAccount, type Account } from '../account/accountApi'
 import ProfileForm from '../account/ProfileForm'
+import SocialAccountsCard from '../account/SocialAccountsCard'
 import './auth-layout.css'
 import './mypage.css'
 
@@ -82,6 +83,8 @@ export default function MyPage() {
           onSaved={(nickname, intro) => setAccount({ ...account, nickname, intro })}
         />
       </section>
+
+      <SocialAccountsCard />
 
       <section className="mypage-card" aria-labelledby="security-title">
         <h2 id="security-title" className="mypage-card-title">계정</h2>

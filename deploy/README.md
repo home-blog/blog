@@ -21,6 +21,16 @@
 | `SSH_KNOWN_HOSTS` | 서버 지문. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다. 아래 "서버 지문 넣기"대로 **확인한 지문만** 넣는다 | 꼭 |
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
+| `SOCIAL_GITHUB_CLIENT_ID`, `SOCIAL_GITHUB_CLIENT_SECRET` (GOOGLE, KAKAO, NAVER도 같은 모양) | 소셜 로그인 앱 열쇠 (아래 "소셜 로그인 앱 등록") | 없는 회사는 버튼이 안 보인다 |
+
+**소셜 로그인 앱 등록** (specs/010). 회사마다 개발자 사이트에 앱을 만들고, 받은 Client ID·Secret을 위 Secrets(배포)와 저장소 맨 위 `.env`(로컬)에 넣는다. 콜백(Redirect) 주소는 로컬 `http://localhost:5173/login/oauth2/code/{회사}`, 배포 `http://<내 도메인>/login/oauth2/code/{회사}` (HTTPS가 붙으면 `https://`로 바꾼다).
+
+| 회사 | 어디서 | 주의 |
+|---|---|---|
+| GitHub (`github`) | Settings → Developer settings → OAuth Apps → New OAuth App | 콜백 주소를 하나만 받는다: 로컬용·배포용 앱을 따로 만든다 |
+| Google (`google`) | Google Cloud Console → API 및 서비스 → OAuth 동의 화면, 사용자 인증 정보 → OAuth 클라이언트 ID(웹 애플리케이션) | 배포 주소는 HTTPS가 붙은 뒤에 넣을 수 있다. 로컬(localhost)은 지금도 된다 |
+| 카카오 (`kakao`) | Kakao Developers → 내 애플리케이션 → 카카오 로그인 켜기, Redirect URI, 보안 → Client Secret 켜기 | 동의 항목에 닉네임. 이메일은 비즈 앱이어야 받을 수 있고, 없으면 가입할 때 이메일 인증번호로 받는다. REST API 키가 Client ID |
+| 네이버 (`naver`) | Naver Developers → 애플리케이션 등록 → 네이버 로그인, 이메일·별명, 서비스 URL과 Callback URL | 검수 전에는 등록한 아이디만 로그인된다 |
 
 **서버 지문 넣기**: `ssh-keyscan`은 받은 지문이 진짜인지 확인해 주지 않는다. 그래서 다른 길로 확인한 지문과 맞춰 본 뒤에 넣는다.
 

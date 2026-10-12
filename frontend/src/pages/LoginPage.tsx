@@ -1,6 +1,8 @@
-// 로그인 화면 (specs/001 US2·US3, T030, T033)
-import { Link, useLocation, useNavigate } from 'react-router'
+// 로그인 화면 (specs/001 US2·US3, T030, T033). 소셜 로그인 버튼 (specs/010)
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import LoginForm from '../auth/LoginForm'
+import SocialButtons from '../auth/SocialButtons'
+import { socialErrorMessage } from '../auth/socialApi'
 import ManuscriptSheet from './ManuscriptSheet'
 import './auth-layout.css'
 
@@ -20,6 +22,9 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as LocationState | null
+  // 소셜 로그인을 마치지 못하고 돌아왔을 때 (specs/010 US1-4)
+  const [params] = useSearchParams()
+  const socialError = socialErrorMessage(params.get('socialError'))
 
   return (
     <div className="auth-layout">
@@ -28,13 +33,22 @@ export default function LoginPage() {
       </section>
 
       <section className="auth-form-wrap" aria-labelledby="login-title">
-        <h1 id="login-title" className="auth-title">로그인</h1>
-        {state?.signedUp ? (
-          <p className="auth-lead msg-ok" role="status">가입이 완료되었습니다. 로그인해 주세요</p>
+        <h1 id="login-title" className="auth-title">
+          로그인
+        </h1>
+        {socialError ? (
+          <p className="auth-lead msg msg-error" role="alert">
+            {socialError}
+          </p>
+        ) : state?.signedUp ? (
+          <p className="auth-lead msg-ok" role="status">
+            가입이 완료되었습니다. 로그인해 주세요
+          </p>
         ) : (
           <p className="auth-lead">가입한 이메일과 비밀번호로 로그인합니다.</p>
         )}
         <LoginForm idPrefix="login" onLoggedIn={() => navigate(destination(state), { replace: true })} />
+        <SocialButtons />
         <p className="auth-switch">
           아직 회원이 아니라면 <Link to="/signup">회원 가입</Link>
         </p>

@@ -14,6 +14,23 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.5.0] - 준비 중
+
+### 화면
+- 소셜 로그인: 로그인·회원 가입 화면에 GitHub·Google·카카오·네이버로 계속하기 버튼 (서버에 열쇠가 들어 있는 회사만 보임)
+- 소셜 가입 화면(`/signup/social`): 회사가 확인한 이메일이면 닉네임만 정하고 바로 로그인, 아니면 이메일 인증 뒤 가입
+- 마이페이지 "연결된 계정": 회사별 연결하기·연결 해제. 소셜로만 가입한 회원은 "비밀번호 만들기", 탈퇴는 동의만
+
+### API (v1 그대로, 깨지지 않는 변경)
+- 새 주소: `GET /api/v1/auth/social/providers`, `GET·DELETE /api/v1/auth/social/pending`, `POST /api/v1/auth/social/signup`, `GET /api/v1/account/social`, `POST /api/v1/account/social/{회사}/link`, `DELETE /api/v1/account/social/{회사}`
+- 회사 화면 오가기: `/oauth2/authorization/{회사}` → `/login/oauth2/code/{회사}` (API가 아닌 브라우저 이동)
+- `POST /api/v1/account/password`: 비밀번호가 없는 회원은 `currentPassword` 없이 보낸다(비밀번호 만들기). `POST /api/v1/account/withdrawal`: 비밀번호가 없는 회원은 `password` 없이 보낸다
+- 새 오류 코드: `SOCIAL_PENDING_NOT_FOUND`, `SOCIAL_PROVIDER_UNKNOWN`, `SOCIAL_ACCOUNT_IN_USE`, `SOCIAL_ALREADY_LINKED`, `SOCIAL_NOT_LINKED`, `LAST_LOGIN_METHOD`
+
+### 운영
+- 표 변경 V10: `user_social_account`(회원과 소셜 계정 연결), `users.password` 비울 수 있음. 회사 토큰은 저장하지 않는다
+- 새 환경 변수(GitHub Secrets): `SOCIAL_{GITHUB|GOOGLE|KAKAO|NAVER}_CLIENT_ID`, `..._CLIENT_SECRET`. 비어 있는 회사는 버튼이 보이지 않는다. 앱 등록 순서는 `deploy/README.md`
+
 ## [0.4.0] - 2026-10-12
 
 ### 화면

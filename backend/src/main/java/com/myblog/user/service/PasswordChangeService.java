@@ -38,6 +38,13 @@ public class PasswordChangeService {
 
     /** keepSessionId: 지금 기기의 세션. 이 세션만 로그인이 유지된다 (FR-020). */
     public void change(User member, String current, String newPassword, String keepSessionId) {
+        if (member.getPasswordHash() == null) {
+            create(member, newPassword, keepSessionId);
+            return;
+        }
+        if (current == null || current.isBlank()) {
+            throw required();
+        }
         currentPassword.check(member.getEmail(), current, "currentPassword");
         if (newPassword.equals(current)) {
             ErrorCode code = ErrorCode.PASSWORD_SAME_AS_CURRENT;
@@ -55,6 +62,30 @@ public class PasswordChangeService {
             locked.changePasswordHash(hash);
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
+    }
+
+    /**
+     * 비밀번호 만들기 (specs/010 US4-4, D-4): 소셜로만 가입해 비밀번호가 없는 회원. 세션이 본인 확인이라 현재 비밀번호를 묻지 않는다.
+     * 그사이 다른 기기에서 먼저 만들었으면 덮어쓰지 않고 현재 비밀번호를 입력하게 한다.
+     */
+    private void create(User member, String newPassword, String keepSessionId) {
+        String hash = passwordEncoder.encode(newPassword);
+        transaction.executeWithoutResult(status -> {
+            User locked = users.findActiveByIdForUpdate(member.getId())
+                    .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+            if (locked.getPasswordHash() != null) {
+                throw required();
+            }
+            locked.changePasswordHash(hash);
+        });
+        memberSessions.expireOthers(member.getId(), keepSessionId);
+    }
+
+    /** 칸 오류 모양은 @Valid와 같다 (VALIDATION_FAILED + 칸). */
+    private static ApiException required() {
+        ErrorCode code = ErrorCode.CURRENT_PASSWORD_REQUIRED;
+        return new ApiException(ErrorCode.VALIDATION_FAILED, ErrorCode.VALIDATION_FAILED.message(),
+                List.of(new ErrorResponse.FieldErrorItem("currentPassword", code.name(), code.message())));
     }
 
     private static ApiException mismatch() {

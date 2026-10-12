@@ -2,11 +2,12 @@
 // - 되돌릴 수 없다는 것, 지워지는 것, 남는 것을 먼저 보여 준다. 안내를 확인(체크)해야 버튼이 눌린다
 // - 누르면 한 번 더 묻는다. 취소하면 요청을 보내지 않는다
 // - 성공하면 서버가 이미 로그아웃시켰으므로 화면만 로그아웃 상태로 바꾸고 첫 화면으로 간다
-import { useRef, useState, type FormEvent } from 'react'
+// - 소셜로만 가입해 비밀번호가 없으면 비밀번호 칸 없이 안내 확인만 한다 (specs/010 US5, D-4)
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
-import { withdraw } from './accountApi'
+import { getSocialAccounts, withdraw } from './accountApi'
 import '../pages/auth-layout.css'
 import '../pages/mypage.css'
 
@@ -20,8 +21,18 @@ export default function WithdrawalPage() {
   const [busy, setBusy] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
+  // 확인하지 못하면 비밀번호 칸을 보인다 (서버가 마지막에 판단한다)
+  const [hasPassword, setHasPassword] = useState(true)
 
-  const ready = agreed && password !== '' && !busy
+  useEffect(() => {
+    const controller = new AbortController()
+    getSocialAccounts(controller.signal)
+      .then((res) => setHasPassword(res.hasPassword))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
+
+  const ready = agreed && (!hasPassword || password !== '') && !busy
 
   function askConfirm(e: FormEvent) {
     e.preventDefault()
@@ -35,7 +46,7 @@ export default function WithdrawalPage() {
     dialogRef.current?.close()
     setBusy(true)
     try {
-      const res = await withdraw(password, agreed)
+      const res = await withdraw(hasPassword ? password : '', agreed)
       signedOut()
       navigate('/', { replace: true, state: { withdrawn: res.message } })
     } catch (err) {
@@ -73,6 +84,7 @@ export default function WithdrawalPage() {
               <li>내 블로그 글에 달린 댓글과 좋아요</li>
               <li>내가 누른 좋아요</li>
               <li>내 계정 정보(이메일, 닉네임, 소개)</li>
+              <li>연결된 소셜 계정</li>
             </ul>
           </div>
           <div>
@@ -91,30 +103,32 @@ export default function WithdrawalPage() {
             <input type="checkbox" checked={agreed} disabled={busy} onChange={(e) => setAgreed(e.target.checked)} />
             위 내용을 확인했고, 되돌릴 수 없다는 것을 이해했습니다
           </label>
-          <div className="field">
-            <label htmlFor="withdrawal-password">비밀번호</label>
-            <input
-              id="withdrawal-password"
-              ref={passwordRef}
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              disabled={busy}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                // 고친 칸의 오류는 지운다. 다시 낼 때 서버가 새로 판단한다
-                setPasswordError(null)
-                setFormError(null)
-              }}
-              aria-invalid={Boolean(passwordError)}
-              aria-describedby={passwordError ? 'withdrawal-password-error' : undefined}
-            />
-            {passwordError && (
-              <p id="withdrawal-password-error" className="msg msg-error" role="alert">
-                {passwordError}
-              </p>
-            )}
-          </div>
+          {hasPassword && (
+            <div className="field">
+              <label htmlFor="withdrawal-password">비밀번호</label>
+              <input
+                id="withdrawal-password"
+                ref={passwordRef}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                disabled={busy}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  // 고친 칸의 오류는 지운다. 다시 낼 때 서버가 새로 판단한다
+                  setPasswordError(null)
+                  setFormError(null)
+                }}
+                aria-invalid={Boolean(passwordError)}
+                aria-describedby={passwordError ? 'withdrawal-password-error' : undefined}
+              />
+              {passwordError && (
+                <p id="withdrawal-password-error" className="msg msg-error" role="alert">
+                  {passwordError}
+                </p>
+              )}
+            </div>
+          )}
           {formError && (
             <p className="msg msg-error form-error" role="alert">
               {formError}
