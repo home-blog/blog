@@ -1,6 +1,12 @@
 # 실습 서버 배포: Docker 이미지를 만들어 SSH로 서버에 올리고 deploy/remote-deploy.sh로 켠다.
-# main에 합친다고 바로 배포하지 않는다. 화면을 눈으로 확인한 뒤 릴리스(버전 태그 v0.2.0 등)를 내면 그 버전을 배포한다 (2026-10-12 사용자).
-# 손으로 올리기: Actions → 배포 → Run workflow. 이때는 릴리스가 아니라 main의 지금 코드를 올린다 (설정·Secrets만 바꿨을 때)
+# main에 합친다고 바로 배포하지 않는다. 릴리스를 낼 때 그 버전을 배포한다 (2026-10-12 사용자).
+# 릴리스는 작게 자주 (2026-10-12 사용자): 버그 수정은 merge 뒤 바로(0.4.1처럼 끝 숫자), 기능은 화면을 확인한 뒤 "배포해줘"(0.5.0처럼 가운데 숫자).
+#
+# 릴리스 내는 두 길 (둘 다 릴리스 번호 = 서버·화면 버전 번호 = CHANGELOG.md의 "## [번호]" 절이어야 배포한다):
+#   1) Actions → 배포 → Run workflow에 번호(예: 0.4.1)를 넣는다: 확인 → 배포 → 성공하면 태그 v<번호>와 GitHub 릴리스를
+#      CHANGELOG의 그 절로 만든다 (Claude가 쓰는 길)
+#   2) GitHub에서 릴리스(태그 v<번호>, 대상 main)를 직접 낸다: 그 태그의 커밋을 배포한다
+#   번호를 비우고 손으로 돌리면 릴리스 없이 main의 지금 코드를 다시 올린다 (설정·Secrets만 바꿨을 때)
 #
 # 준비 (Repository secrets): SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD (실습 서버 접속)
 #                            SSH_KNOWN_HOSTS (서버 지문. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과. 없으면 배포를 멈춘다)
@@ -14,6 +20,12 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "릴리스 번호 (예: 0.4.1). 넣으면 확인·배포 뒤 v<번호> 릴리스를 만든다. 비우면 릴리스 없이 main을 다시 올린다"
+        type: string
+        required: false
+        default: ""
 
 # 배포는 한 번에 하나씩, 도중에 끊지 않는다
 concurrency:
@@ -29,21 +41,38 @@ env:
   WEB_PORT: "8410"         # 내 포트 범위(8410~8419)의 맨 처음
 
 jobs:
-  deploy:
-    name: 실습 서버에 배포
+  check:
+    name: 릴리스 확인
     # 릴리스를 냈을 때(정식판만, 미리보기 prerelease는 빼고), 또는 main에서 손으로 돌릴 때만
     if: >-
       (github.event_name == 'release' && !github.event.release.prerelease) ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       # 비밀값을 쓰는 작업이라 외부 액션을 커밋으로 고정한다 (새 버전은 Dependabot이 커밋과 주석을 같이 올린다)
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}   # 릴리스면 그 태그의 커밋, 손으로 돌리면 main의 마지막 커밋
-          fetch-depth: 0            # 아래에서 릴리스 커밋이 main에 있는지 확인한다
+          fetch-depth: 0            # 릴리스 커밋이 main에 있는지, 같은 태그가 이미 있는지 본다
           persist-credentials: false   # 뒤 단계는 git 인증이 필요 없다
+
+      - name: 릴리스 번호
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ github.event.release.tag_name }}
+          INPUT: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT" = release ]; then version="${TAG#v}"; else version="${INPUT#v}"; fi
+          if [ -n "$version" ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::릴리스 번호는 0.4.1처럼 숫자 세 개입니다 (받은 값: $version)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "릴리스 번호: ${version:-없음 (main 다시 올리기)}"
 
       - name: 릴리스가 main의 커밋인지 확인
         if: github.event_name == 'release'
@@ -55,20 +84,34 @@ jobs:
           fi
 
       - name: 릴리스 기록 확인
-        if: github.event_name == 'release'
+        if: steps.version.outputs.version != ''
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+          EVENT: ${{ github.event_name }}
         run: |
-          # 릴리스는 항상 문서로 남긴다 (2026-10-12 사용자): 태그 v0.4.0이면 서버·화면 버전 번호가 0.4.0이고
-          # CHANGELOG.md에 "## [0.4.0]" 절이 있어야 배포한다
-          version="${TAG#v}"
+          # 릴리스는 항상 문서로 남긴다 (2026-10-12 사용자): 서버·화면 버전 번호가 릴리스 번호와 같고
+          # CHANGELOG.md에 "## [번호]" 절이 있어야 배포한다. 손으로 낼 때는 같은 태그가 아직 없어야 한다
           pom=$(sed -n 's#^    <version>\(.*\)</version>#\1#p' backend/pom.xml | head -1)
           web=$(node -p "require('./frontend/package.json').version")
           fail=0
-          [ "$pom" = "$version" ] || { echo "::error::backend/pom.xml 버전($pom)이 릴리스 태그($TAG)와 다릅니다"; fail=1; }
-          [ "$web" = "$version" ] || { echo "::error::frontend/package.json 버전($web)이 릴리스 태그($TAG)와 다릅니다"; fail=1; }
-          grep -qF "## [$version]" CHANGELOG.md || { echo "::error::CHANGELOG.md에 '## [$version]' 절이 없습니다"; fail=1; }
+          [ "$pom" = "$VERSION" ] || { echo "::error::backend/pom.xml 버전($pom)이 릴리스 번호($VERSION)와 다릅니다"; fail=1; }
+          [ "$web" = "$VERSION" ] || { echo "::error::frontend/package.json 버전($web)이 릴리스 번호($VERSION)와 다릅니다"; fail=1; }
+          grep -qF "## [$VERSION]" CHANGELOG.md || { echo "::error::CHANGELOG.md에 '## [$VERSION]' 절이 없습니다"; fail=1; }
+          if [ "$EVENT" = workflow_dispatch ] && git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::태그 v$VERSION이 이미 있습니다. 번호를 올려 주세요"; fail=1
+          fi
           exit "$fail"
+
+  deploy:
+    name: 실습 서버에 배포
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false   # 뒤 단계는 git 인증이 필요 없다
 
       - name: 이미지 만들기
         env:
@@ -133,3 +176,29 @@ jobs:
             remote "docker logs --tail 80 $DEPLOY_NAME-server-1" || true
             exit 1
           fi
+
+  release:
+    name: 릴리스 만들기
+    # 손으로 번호를 넣어 돌렸고 배포가 끝났을 때만. 직접 낸 릴리스(release 이벤트)는 이미 있으므로 건너뛴다
+    needs: [check, deploy]
+    if: github.event_name == 'workflow_dispatch' && needs.check.outputs.version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # 태그와 릴리스를 만든다 (이 작업만)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: CHANGELOG의 그 절로 릴리스 만들기
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          # "## [번호]" 줄 다음부터 다음 "## [" 줄 전까지가 릴리스 설명이다
+          awk -v head="## [$VERSION]" 'index($0, head) == 1 { on = 1; next } on && /^## \[/ { exit } on { print }' \
+            CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "v$VERSION" --notes-file "$RUNNER_TEMP/notes.md"
