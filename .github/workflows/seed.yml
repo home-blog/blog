@@ -32,7 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      # 비밀값을 쓰는 작업이라 외부 액션을 커밋으로 고정한다 (새 버전은 Dependabot이 커밋과 주석을 같이 올린다)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false   # 뒤 단계는 git 인증이 필요 없다
 
       - name: 서버 접속 준비
         env:

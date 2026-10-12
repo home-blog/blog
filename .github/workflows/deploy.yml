@@ -38,10 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      # 비밀값을 쓰는 작업이라 외부 액션을 커밋으로 고정한다 (새 버전은 Dependabot이 커밋과 주석을 같이 올린다)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}   # 릴리스면 그 태그의 커밋, 손으로 돌리면 main의 마지막 커밋
           fetch-depth: 0            # 아래에서 릴리스 커밋이 main에 있는지 확인한다
+          persist-credentials: false   # 뒤 단계는 git 인증이 필요 없다
 
       - name: 릴리스가 main의 커밋인지 확인
         if: github.event_name == 'release'
