@@ -31,7 +31,7 @@ export default function SiteHeader() {
   return (
     <header className="site-header">
       <Link to="/" className="site-brand">
-        MyBlog
+        글결
       </Link>
       {/* 글 검색은 누구나 (specs/004 US5) */}
       <SearchBox />
