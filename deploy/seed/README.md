@@ -27,6 +27,10 @@ bash ~/geulgyeol/deploy/seed/run.sh remove   # 지우기
 
 ## 내 컴퓨터(개발 DB)에 넣기
 
+**자동**: 개발 서버(dev 설정, IntelliJ "2. 서버")를 켤 때 예시 글이 없으면 저절로 넣는다(`DevDemoSeed`). 끄려면 `.env`에 `DEMO_SEED=false`.
+
+손으로 넣거나 지우려면:
+
 ```bash
 docker compose up -d --wait
 docker compose exec -T postgres psql -q -U myblog -d myblog < deploy/seed/demo-content.sql
