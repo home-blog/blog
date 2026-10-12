@@ -1,0 +1,31 @@
+{
+  "_설명": "예시 글에 넣는 사진 (build_seed.py가 demo-photos.sql로 만든다). 사진은 Lorem Picsum(picsum.photos, Unsplash 사진, 무료 사용)의 번호다. 글마다 첫 문단 뒤에 한 장씩 넣는다",
+  "photos": [
+    {"by": "codecup", "title": "커넥션 풀 고갈 장애 회고: HikariCP 로그를 따라간 길", "picsum": 0, "alt": "책상 위 노트북"},
+    {"by": "codecup", "title": "2025 회고: 3년 차가 되면서 달라진 것들", "picsum": 2, "alt": "작업하던 노트북"},
+    {"by": "codecup", "title": "PostgreSQL 데드락 로그 읽는 법, 이번엔 진짜 데드락이었다", "picsum": 4, "alt": "책상 위 노트와 휴대폰"},
+    {"by": "codecup", "title": "Testcontainers로 통합 테스트 옮긴 후기", "picsum": 6, "alt": "노트북과 커피"},
+    {"by": "codecup", "title": "1년 차 회고: 돌아가는 코드에서 설명할 수 있는 코드로", "picsum": 8, "alt": "키보드 위의 손"},
+    {"by": "frontnote", "title": "React 19의 폼 액션과 useActionState, 실제로 써 본 정리", "picsum": 1, "alt": "노트북으로 작업하는 손"},
+    {"by": "frontnote", "title": "모달 접근성 체크리스트: 포커스, Esc, 그리고 dialog 요소", "picsum": 3, "alt": "노트북 자판"},
+    {"by": "frontnote", "title": "다크 모드, CSS 변수로 한 번에 정리한 방법", "picsum": 5, "alt": "어두운 책상 위 노트북"},
+    {"by": "frontnote", "title": "CSS Grid 카드 목록, auto-fill이랑 auto-fit 차이 이제 안 헷갈리기", "picsum": 7, "alt": "작업 책상"},
+    {"by": "frontnote", "title": "사이드 프로젝트: 동네 빵집 지도 만들기 1편, 기획부터 첫 배포까지", "picsum": 9, "alt": "노트북과 메모"},
+    {"by": "frontnote", "title": "제주 워케이션 일주일, 일하고 걷고 귤 먹은 기록", "picsum": 16, "alt": "바다 너머 산"},
+    {"by": "halfday", "title": "가평 자라섬 가을 반나절, ITX 타고 다녀온 일기", "picsum": 11, "alt": "산과 호수"},
+    {"by": "halfday", "title": "북한산 우이령길 예약하고 걸은 날, 초보도 괜찮은 숲길", "picsum": 10, "alt": "숲속 나무들"},
+    {"by": "halfday", "title": "양평 두물머리 반나절, 경의중앙선 타고 다녀옴", "picsum": 1015, "alt": "강이 흐르는 골짜기"},
+    {"by": "halfday", "title": "후쿠오카 2박 3일, 동선만 깔끔하게 정리", "picsum": 1018, "alt": "멀리 보이는 산줄기"},
+    {"by": "sea", "title": "추석 연휴 끝에 다녀온 고성 화진포, 조용한 가을 바다", "picsum": 14, "alt": "잔잔한 바다"},
+    {"by": "sea", "title": "통영 1박 2일, 동피랑보다 좋았던 서피랑 골목", "picsum": 12, "alt": "바위 해안"},
+    {"by": "sea", "title": "주문진 새벽 수산시장 구경하고 소돌 아들바위까지 걸은 기록", "picsum": 13, "alt": "새벽 바닷가"},
+    {"by": "sea", "title": "삼척 장호항 스노클링 후기와 챙겨 가면 좋은 것", "picsum": 1016, "alt": "깊은 협곡"},
+    {"by": "runner", "title": "대회 2주 앞두고 마지막 장거리 20km", "picsum": 17, "alt": "풀밭 사이로 난 길"},
+    {"by": "runner", "title": "러닝 3주차, 처음으로 5km를 안 쉬고 뛰었다", "picsum": 18, "alt": "아침 풀밭"},
+    {"by": "plant", "title": "가을맞이 베란다 대정리와 분갈이 몰아치기", "picsum": 19, "alt": "초록 잎들"},
+    {"by": "plant", "title": "주말 화훼시장 나들이, 올리브나무를 데려왔어요", "picsum": 106, "alt": "꽃"},
+    {"by": "bakery", "title": "크리스마스 이브의 첫 딸기 생크림 케이크", "picsum": 1080, "alt": "딸기"},
+    {"by": "mukja", "title": "망원동 작은 카페 '오후세시' 디저트 3종 비교 후기", "picsum": 1060, "alt": "커피를 내리는 바리스타"},
+    {"by": "bakery", "title": "발렌타인에 구운 휘낭시에와 마들렌, 같은 듯 다른 둘", "picsum": 102, "alt": "산딸기"}
+  ]
+}

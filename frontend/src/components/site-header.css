@@ -9,11 +9,23 @@
 }
 
 .site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   font-family: var(--font-letter);
   font-weight: 700;
   font-size: var(--step-1);
   color: var(--ink);
   text-decoration: none;
+}
+
+.brand-mark {
+  flex: none;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.site-brand:hover .brand-mark {
+  transform: rotate(-6deg) scale(1.06);
 }
 
 .site-nav {
@@ -95,14 +107,15 @@
   position: relative;
 }
 
+/* 테두리 없는 버튼: 마크와 같은 원고지 칸(머리글자) + 닉네임 + 꺾쇠. 올리거나 펼치면 칸 모양 바탕이 생긴다 */
 .user-menu-button {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
-  border: 1px solid var(--grid);
-  border-radius: var(--radius-button);
-  background: var(--paper-raised);
+  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
   color: var(--ink);
   font: inherit;
   font-weight: 600;
@@ -114,7 +127,8 @@
 
 .user-menu-button:hover,
 .user-menu-button[aria-expanded='true'] {
-  border-color: var(--grid-strong);
+  border-color: var(--grid);
+  background: var(--paper-raised);
   box-shadow: var(--shadow);
 }
 
@@ -122,13 +136,15 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
-  border: 1px solid var(--grid-strong);
-  border-radius: 6px; /* 원고지 칸 */
-  background: color-mix(in srgb, var(--grid) 25%, var(--paper-raised));
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--accent); /* 글결 마크와 같은 원고지 칸 */
+  border-radius: 5px;
+  background: var(--paper-raised);
+  color: var(--ink);
   font-family: var(--font-letter);
   font-weight: 700;
+  line-height: 1;
 }
 
 /* 새 댓글이 있으면 동그라미 귀퉁이에 점 */
@@ -151,16 +167,13 @@
 }
 
 .user-menu-caret {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-right: 2px solid var(--ink-soft);
-  border-bottom: 2px solid var(--ink-soft);
-  transform: translateY(-2px) rotate(45deg);
+  flex: none;
+  color: var(--ink-soft);
   transition: transform 0.25s var(--ease-out);
 }
 
 .user-menu-button[aria-expanded='true'] .user-menu-caret {
-  transform: translateY(1px) rotate(225deg);
+  transform: rotate(180deg);
 }
 
 /* 펼친 메뉴: 종이 카드가 위에서 살짝 내려온다 */

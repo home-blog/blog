@@ -1,9 +1,10 @@
-// 첫 화면 글 카드: 주제 · 원고지 매수, 제목, 본문 앞부분, 블로그(글쓴이) · 작성일 · 댓글·좋아요 수
+// 첫 화면 글 카드: 썸네일(사진, 없으면 첫 문장을 적은 원고지), 주제 · 원고지 매수, 제목, 본문 앞부분, 블로그(글쓴이) · 작성일 · 댓글·좋아요 수
 // - 카드 어디를 눌러도 글로 간다(제목 링크가 카드 전체를 덮는다). 주제·블로그 링크는 그 위에 따로 눌린다
 // - 마우스를 올리면 카드가 떠오르고 제목에 형광펜이 그어진다 (specs/007, 2026-10-12 사용자: 원고지 + 카드·하이라이트·애니메이션)
 import { Link } from 'react-router'
 import type { FeedPost } from './exploreApi'
 import { formatDate } from './rules'
+import Thumbnail from './Thumbnail'
 
 interface Props {
   post: FeedPost
@@ -12,6 +13,7 @@ interface Props {
 export default function FeedItem({ post }: Props) {
   return (
     <li className="card feed-card">
+      <Thumbnail src={post.thumbnail} text={post.preview || post.title} topic={post.topic} />
       <span className="card-top">
         <Link to={`/?topic=${encodeURIComponent(post.topic)}`} className="feed-topic card-raise">
           {post.topic}

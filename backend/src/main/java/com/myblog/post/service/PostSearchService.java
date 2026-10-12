@@ -66,7 +66,8 @@ public class PostSearchService {
 
     private SearchRow toRow(Match match) {
         return new SearchRow(match.postId(), match.blogId(), match.blogName(), match.title(), match.categoryId(),
-                match.categoryName(), match.createdAt(), preview.of(match.content()));
+                match.categoryName(), match.createdAt(), preview.of(match.content()),
+                PostThumbnail.of(match.content()).orElse(null));
     }
 
     /** keyword는 실제로 찾은 값(앞뒤 공백을 지운 값)이다 (FR-017). */
@@ -74,8 +75,8 @@ public class PostSearchService {
             List<SearchRow> results) {
     }
 
-    /** 검색 결과 한 줄. 항상 공개 글이라 visibility는 없다 (contracts 2 동작 8). */
+    /** 검색 결과 한 줄. 항상 공개 글이라 visibility는 없다 (contracts 2 동작 8). thumbnail은 없으면 null. */
     public record SearchRow(Long postId, Long blogId, String blogName, String title, Long categoryId,
-            String categoryName, Instant createdAt, String preview) {
+            String categoryName, Instant createdAt, String preview, String thumbnail) {
     }
 }

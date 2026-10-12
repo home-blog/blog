@@ -1,8 +1,9 @@
 /* 첫 화면 (원고지 방향): 위에 인사와 원고지 한 장, 주제 탭, 아래에 새 글 목록과 이번 주 인기 글 */
+/* 넓은 화면을 꽉 채운다 (index.css --page-max, --page-gutter) */
 .home {
-  max-width: 72rem;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: clamp(1.5rem, 5vh, 3rem) 1rem 3rem;
+  padding: clamp(1.5rem, 5vh, 3rem) var(--page-gutter) 3rem;
 }
 
 .home-notice {
@@ -106,7 +107,7 @@
 /* ── 두 단: 새 글(왼쪽) · 인기 글(오른쪽). 좁은 화면에서는 인기 글이 위 ── */
 .home-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr) clamp(18rem, 20vw, 24rem);
   gap: 2.5rem;
   align-items: start;
 }
@@ -129,10 +130,10 @@
   border-bottom: 1px solid var(--grid);
 }
 
-/* ── 새 글 카드: 넓으면 두 줄로 ── */
+/* ── 새 글 카드: 넓을수록 여러 줄로 (보통 두 줄, 아주 넓은 화면은 세 줄) ── */
 .feed-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 1.25rem;
 }
 
 .feed-card {
@@ -342,4 +343,120 @@
 
 .popular-meta a {
   color: inherit;
+}
+
+/* ── 카드 썸네일 (specs/008): 카드 맨 위, 원고지 칸 띠 아래 ── */
+.feed-card > .thumb {
+  margin: 0.3rem 0 0.35rem;
+}
+
+/* ── 맨 위: 큰 카드(왼쪽 큰 사진, 오른쪽 글) + 옆에 작은 카드 둘. 좁으면 작은 카드가 아래로 ── */
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  margin: 0 0 2rem;
+}
+
+.feature-card {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.75rem;
+  padding: 1.6rem;
+}
+
+.feature-side {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.feature-mini {
+  grid-template-columns: minmax(7rem, 42%) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.feature-mini-body {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.feature-mini-title {
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feature-mini-by {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+@media (max-width: 64rem) {
+  .feature {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-side {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    grid-auto-rows: auto;
+  }
+}
+
+.feature-body {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.feature-label {
+  font-family: var(--font-letter);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.feature-label::before {
+  content: '✎ ';
+}
+
+.feature-title {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.feature-preview {
+  margin: 0;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feature-card .card-foot {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 48rem) {
+  .feature-card {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1.15rem;
+  }
 }

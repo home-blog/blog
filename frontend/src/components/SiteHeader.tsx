@@ -1,10 +1,11 @@
-// 모든 화면 위의 머리글: 서비스 이름, 글 검색, 로그인 상태, 로그인·가입·로그아웃
+// 모든 화면 위의 머리글: 마크와 서비스 이름, 글 검색, 로그인 상태, 로그인·가입·로그아웃
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
 import { useNewCommentCount } from '../manage/newCommentCount'
 import ThemeToggle from '../theme/ThemeToggle'
+import BrandMark from './BrandMark'
 import UserMenu from './UserMenu'
 import './site-header.css'
 
@@ -32,6 +33,7 @@ export default function SiteHeader() {
   return (
     <header className="site-header">
       <Link to="/" className="site-brand">
+        <BrandMark />
         글결
       </Link>
       {/* 글 검색은 누구나 (specs/004 US5) */}

@@ -87,7 +87,8 @@ public class PostFeedService {
         ManuscriptMeasure.Measure measure = manuscript.of(item.content());
         return new FeedRow(item.postId(), item.blogId(), item.blogName(), item.nickname(), item.title(),
                 item.topicName(), item.categoryId(), item.categoryName(), item.createdAt(), preview.of(item.content()),
-                item.commentCount(), item.likeCount(), measure.sheets(), measure.readMinutes());
+                item.commentCount(), item.likeCount(), measure.sheets(), measure.readMinutes(),
+                PostThumbnail.of(item.content()).orElse(null));
     }
 
     /** topic은 고른 주제 이름(모든 주제면 null), topics는 주제 탭에 쓸 다섯 개 이름(정해진 순서). */
@@ -99,9 +100,9 @@ public class PostFeedService {
     public record PopularView(String topic, int days, List<FeedRow> posts) {
     }
 
-    /** 글 모음 한 줄. 항상 공개 글이다. */
+    /** 글 모음 한 줄. 항상 공개 글이다. thumbnail은 카드 썸네일 주소(없으면 null, {@link PostThumbnail}). */
     public record FeedRow(Long postId, Long blogId, String blogName, String nickname, String title, String topic,
             Long categoryId, String categoryName, Instant createdAt, String preview, long commentCount,
-            long likeCount, int sheets, int readMinutes) {
+            long likeCount, int sheets, int readMinutes, String thumbnail) {
     }
 }

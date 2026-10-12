@@ -7,6 +7,8 @@
 - 날짜가 정해진 것(가입일, 글 작성 시각)은 JSON 그대로, 최근 조회수(인기 글)는 SQL을 실행하는 날 기준으로 만든다.
 - 같은 JSON이면 늘 같은 SQL이 나온다 (난수 씨앗 고정).
 
+예시 사진(photos.json)은 따로 demo-photos.sql로 만든다: 이미 예시 글을 넣은 DB에도 덧붙일 수 있게 (2026-10-12, 글 카드 썸네일).
+
 사용: python3 deploy/seed/build_seed.py
 """
 import hashlib
@@ -18,6 +20,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
 OUT = HERE / "demo-content.sql"
+PHOTOS = HERE / "photos.json"
+PHOTOS_OUT = HERE / "demo-photos.sql"
 KST = timezone(timedelta(hours=9))
 # 데이터를 만든 기준 시각. 글·댓글 시각이 이보다 늦지 않게 한다
 NOW = datetime(2026, 10, 11, 23, 0, tzinfo=KST)
@@ -207,6 +211,47 @@ def main():
 
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{OUT.relative_to(HERE.parent.parent)}: 블로거 {len(bloggers)}명, 글 {len(all_posts)}개")
+    write_photos(bloggers, emails)
+
+
+def with_photo(content, photo):
+    """첫 문단 뒤에 사진 한 장 (사진이 글 맨 위보다 첫 문단 다음에 있는 것이 블로그 글답다)."""
+    image = f"![{photo['alt']}](https://picsum.photos/id/{photo['picsum']}/1200/800)"
+    head, sep, rest = content.partition("\n\n")
+    return f"{head}\n\n{image}\n\n{rest}" if sep else f"{content}\n\n{image}"
+
+
+def write_photos(bloggers, emails):
+    """예시 글에 사진을 넣는 update 문장. 글이 처음 모양 그대로일 때만 바꾸므로 몇 번 실행해도 같다."""
+    photos = json.loads(PHOTOS.read_text(encoding="utf-8"))["photos"]
+    posts = {(b["key"], p["title"]): p for b in bloggers for p in b["posts"]}
+    lines = []
+    out = lines.append
+    out("-- 예시 글 사진 (자동 생성: deploy/seed/build_seed.py, 원본 deploy/seed/photos.json). 손으로 고치지 않는다")
+    out("-- demo-content.sql 다음에 실행한다. 몇 번 실행해도 같다 (처음 모양 그대로인 글만 바꾼다)")
+    out("\\set ON_ERROR_STOP on")
+    out("\\if :{?schema}")
+    out("\\else")
+    out("\\set schema public")
+    out("\\endif")
+    out("set search_path = :\"schema\";")
+    out("begin;")
+    out("do $$ begin")
+    out(f"  if not exists (select 1 from users where password = {q(NOT_A_HASH)} and email like 'demo.%@example.com') then")
+    out("    raise exception '예시 데이터가 없습니다. 먼저 demo-content.sql을 실행하세요';")
+    out("  end if;")
+    out("end $$;")
+    out("")
+    for photo in photos:
+        post = posts[(photo["by"], photo["title"])]
+        assert "![" not in post["content"], photo["title"]
+        out(f"update post set content = {q(with_photo(post['content'], photo))} "
+            f"where post_id = {post_ref(emails[photo['by']], photo['title'])} and content = {q(post['content'])};")
+    out("")
+    out("commit;")
+    out(f"\\echo 예시 글 사진을 맞췄습니다: {len(photos)}장")
+    PHOTOS_OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"{PHOTOS_OUT.relative_to(HERE.parent.parent)}: 사진 {len(photos)}장")
 
 
 if __name__ == "__main__":

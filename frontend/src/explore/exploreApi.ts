@@ -17,6 +17,8 @@ export interface PostSummary {
   /** 원고지 매수·읽는 시간(분) (specs/007 US3). 블로그 글 목록에만 온다 */
   sheets?: number
   readMinutes?: number
+  /** 카드 썸네일 주소: 대표 이미지, 없으면 본문 첫 이미지 (specs/008). 이미지가 없으면 null */
+  thumbnail?: string | null
 }
 
 export interface PostListPage {
@@ -54,6 +56,8 @@ export interface SearchResult {
   categoryName: string
   createdAt: string
   preview: string
+  /** 카드 썸네일 주소 (없으면 null) */
+  thumbnail: string | null
 }
 
 export interface SearchPage {
@@ -90,6 +94,8 @@ export interface FeedPost {
   /** 원고지 매수·읽는 시간(분) (specs/007 US3) */
   sheets: number
   readMinutes: number
+  /** 카드 썸네일 주소: 대표 이미지, 없으면 본문 첫 이미지 (specs/008). 이미지가 없으면 null */
+  thumbnail: string | null
 }
 
 export interface FeedPage {

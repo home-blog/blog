@@ -1,0 +1,148 @@
+/* 글 카드 썸네일 (specs/008): 테이프로 붙인 사진, 또는 첫 문장을 적은 원고지 */
+.thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+}
+
+.thumb-row {
+  aspect-ratio: 3 / 2;
+}
+
+/* 큰 카드는 넓은 화면에서 너무 높아지지 않게 가로로 길게 */
+.thumb-feature {
+  aspect-ratio: 2 / 1;
+}
+
+/* ── 사진: 흰 여백을 두른 인화지 + 위에 반투명 테이프 한 조각 ── */
+.thumb-photo {
+  padding: 5px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(29 39 33 / 0.12),
+    0 4px 12px rgb(29 39 33 / 0.1);
+  transform: rotate(-0.6deg);
+  transition: transform 0.35s var(--ease-out);
+}
+
+/* 사진은 여백 안에서만 커진다 */
+.thumb-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--grid) 25%, var(--paper));
+}
+
+.thumb-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease-out), filter 0.35s;
+}
+
+.thumb-photo::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -0.55rem;
+  left: 50%;
+  width: 4.5rem;
+  height: 1.15rem;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: color-mix(in srgb, var(--highlight) 70%, transparent);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.06);
+  /* 손으로 뜯은 테이프 끝 */
+  clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 45%);
+}
+
+.thumb-photo.thumb-row::before {
+  width: 2.75rem;
+  height: 0.8rem;
+  top: -0.4rem;
+}
+
+:root[data-theme='dark'] .thumb-photo {
+  background: #e9eee9;
+}
+
+:root[data-theme='dark'] .thumb-photo img {
+  filter: brightness(0.92);
+}
+
+.card:hover .thumb-photo,
+.card:focus-within .thumb-photo {
+  transform: rotate(0deg);
+}
+
+.card:hover .thumb-photo img,
+.card:focus-within .thumb-photo img {
+  transform: scale(1.04);
+}
+
+/* ── 원고지: 칸마다 한 자. 칸 선 색은 주제마다 ── */
+.thumb-sheet {
+  --line: var(--grid);
+  /* 칸 크기는 썸네일 너비를 기준으로 (안쪽 .thumb-grid가 100cqi로 이 너비를 읽는다) */
+  container-type: inline-size;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--line) 7%, transparent), color-mix(in srgb, var(--line) 7%, transparent)),
+    var(--paper);
+}
+
+/* 좌우에 반 칸씩 여백: 칸 하나 = 너비 / (칸 수 + 1). 줄 사이에 원고지처럼 좁은 띠 */
+.thumb-grid {
+  --cell: calc(100cqi / (var(--cols) + 1));
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  row-gap: calc(var(--cell) * 0.32);
+}
+
+.thumb-sheet[data-topic='여행'] {
+  --line: var(--category-2);
+}
+
+.thumb-sheet[data-topic='음식'] {
+  --line: var(--category-3);
+}
+
+.thumb-sheet[data-topic='취미'] {
+  --line: var(--category-5);
+}
+
+.thumb-sheet[data-topic='운동'] {
+  --line: var(--category-4);
+}
+
+.thumb-sheet[data-topic='개발'] {
+  --line: var(--category-1);
+}
+
+.thumb-cell {
+  display: grid;
+  place-items: center;
+  /* 옆 칸과 선이 겹쳐 한 줄로 보이게 (테두리 대신 바깥선) */
+  outline: 1px solid color-mix(in srgb, var(--line) 45%, var(--paper));
+  outline-offset: -0.5px;
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: calc(var(--cell) * 0.56);
+  line-height: 1;
+  color: var(--ink);
+  transition: background-color 0.3s;
+}
+
+/* 마우스를 올리면 글자가 적힌 칸에 형광펜 */
+.card:hover .thumb-cell:not(:empty),
+.card:focus-within .thumb-cell:not(:empty) {
+  background: color-mix(in srgb, var(--highlight) 75%, transparent);
+}

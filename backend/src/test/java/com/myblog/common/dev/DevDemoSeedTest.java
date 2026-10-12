@@ -24,6 +24,16 @@ class DevDemoSeedTest {
     }
 
     @Test
+    void 예시_사진_파일은_글이_처음_모양일_때만_바꾸는_update_문장이다() throws Exception {
+        String script = Files.readString(Path.of("../deploy/seed/demo-photos.sql"), StandardCharsets.UTF_8);
+        List<String> statements = DevDemoSeed.statements(script);
+        assertThat(statements).isNotEmpty().allSatisfy(sql -> assertThat(sql.strip())
+                .startsWith("update post set content = ")
+                .contains("](https://picsum.photos/id/")
+                .contains(" and content = '"));
+    }
+
+    @Test
     void 따옴표_안의_세미콜론과_줄바꿈은_문장을_나누지_않는다() {
         String script = """
                 \\set ON_ERROR_STOP on

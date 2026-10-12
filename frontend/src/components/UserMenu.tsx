@@ -68,7 +68,23 @@ export default function UserMenu({ nickname, newCommentCount, onLogout }: Props)
           {hasNew && <span className="user-avatar-dot" />}
         </span>
         <span className="user-menu-name">{nickname}</span>
-        <span className="user-menu-caret" aria-hidden="true" />
+        <svg
+          className="user-menu-caret"
+          viewBox="0 0 12 12"
+          width="12"
+          height="12"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path
+            d="M2.5 4.5 6 8l3.5-3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
       {open && (
         <div id={menuId} className="user-menu-panel" role="menu" aria-label="내 메뉴">
