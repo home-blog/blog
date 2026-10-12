@@ -28,8 +28,8 @@ public class ApiVersionConfig implements WebMvcConfigurer {
     /** 지금 쓰는 API 버전들, 주소에 쓰는 모양 그대로 (새 버전을 열면 여기에 더한다). */
     public static final String[] SUPPORTED = {"v1"};
 
-    /** 주소의 버전 칸은 정확히 v + 숫자(v1, v2 …)만. 1, V1, v1.0, v01은 모르는 버전이다. */
-    private static final Pattern VERSION = Pattern.compile("v([1-9][0-9]*)");
+    /** 주소의 버전 칸은 정확히 v + 숫자(v1, v2 …, 9자리까지)만. 1, V1, v1.0, v01, 너무 긴 숫자는 모르는 버전이다. */
+    private static final Pattern VERSION = Pattern.compile("v([1-9][0-9]{0,8})");
     private static final ApiVersionParser<Integer> PARSER = ApiVersionConfig::parse;
 
     private static final String API_PREFIX = "/api/";

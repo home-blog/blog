@@ -93,9 +93,11 @@ jobs:
           # CHANGELOG.md에 "## [번호]" 절이 있어야 배포한다. 손으로 낼 때는 같은 태그가 아직 없어야 한다
           pom=$(sed -n 's#^    <version>\(.*\)</version>#\1#p' backend/pom.xml | head -1)
           web=$(node -p "require('./frontend/package.json').version")
+          lock=$(node -p "require('./frontend/package-lock.json').version")
           fail=0
           [ "$pom" = "$VERSION" ] || { echo "::error::backend/pom.xml 버전($pom)이 릴리스 번호($VERSION)와 다릅니다"; fail=1; }
           [ "$web" = "$VERSION" ] || { echo "::error::frontend/package.json 버전($web)이 릴리스 번호($VERSION)와 다릅니다"; fail=1; }
+          [ "$lock" = "$VERSION" ] || { echo "::error::frontend/package-lock.json 버전($lock)이 릴리스 번호($VERSION)와 다릅니다 (npm install로 맞춘다)"; fail=1; }
           grep -qF "## [$VERSION]" CHANGELOG.md || { echo "::error::CHANGELOG.md에 '## [$VERSION]' 절이 없습니다"; fail=1; }
           if [ "$EVENT" = workflow_dispatch ] && git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
             echo "::error::태그 v$VERSION이 이미 있습니다. 번호를 올려 주세요"; fail=1

@@ -51,7 +51,8 @@ class ApiVersionTest {
 
     @Test
     void 버전_칸은_v와_숫자만_받는다() throws Exception {
-        for (String path : new String[] {"/api/1/posts", "/api/v1.0/posts", "/api/V1/posts", "/api/v01/posts"}) {
+        for (String path : new String[] {"/api/1/posts", "/api/v1.0/posts", "/api/V1/posts", "/api/v01/posts",
+                "/api/v2147483648/posts"}) {
             mvc.perform(get(path))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("API_VERSION_UNSUPPORTED"));
