@@ -1,8 +1,9 @@
 /* 첫 화면 (원고지 방향): 위에 인사와 원고지 한 장, 주제 탭, 아래에 새 글 목록과 이번 주 인기 글 */
+/* 넓은 화면에서 양옆이 비어 답답하지 않게 (2026-10-12 사용자): 96rem까지 넓히고, 양옆 여백은 화면에 맞춰 */
 .home {
-  max-width: 72rem;
+  max-width: 96rem;
   margin: 0 auto;
-  padding: clamp(1.5rem, 5vh, 3rem) 1rem 3rem;
+  padding: clamp(1.5rem, 5vh, 3rem) clamp(1rem, 3vw, 2.5rem) 3rem;
 }
 
 .home-notice {
@@ -106,7 +107,7 @@
 /* ── 두 단: 새 글(왼쪽) · 인기 글(오른쪽). 좁은 화면에서는 인기 글이 위 ── */
 .home-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20rem;
+  grid-template-columns: minmax(0, 1fr) clamp(18rem, 22vw, 22rem);
   gap: 2.5rem;
   align-items: start;
 }
@@ -129,10 +130,10 @@
   border-bottom: 1px solid var(--grid);
 }
 
-/* ── 새 글 카드: 넓으면 두 줄로 ── */
+/* ── 새 글 카드: 넓을수록 여러 줄로 (보통 두 줄, 아주 넓은 화면은 세 줄) ── */
 .feed-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 1.25rem;
 }
 
 .feed-card {
@@ -351,7 +352,7 @@
 
 /* ── 맨 위 큰 카드: 왼쪽 큰 사진, 오른쪽 글. 좁으면 사진이 위 ── */
 .feature-card {
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   align-items: center;
   gap: 1.75rem;
   margin: 0 0 2rem;

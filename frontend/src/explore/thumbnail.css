@@ -10,6 +10,11 @@
   aspect-ratio: 3 / 2;
 }
 
+/* 큰 카드는 넓은 화면에서 너무 높아지지 않게 가로로 길게 */
+.thumb-feature {
+  aspect-ratio: 2 / 1;
+}
+
 /* ── 사진: 흰 여백을 두른 인화지 + 위에 반투명 테이프 한 조각 ── */
 .thumb-photo {
   padding: 5px;
