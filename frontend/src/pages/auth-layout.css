@@ -213,8 +213,9 @@
   padding: 0.85rem 1.1rem;
 }
 
-/* 로그인·가입 화면 전환 */
+/* 로그인·가입 화면 전환: 입력 칸과 같은 폭에서 가운데 (로그인 화면은 form 밖에 있어서 폭·간격을 맞춘다) */
 .auth-switch {
+  max-width: 26rem;
   margin: 0;
   text-align: center;
   font-size: var(--step--1);
@@ -224,6 +225,10 @@
 .auth-switch a {
   color: var(--accent);
   font-weight: 600;
+}
+
+.auth-form + .auth-switch {
+  margin-top: 1.25rem;
 }
 
 @media (max-width: 860px) {
@@ -245,7 +250,8 @@
     padding: 2rem 1rem 3rem;
   }
 
-  .auth-form {
+  .auth-form,
+  .auth-switch {
     max-width: none;
   }
 }
