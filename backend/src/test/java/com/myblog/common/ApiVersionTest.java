@@ -2,6 +2,7 @@ package com.myblog.common;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,6 +47,28 @@ class ApiVersionTest {
         mvc.perform(get("/api/v9/posts"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("API_VERSION_UNSUPPORTED"));
+    }
+
+    @Test
+    void 버전_칸은_v와_숫자만_받는다() throws Exception {
+        for (String path : new String[] {"/api/1/posts", "/api/v1.0/posts", "/api/V1/posts", "/api/v01/posts"}) {
+            mvc.perform(get(path))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("API_VERSION_UNSUPPORTED"));
+        }
+    }
+
+    @Test
+    void 버전이_없는_주소로_보낸_변경_요청도_CSRF보다_버전_오류가_먼저() throws Exception {
+        mvc.perform(post("/api/posts").contentType("application/json").content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("API_VERSION_UNSUPPORTED"));
+    }
+
+    @Test
+    void v1_주소의_변경_요청은_그대로_CSRF를_검사한다() throws Exception {
+        mvc.perform(post("/api/v1/posts").contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

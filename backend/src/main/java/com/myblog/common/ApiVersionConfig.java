@@ -2,8 +2,12 @@ package com.myblog.common;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.RequestPath;
+import org.springframework.web.accept.ApiVersionParser;
+import org.springframework.web.accept.InvalidApiVersionException;
 import org.springframework.web.servlet.config.annotation.ApiVersionConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -21,8 +25,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class ApiVersionConfig implements WebMvcConfigurer {
 
-    /** 지금 쓰는 API 버전들 (새 버전을 열면 여기에 더한다). */
-    public static final String[] SUPPORTED = {"1"};
+    /** 지금 쓰는 API 버전들, 주소에 쓰는 모양 그대로 (새 버전을 열면 여기에 더한다). */
+    public static final String[] SUPPORTED = {"v1"};
+
+    /** 주소의 버전 칸은 정확히 v + 숫자(v1, v2 …)만. 1, V1, v1.0, v01은 모르는 버전이다. */
+    private static final Pattern VERSION = Pattern.compile("v([1-9][0-9]*)");
+    private static final ApiVersionParser<Integer> PARSER = ApiVersionConfig::parse;
 
     private static final String API_PREFIX = "/api/";
     /** image 모듈 ImageUrls.PATH와 같다 (common은 다른 모듈을 부르지 않는다) */
@@ -31,9 +39,20 @@ public class ApiVersionConfig implements WebMvcConfigurer {
     @Override
     public void configureApiVersioning(ApiVersionConfigurer configurer) {
         configurer.usePathSegment(1, ApiVersionConfig::isVersioned)
+                // 기본 파서(SemanticApiVersionParser)는 1, v1.0도 v1로 읽으므로 v + 숫자만 받는 파서를 쓴다.
+                // 처리기의 version = "v2"도 이 파서로 읽는다
+                .setVersionParser(PARSER)
                 .addSupportedVersions(SUPPORTED)
                 // 버전 칸이 없는 주소(로봇용 /og·/rss.xml, 이미지 파일, /actuator)는 버전을 따지지 않는다
                 .setDefaultVersion(SUPPORTED[0]);
+    }
+
+    static Integer parse(String version) {
+        Matcher matcher = VERSION.matcher(version);
+        if (!matcher.matches()) {
+            throw new InvalidApiVersionException(version);
+        }
+        return Integer.valueOf(matcher.group(1));
     }
 
     static boolean isVersioned(RequestPath path) {
@@ -41,8 +60,8 @@ public class ApiVersionConfig implements WebMvcConfigurer {
     }
 
     /**
-     * 버전이 없거나(/api/posts) 지원하지 않는 버전(/api/v9/posts)의 API 주소인가. 보안 설정이 이런 요청은 로그인과 상관없이
-     * 통과시켜 "로그인이 필요합니다"(401) 대신 400 API_VERSION_UNSUPPORTED로 답하게 한다. 이런 주소에 답하는 처리기는 없다.
+     * 버전이 없거나(/api/posts) 지원하지 않는 버전(/api/v9/posts, /api/1/posts)의 API 주소인가. 보안 설정이 이런 요청은
+     * 로그인과 CSRF 검사 없이 통과시켜 401·403 대신 400 API_VERSION_UNSUPPORTED로 답하게 한다. 이런 주소에 답하는 처리기는 없다.
      */
     public static boolean isUnsupportedApiRequest(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
@@ -50,8 +69,7 @@ public class ApiVersionConfig implements WebMvcConfigurer {
             return false;
         }
         String segment = path.substring(API_PREFIX.length()).split("/", 2)[0];
-        String version = segment.startsWith("v") || segment.startsWith("V") ? segment.substring(1) : segment;
-        return !Arrays.asList(SUPPORTED).contains(version);
+        return !Arrays.asList(SUPPORTED).contains(segment);
     }
 
     private static boolean isVersionedPath(String path) {

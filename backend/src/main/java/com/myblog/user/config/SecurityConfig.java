@@ -55,7 +55,9 @@ public class SecurityConfig {
         csrfTokenRepository.setCookieCustomizer(cookie -> cookie.sameSite("Lax"));
 
         http
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                // 버전이 없거나 모르는 버전의 API 주소는 답하는 처리기가 없으므로 CSRF 대신 버전 오류(400)로 답한다 (ApiVersionConfig)
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
+                        .ignoringRequestMatchers(ApiVersionConfig::isUnsupportedApiRequest))
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
                 .addFilterBefore(sessionLifetimeFilter, SecurityContextHolderFilter.class)

@@ -1,6 +1,6 @@
 # 실습 서버에 올리기
 
-`main`에 코드가 합쳐지고 CI가 통과하면 **GitHub Actions(`.github/workflows/deploy.yml`)가 알아서 배포한다.** 서버에 들어가 있을 필요가 없다.
+**릴리스를 낼 때**(Actions → `배포`에 릴리스 번호를 넣어 손으로 돌리거나, GitHub에서 릴리스를 직접 내면) **GitHub Actions(`.github/workflows/deploy.yml`)가 배포한다.** `main`에 합친다고 바로 배포되지는 않는다(아래 `릴리스로`). 서버에 들어가 있을 필요가 없다.
 
 1. Actions가 서버·화면 Docker 이미지를 만든다.
 2. SSH로 실습 서버에 접속해 이미지와 배포 파일을 `~/geulgyeol/`에 올린다. 접속 정보는 GitHub Secrets에서 읽는다.
