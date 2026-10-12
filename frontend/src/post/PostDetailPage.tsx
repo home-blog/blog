@@ -114,7 +114,12 @@ export default function PostDetailPage() {
             <Link to={`/write/${post.postId}`} className="btn btn-outline btn-small">
               수정
             </Link>
-            <button type="button" className="btn btn-quiet btn-small" disabled={deleting} onClick={() => setConfirmDelete(true)}>
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              disabled={deleting}
+              onClick={() => setConfirmDelete(true)}
+            >
               {deleting ? '삭제하는 중' : '삭제'}
             </button>
           </p>

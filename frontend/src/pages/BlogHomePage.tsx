@@ -60,7 +60,11 @@ export default function BlogHomePage() {
       <link rel="alternate" type="application/rss+xml" title={`${blog.name} RSS`} href={`/blog/${id}/rss.xml`} />
       <header className="blog-head">
         <h1 className="blog-name">{blog.name}</h1>
-        {blog.intro ? <p className="blog-intro">{blog.intro}</p> : <p className="blog-intro hint">아직 소개가 없습니다</p>}
+        {blog.intro ? (
+          <p className="blog-intro">{blog.intro}</p>
+        ) : (
+          <p className="blog-intro hint">아직 소개가 없습니다</p>
+        )}
         <p className="blog-feed-links">
           <a href={`/blog/${id}/rss.xml`} className="blog-rss" target="_blank" rel="noopener">
             RSS

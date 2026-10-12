@@ -42,7 +42,13 @@ function sameHeadings(a: Heading[], b: Heading[]): boolean {
   return a.length === b.length && a.every((h, i) => h.id === b[i].id && h.text === b[i].text)
 }
 
-export default function TableOfContents({ container, source }: { container: RefObject<HTMLElement | null>; source: string }) {
+export default function TableOfContents({
+  container,
+  source,
+}: {
+  container: RefObject<HTMLElement | null>
+  source: string
+}) {
   const [headings, setHeadings] = useState<Heading[]>([])
   const [active, setActive] = useState<string | null>(null)
 

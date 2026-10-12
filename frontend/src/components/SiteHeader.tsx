@@ -3,9 +3,9 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
-import NewBadge from '../manage/NewBadge'
 import { useNewCommentCount } from '../manage/newCommentCount'
 import ThemeToggle from '../theme/ThemeToggle'
+import UserMenu from './UserMenu'
 import './site-header.css'
 
 /** 로그인해야 볼 수 있는 화면. 여기서 로그아웃하면 첫 화면으로 보낸다 (FR-031). 기능이 생기면 더한다. */
@@ -45,31 +45,18 @@ export default function SiteHeader() {
                 로그아웃하지 못했습니다. 다시 눌러 주세요
               </span>
             )}
-            <span className="site-member">{member.nickname}님</span>
-            <Link to="/write" className="site-link">
-              글쓰기
+            <Link to="/write" className="header-write">
+              <span aria-hidden="true">✎</span> 글쓰기
             </Link>
-            <Link to="/me/blog" className="site-link">
-              내 블로그
-            </Link>
-            {/* 블로그 관리와 마이페이지는 따로 둔다 (specs/006 FR-004, BM-01-3 확인 필요: 원본대로) */}
-            <Link to="/manage" className="site-link">
-              블로그 관리
-              <NewBadge count={newCommentCount} />
-            </Link>
-            <Link to="/mypage" className="site-link">
-              마이페이지
-            </Link>
-            <button type="button" className="btn btn-quiet btn-small" onClick={handleLogout}>
-              로그아웃
-            </button>
+            {/* 내 블로그·블로그 관리·마이페이지·로그아웃은 한 메뉴로 (블로그 관리와 마이페이지는 따로 둔다: specs/006 FR-004) */}
+            <UserMenu nickname={member.nickname} newCommentCount={newCommentCount} onLogout={handleLogout} />
           </>
         ) : (
           <>
-            <Link to="/login" state={{ from: location.pathname }} className="site-link">
+            <Link to="/login" state={{ from: location.pathname }} className="header-login">
               로그인
             </Link>
-            <Link to="/signup" className="btn btn-primary btn-small">
+            <Link to="/signup" className="header-write">
               회원 가입
             </Link>
           </>
