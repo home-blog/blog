@@ -53,9 +53,9 @@ fi
 "${compose[@]}" ps
 
 # 바깥 입구(화면 nginx → 서버)까지 답하는지 확인
-code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${WEB_PORT}/api/auth/csrf" || true)"
+code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${WEB_PORT}/api/v1/auth/csrf" || true)"
 if [ "$code" != "200" ]; then
-  echo "확인 실패: http://127.0.0.1:${WEB_PORT}/api/auth/csrf 가 ${code}로 답했습니다. 서버 로그: ${compose[*]} logs server" >&2
+  echo "확인 실패: http://127.0.0.1:${WEB_PORT}/api/v1/auth/csrf 가 ${code}로 답했습니다. 서버 로그: ${compose[*]} logs server" >&2
   exit 1
 fi
 echo "켜졌습니다: 127.0.0.1:${WEB_PORT} (${IMAGE_TAG})"
