@@ -36,7 +36,9 @@ public class SmtpVerificationMailSender implements VerificationMailSender {
         try {
             mailSender.send(message);
         } catch (MailException e) {
-            throw new MailSendFailedException("인증번호 메일을 보내지 못했습니다", e);
+            // 서버 로그에서 원인(로그인 실패, 메일 서버에 연결 못 함 등)을 바로 알 수 있게 메일 서버가 준 이유를 붙인다.
+            // 화면에는 이 문구가 아니라 MAIL_SEND_FAILED의 고정 문구만 간다. 비밀번호는 이 이유에 들어가지 않는다
+            throw new MailSendFailedException("인증번호 메일을 보내지 못했습니다 (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")", e);
         }
     }
 }
