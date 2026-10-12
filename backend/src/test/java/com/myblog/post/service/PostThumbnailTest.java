@@ -35,4 +35,25 @@ class PostThumbnailTest {
                 + "![ok](/api/images/d.webp)";
         assertThat(PostThumbnail.of(markdown)).contains("/api/images/d.webp");
     }
+
+    @Test
+    void 코드_블록과_인라인_코드_안의_이미지_문법은_건너뛴다() {
+        String markdown = """
+                마크다운 이미지 쓰는 법:
+
+                ```markdown
+                ![예시](/api/images/a.png "대표")
+                ```
+
+                한 줄로는 `![b](/api/images/b.png)` 처럼 씁니다.
+
+                ![진짜](/api/images/c.png)
+                """;
+        assertThat(PostThumbnail.of(markdown)).contains("/api/images/c.png");
+    }
+
+    @Test
+    void 닫히지_않은_코드_블록은_글_끝까지_코드다() {
+        assertThat(PostThumbnail.of("~~~\n![a](/api/images/a.png)\n")).isEmpty();
+    }
 }
