@@ -87,6 +87,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/tags/**").permitAll()
                         // 이미지 보기 (005 contracts 11). 볼 수 있는지는 서비스가 글·올린 사람을 보고 정한다
                         .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
+                        // 로봇이 읽는 주소: 링크 미리보기 카드, RSS, 사이트 지도, 검색엔진 안내 (specs/007)
+                        .requestMatchers(HttpMethod.GET, "/og", "/og/", "/og/blog/{blogId:\\d+}", "/og/posts/{postId:\\d+}")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/rss.xml", "/blog/{blogId:\\d+}/rss.xml", "/sitemap.xml",
+                                "/robots.txt").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();

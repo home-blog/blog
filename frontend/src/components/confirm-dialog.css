@@ -1,7 +1,7 @@
 /* 확인 창(<dialog>)과 위험한 버튼: 회원 탈퇴(002), 글 삭제·공개로 바꾸기(003)가 같이 쓴다 */
 .btn-danger {
   background: var(--error);
-  color: #fff;
+  color: var(--error-ink);
 }
 
 .btn-danger:not(:disabled):hover {

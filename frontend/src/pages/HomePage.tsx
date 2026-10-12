@@ -145,7 +145,7 @@ export default function HomePage() {
           ) : (
             <>
               <p className="post-count">글 {shownFeed.data.totalCount.toLocaleString('ko-KR')}개</p>
-              <ul className="post-list feed-list">
+              <ul className="post-list feed-list rise-list">
                 {shownFeed.data.posts.map((post) => (
                   <FeedItem key={post.postId} post={post} />
                 ))}
@@ -166,9 +166,9 @@ export default function HomePage() {
           ) : shownPopular.data.posts.length === 0 ? (
             <p className="hint">아직 인기 글이 없습니다.</p>
           ) : (
-            <ol className="popular-list">
+            <ol className="popular-list rise-list">
               {shownPopular.data.posts.map((post, index) => (
-                <li key={post.postId} className="popular-item">
+                <li key={post.postId} className={index === 0 ? 'popular-item popular-first' : 'popular-item'}>
                   <span className="popular-rank" aria-hidden="true">
                     {index + 1}
                   </span>

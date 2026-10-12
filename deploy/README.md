@@ -43,8 +43,8 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
 
 ## 배포하기
 
-- **자동**: `main`에 PR을 합치면 CI 다음에 배포가 돈다. GitHub의 Actions 탭 → `배포`에서 진행을 본다.
-- **손으로**: Actions 탭 → `배포` → `Run workflow`.
+- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 화면을 확인한 뒤 GitHub에서 릴리스(태그 `v0.2.0`처럼, 대상 `main`)를 내면 그 버전이 배포된다. 미리보기(pre-release)로 낸 릴리스는 배포하지 않는다. 진행은 Actions 탭 → `배포`에서 본다.
+- **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 
 ## 서버에서 볼 때 (SSH 접속 후)
 

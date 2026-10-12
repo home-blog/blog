@@ -56,9 +56,20 @@ export default function BlogHomePage() {
   const { blog, categories } = current
   return (
     <div className="blog-home">
+      {/* RSS 리더가 블로그 주소만으로 찾게 머리에 알린다 (specs/007 US5, React 19가 head로 옮긴다) */}
+      <link rel="alternate" type="application/rss+xml" title={`${blog.name} RSS`} href={`/blog/${id}/rss.xml`} />
       <header className="blog-head">
         <h1 className="blog-name">{blog.name}</h1>
-        {blog.intro ? <p className="blog-intro">{blog.intro}</p> : <p className="blog-intro hint">아직 소개가 없습니다</p>}
+        {blog.intro ? (
+          <p className="blog-intro">{blog.intro}</p>
+        ) : (
+          <p className="blog-intro hint">아직 소개가 없습니다</p>
+        )}
+        <p className="blog-feed-links">
+          <a href={`/blog/${id}/rss.xml`} className="blog-rss" target="_blank" rel="noopener">
+            RSS
+          </a>
+        </p>
         {blog.isOwner && (
           <p className="blog-owner-actions">
             <Link to="/manage/blog" className="btn btn-outline btn-small">

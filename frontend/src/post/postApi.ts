@@ -69,6 +69,10 @@ export interface PostDetail {
   likedByMe: boolean
   /** 태그 (소문자, 이름순). 글 아래에 보여 준다 */
   tags: string[]
+  /** 원고지 매수 (specs/007 US3) */
+  sheets: number
+  /** 읽는 시간(분) */
+  readMinutes: number
 }
 
 export function getPost(postId: number, signal?: AbortSignal): Promise<PostDetail> {

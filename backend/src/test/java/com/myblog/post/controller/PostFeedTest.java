@@ -82,6 +82,8 @@ class PostFeedTest {
                 .andExpect(jsonPath("$.posts[0].nickname").value(b.user().getNickname()))
                 .andExpect(jsonPath("$.posts[0].blogName").value(b.user().getNickname() + "의 블로그"))
                 .andExpect(jsonPath("$.posts[0].topic").value("여행"))
+                .andExpect(jsonPath("$.posts[0].sheets").value(1))   // 원고지 매수·읽는 시간 (specs/007 US3)
+                .andExpect(jsonPath("$.posts[0].readMinutes").value(1))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(ids(body).subList(0, 3)).containsExactly(travelB, sportB, travelA);
     }

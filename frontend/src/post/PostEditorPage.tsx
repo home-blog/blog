@@ -7,6 +7,8 @@
 // - 글자 수는 입력한 원문 그대로 센다 (D-2). 최종 판단은 서버가 한다
 // - 태그 0~5개 (specs/005 US5, TagInput). 서버의 tags / tags[n] 오류는 태그 칸에 보여 준다
 // - 이미지 올리기 (specs/005 US4): 받은 주소를 본문의 커서 자리에 ![](주소)로 넣는다
+// - 나란히 미리보기 (specs/007 US7): 넓은 화면은 왼쪽에 쓰고 오른쪽 원고지 종이에 바로 보인다(스크롤도 같이). 좁으면 쓰기/미리보기 탭
+// - 서식 도구 막대(MarkdownToolbar)와 원고지 매수 실시간 표시
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { Navigate, useParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
@@ -17,13 +19,27 @@ import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
 import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
+import EditorPreview from './EditorPreview'
+import MarkdownToolbar from './MarkdownToolbar'
 import TagInput from './TagInput'
+import './post-detail.css'
 import './post-editor.css'
 
 type Field = 'title' | 'content' | 'categoryId' | 'topicId' | 'visibility' | 'tags'
 type FieldErrors = Partial<Record<Field, string>> & { tagItems?: Record<number, string> }
 
 const EMPTY: PostInput = { title: '', content: '', categoryId: null, topicId: null, visibility: 'public', tags: [] }
+
+/** 넓은 화면에서 미리보기를 펼쳐 둘지 (브라우저에 기억) */
+const PREVIEW_KEY = 'geulgyeol-editor-preview'
+
+function savedPreviewOpen(): boolean {
+  try {
+    return localStorage.getItem(PREVIEW_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
 
 /** 서버 오류에서 tags[n] 칸의 문구를 번호별로 모은다 */
 function tagItemErrors(err: ApiError): Record<number, string> | undefined {
@@ -60,6 +76,10 @@ export default function PostEditorPage() {
   const contentRef = useRef<HTMLTextAreaElement>(null)
   /** 이미지를 넣은 뒤 커서를 둘 자리. 본문이 화면에 반영된 뒤에 옮긴다(여러 장을 이어 올려도 차례대로 들어가게) */
   const pendingCaret = useRef<number | null>(null)
+  // 나란히 미리보기 (specs/007 US7): 넓은 화면에서 펼칠지, 좁은 화면에서 지금 보는 쪽
+  const [previewOpen, setPreviewOpen] = useState(savedPreviewOpen)
+  const [mode, setMode] = useState<'write' | 'preview'>('write')
+  const previewRef = useRef<HTMLElement>(null)
 
   useLayoutEffect(() => {
     const area = contentRef.current
@@ -75,19 +95,26 @@ export default function PostEditorPage() {
       editingId === null
         ? getPostForm(controller.signal).then((loaded) => ({
             options: loaded as EditorOptions,
-            start: { ...EMPTY, categoryId: loaded.defaultCategoryId, topicId: loaded.defaultTopicId, visibility: loaded.defaultVisibility },
-          }))
-        : Promise.all([getPostEdit(editingId, controller.signal), getPostForm(controller.signal)]).then(([post, defaults]) => ({
-            options: { categories: post.categories, topics: post.topics, limits: defaults.limits },
             start: {
-              title: post.title,
-              content: post.content,
-              categoryId: post.categoryId,
-              topicId: post.topicId,
-              visibility: post.visibility,
-              tags: post.tags,
+              ...EMPTY,
+              categoryId: loaded.defaultCategoryId,
+              topicId: loaded.defaultTopicId,
+              visibility: loaded.defaultVisibility,
             },
           }))
+        : Promise.all([getPostEdit(editingId, controller.signal), getPostForm(controller.signal)]).then(
+            ([post, defaults]) => ({
+              options: { categories: post.categories, topics: post.topics, limits: defaults.limits },
+              start: {
+                title: post.title,
+                content: post.content,
+                categoryId: post.categoryId,
+                topicId: post.topicId,
+                visibility: post.visibility,
+                tags: post.tags,
+              },
+            }),
+          )
     load
       .then(({ options, start }) => {
         setForm(options)
@@ -184,6 +211,24 @@ export default function PostEditorPage() {
     }
   }
 
+  function togglePreview() {
+    const next = !previewOpen
+    setPreviewOpen(next)
+    try {
+      localStorage.setItem(PREVIEW_KEY, next ? 'on' : 'off')
+    } catch {
+      // 기억하지 못해도 지금 화면은 바꾼다
+    }
+  }
+
+  /** 본문을 내리면 미리보기도 같은 비율만큼 내린다 */
+  function syncScroll(area: HTMLTextAreaElement) {
+    const preview = previewRef.current
+    if (!preview) return
+    const ratio = area.scrollTop / Math.max(1, area.scrollHeight - area.clientHeight)
+    preview.scrollTop = ratio * (preview.scrollHeight - preview.clientHeight)
+  }
+
   function update<K extends keyof PostInput>(key: K, value: PostInput[K]) {
     setInput((prev) => ({ ...prev, [key]: value }))
   }
@@ -207,155 +252,214 @@ export default function PostEditorPage() {
   }
 
   return (
-    <form className="editor" onSubmit={submit} noValidate aria-labelledby="editor-title">
+    <form
+      className={previewOpen ? 'editor has-preview' : 'editor'}
+      onSubmit={submit}
+      noValidate
+      aria-labelledby="editor-title"
+    >
       <h1 id="editor-title" className="visually-hidden">
         {editingId === null ? '새 글 쓰기' : '글 고치기'}
       </h1>
 
-      <div className="editor-meta">
-        <div className="field">
-          <label htmlFor="post-category">분류</label>
-          <select
-            id="post-category"
-            value={input.categoryId ?? ''}
-            disabled={busy}
-            aria-invalid={errors.categoryId ? true : undefined}
-            aria-describedby={errors.categoryId ? 'post-category-error' : undefined}
-            onChange={(e) => update('categoryId', e.target.value === '' ? null : Number(e.target.value))}
-          >
-            {form.categories.map((c) => (
-              <option key={c.categoryId} value={c.categoryId}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {errors.categoryId && (
-            <p id="post-category-error" className="msg msg-error">
-              {errors.categoryId}
-            </p>
-          )}
-        </div>
+      {/* 맨 위 한 줄: 분류·주제·공개 여부, 그리고 미리보기 접기(넓은 화면) / 쓰기·미리보기 탭(좁은 화면) */}
+      <div className="editor-top">
+        <div className="editor-meta">
+          <div className="field">
+            <label htmlFor="post-category">분류</label>
+            <select
+              id="post-category"
+              value={input.categoryId ?? ''}
+              disabled={busy}
+              aria-invalid={errors.categoryId ? true : undefined}
+              aria-describedby={errors.categoryId ? 'post-category-error' : undefined}
+              onChange={(e) => update('categoryId', e.target.value === '' ? null : Number(e.target.value))}
+            >
+              {form.categories.map((c) => (
+                <option key={c.categoryId} value={c.categoryId}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {errors.categoryId && (
+              <p id="post-category-error" className="msg msg-error">
+                {errors.categoryId}
+              </p>
+            )}
+          </div>
 
-        <div className="field">
-          <label htmlFor="post-topic">주제</label>
-          <select
-            id="post-topic"
-            value={input.topicId ?? ''}
-            disabled={busy}
-            aria-invalid={errors.topicId ? true : undefined}
-            aria-describedby={errors.topicId ? 'post-topic-error' : undefined}
-            onChange={(e) => update('topicId', e.target.value === '' ? null : Number(e.target.value))}
-          >
-            <option value="">주제를 고르세요</option>
-            {form.topics.map((t) => (
-              <option key={t.topicId} value={t.topicId}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          {errors.topicId && (
-            <p id="post-topic-error" className="msg msg-error">
-              {errors.topicId}
-            </p>
-          )}
-        </div>
+          <div className="field">
+            <label htmlFor="post-topic">주제</label>
+            <select
+              id="post-topic"
+              value={input.topicId ?? ''}
+              disabled={busy}
+              aria-invalid={errors.topicId ? true : undefined}
+              aria-describedby={errors.topicId ? 'post-topic-error' : undefined}
+              onChange={(e) => update('topicId', e.target.value === '' ? null : Number(e.target.value))}
+            >
+              <option value="">주제를 고르세요</option>
+              {form.topics.map((t) => (
+                <option key={t.topicId} value={t.topicId}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            {errors.topicId && (
+              <p id="post-topic-error" className="msg msg-error">
+                {errors.topicId}
+              </p>
+            )}
+          </div>
 
-        <fieldset className="field editor-visibility" disabled={busy}>
-          <legend>공개 여부</legend>
-          {(['public', 'private'] as Visibility[]).map((value) => (
-            <label key={value}>
-              <input
-                type="radio"
-                name="visibility"
-                value={value}
-                checked={input.visibility === value}
-                onChange={() => update('visibility', value)}
-              />
-              {value === 'public' ? '공개' : '비공개'}
+          <fieldset className="field editor-visibility" disabled={busy}>
+            <legend>공개 여부</legend>
+            {(['public', 'private'] as Visibility[]).map((value) => (
+              <label key={value}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value={value}
+                  checked={input.visibility === value}
+                  onChange={() => update('visibility', value)}
+                />
+                {value === 'public' ? '공개' : '비공개'}
+              </label>
+            ))}
+            {errors.visibility && <p className="msg msg-error">{errors.visibility}</p>}
+          </fieldset>
+        </div>
+        <div className="editor-view-switch">
+          <button type="button" className="editor-preview-toggle" aria-pressed={previewOpen} onClick={togglePreview}>
+            {previewOpen ? '미리보기 접기' : '미리보기 펼치기'}
+          </button>
+          <div className="editor-mode-tabs" role="group" aria-label="보기">
+            <button
+              type="button"
+              className="editor-mode-tab"
+              aria-pressed={mode === 'write'}
+              onClick={() => setMode('write')}
+            >
+              쓰기
+            </button>
+            <button
+              type="button"
+              className="editor-mode-tab"
+              aria-pressed={mode === 'preview'}
+              onClick={() => setMode('preview')}
+            >
+              미리보기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 두 칸: 왼쪽 쓰기 종이와 오른쪽 미리보기 종이의 위·아래를 맞춘다 */}
+      <div className="editor-split" data-mode={mode}>
+        <section className="editor-write" aria-label="쓰기">
+          <header className="editor-pane-head">
+            <label htmlFor="post-content" className="editor-pane-label">
+              쓰기 <span className="hint">마크다운</span>
             </label>
-          ))}
-          {errors.visibility && <p className="msg msg-error">{errors.visibility}</p>}
-        </fieldset>
+            <span
+              id="post-content-count"
+              className={`editor-count${contentCount > contentMaxLength ? ' is-over' : ''}`}
+            >
+              {contentCount.toLocaleString('ko-KR')} / {contentMaxLength.toLocaleString('ko-KR')}자
+            </span>
+          </header>
+          <div className="editor-pane-body">
+            <div className="field editor-title-field">
+              <label htmlFor="post-title" className="visually-hidden">
+                제목
+              </label>
+              <input
+                id="post-title"
+                className="editor-title-input"
+                placeholder="제목"
+                value={input.title}
+                readOnly={busy}
+                aria-invalid={errors.title ? true : undefined}
+                aria-describedby="post-title-count post-title-error"
+                onChange={(e) => update('title', e.target.value)}
+              />
+              <div className="editor-field-foot">
+                {errors.title ? (
+                  <p id="post-title-error" className="msg msg-error">
+                    {errors.title}
+                  </p>
+                ) : (
+                  <span />
+                )}
+                <span id="post-title-count" className={`editor-count${titleCount > titleMaxLength ? ' is-over' : ''}`}>
+                  {titleCount} / {titleMaxLength}자
+                </span>
+              </div>
+            </div>
+
+            <TagInput
+              tags={input.tags}
+              disabled={busy}
+              serverError={errors.tags}
+              serverTagErrors={errors.tagItems}
+              onChange={(tags) => {
+                update('tags', tags)
+                setErrors((prev) => ({ ...prev, tags: undefined, tagItems: undefined }))
+              }}
+            />
+
+            <MarkdownToolbar
+              target={contentRef}
+              disabled={busy}
+              onFallback={(value) => update('content', value)}
+              imageButton={<ImageUploadButton postId={editingId} disabled={busy} onUploaded={insertImage} />}
+            />
+            <textarea
+              ref={contentRef}
+              id="post-content"
+              className="editor-content-input"
+              value={input.content}
+              readOnly={busy}
+              rows={18}
+              placeholder="오늘의 이야기를 적어 보세요"
+              aria-invalid={errors.content ? true : undefined}
+              aria-describedby="post-content-count post-content-error post-content-hint"
+              onChange={(e) => update('content', e.target.value)}
+              onScroll={(e) => syncScroll(e.currentTarget)}
+            />
+            {errors.content ? (
+              <p id="post-content-error" className="msg msg-error">
+                {errors.content}
+              </p>
+            ) : (
+              <p id="post-content-hint" className="hint editor-content-hint">
+                마크다운 기호와 이미지 주소도 글자 수에 들어갑니다
+              </p>
+            )}
+          </div>
+        </section>
+
+        {previewOpen && (
+          <EditorPreview
+            ref={previewRef}
+            title={input.title}
+            content={input.content}
+            tags={input.tags}
+            topicName={form.topics.find((t) => t.topicId === input.topicId)?.name}
+            categoryName={form.categories.find((c) => c.categoryId === input.categoryId)?.name}
+          />
+        )}
       </div>
 
-      <div className="field editor-title-field">
-        <label htmlFor="post-title" className="visually-hidden">
-          제목
-        </label>
-        <input
-          id="post-title"
-          className="editor-title-input"
-          placeholder="제목"
-          value={input.title}
-          readOnly={busy}
-          aria-invalid={errors.title ? true : undefined}
-          aria-describedby="post-title-count post-title-error"
-          onChange={(e) => update('title', e.target.value)}
-        />
-        <div className="editor-field-foot">
-          {errors.title ? (
-            <p id="post-title-error" className="msg msg-error">
-              {errors.title}
-            </p>
-          ) : (
-            <span />
-          )}
-          <span id="post-title-count" className={`editor-count${titleCount > titleMaxLength ? ' is-over' : ''}`}>
-            {titleCount} / {titleMaxLength}자
-          </span>
-        </div>
-      </div>
-
-      <div className="field editor-content-field">
-        <div className="editor-content-head">
-          <label htmlFor="post-content">
-            본문 <span className="hint">마크다운으로 씁니다</span>
-          </label>
-          <ImageUploadButton postId={editingId} disabled={busy} onUploaded={insertImage} />
-        </div>
-        <textarea
-          ref={contentRef}
-          id="post-content"
-          className="editor-content-input"
-          value={input.content}
-          readOnly={busy}
-          rows={18}
-          aria-invalid={errors.content ? true : undefined}
-          aria-describedby="post-content-count post-content-error"
-          onChange={(e) => update('content', e.target.value)}
-        />
-        <div className="editor-field-foot">
-          {errors.content ? (
-            <p id="post-content-error" className="msg msg-error">
-              {errors.content}
-            </p>
-          ) : (
-            <span className="hint">마크다운 기호와 이미지 주소도 글자 수에 들어갑니다</span>
-          )}
-          <span id="post-content-count" className={`editor-count${contentCount > contentMaxLength ? ' is-over' : ''}`}>
-            {contentCount.toLocaleString('ko-KR')} / {contentMaxLength.toLocaleString('ko-KR')}자
-          </span>
-        </div>
-      </div>
-
-      <TagInput
-        tags={input.tags}
-        disabled={busy}
-        serverError={errors.tags}
-        serverTagErrors={errors.tagItems}
-        onChange={(tags) => {
-          update('tags', tags)
-          setErrors((prev) => ({ ...prev, tags: undefined, tagItems: undefined }))
-        }}
-      />
-
-      {formError && (
-        <p className="msg msg-error form-error" role="alert">
-          {formError}
-        </p>
-      )}
-
-      <div className="editor-actions">
+      {/* 맨 아래 막대: 오류와 저장 */}
+      <div className="editor-bar">
+        {formError ? (
+          <p className="msg msg-error form-error" role="alert">
+            {formError}
+          </p>
+        ) : (
+          <span />
+        )}
         <button type="submit" className="btn btn-primary" disabled={busy || (editingId !== null && !dirty)}>
           {busy ? '저장하는 중' : '저장'}
         </button>

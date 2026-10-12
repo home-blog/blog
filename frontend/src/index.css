@@ -10,6 +10,10 @@
   --accent-ink: #ffffff;
   --ok: #2c6a4d;
   --error: #b3261e;
+  --error-ink: #ffffff;    /* 빨간 버튼 위 글자 */
+  --shadow: 0 1px 2px rgb(29 39 33 / 0.06), 0 6px 18px rgb(29 39 33 / 0.08);
+  --shadow-raised: 0 2px 4px rgb(29 39 33 / 0.08), 0 14px 32px rgb(29 39 33 / 0.14);
+  --highlight: #fff3b0;    /* 형광펜 */
   --focus: #1f5fbf;
 
   /* 분류 색 목록 (specs/006 T025, D-9): 원고지 초록과 어울리는 먹·물감 색 6개. 개수는 서버 category.color-count와 같다 */
@@ -31,12 +35,42 @@
   --radius-field: 6px;
   --radius-button: 999px;
 
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
   color-scheme: light;
   font-family: var(--font-ui);
   font-size: 100%;
   line-height: 1.6;
   color: var(--ink);
   background: var(--paper);
+}
+
+/* 어두운 화면 (specs/007 US1): 밤에 펼친 원고지. 글자 대비 4.5:1 이상 */
+:root[data-theme='dark'] {
+  --paper: #121815;
+  --paper-raised: #1a221d;
+  --ink: #e4ece6;
+  --ink-soft: #a7b6ac;
+  --grid: #2e4538;
+  --grid-strong: #557e66;
+  --accent: #7fc8a0;
+  --accent-ink: #0d1510;
+  --ok: #7fc8a0;
+  --error: #f28b82;
+  --error-ink: #1b0f0e;
+  --focus: #8ab4f8;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.35);
+  --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.45), 0 14px 32px rgb(0 0 0 / 0.5);
+  --highlight: #4d4520;
+
+  --category-1: #7fc8a0;
+  --category-2: #8fb8e0;
+  --category-3: #e39a72;
+  --category-4: #d6b660;
+  --category-5: #b9a0da;
+  --category-6: #e48fae;
+
+  color-scheme: dark;
 }
 
 *,
@@ -49,6 +83,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: var(--paper);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 :focus-visible {
@@ -62,6 +97,16 @@ body {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+
+  /* 마우스를 올리거나 누를 때 움직이는 것(떠오르기·돌기·눌림)도 끈다. 색·테두리·형광펜은 그대로 */
+  :is(.card, .theme-toggle, .header-write, .topic-tab, .user-menu-item, .popular-rank, .md-tool):is(
+      :hover,
+      :focus-within,
+      :active
+    ),
+  .popular-item:hover .popular-rank {
+    transform: none !important;
   }
 }
 
@@ -79,4 +124,133 @@ body {
   padding: 3rem 1rem;
   text-align: center;
   color: var(--ink-soft);
+}
+
+/* 머리글의 밝게/어둡게 버튼 (specs/007 US1) */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--grid);
+  border-radius: 50%;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-out), border-color 0.2s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--grid-strong);
+  transform: rotate(-20deg);
+}
+
+/* 카드가 차례로 떠오르는 등장 효과 (목록·첫 화면). --i는 몇 번째 카드인지 */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 목록의 항목이 위에서부터 차례로 떠오른다 (첫 화면 카드, 글 목록, 인기 글) */
+.rise-list > * {
+  animation: rise-in 0.45s var(--ease-out) both;
+}
+.rise-list > :nth-child(2) { animation-delay: 40ms; }
+.rise-list > :nth-child(3) { animation-delay: 80ms; }
+.rise-list > :nth-child(4) { animation-delay: 120ms; }
+.rise-list > :nth-child(5) { animation-delay: 160ms; }
+.rise-list > :nth-child(6) { animation-delay: 200ms; }
+.rise-list > :nth-child(7) { animation-delay: 240ms; }
+.rise-list > :nth-child(8) { animation-delay: 280ms; }
+.rise-list > :nth-child(n + 9) { animation-delay: 320ms; }
+
+/* ── 카드 (2026-10-12 사용자: 원고지 콘셉트 + 카드·하이라이트·애니메이션) ──
+   종이 한 장 위 맨 위에 원고지 칸 띠. 마우스를 올리면 떠오르고 테두리가 진해진다 */
+.card {
+  position: relative;
+  display: grid;
+  gap: 0.45rem;
+  padding: 1.15rem 1.15rem 1rem;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out),
+    border-color 0.25s;
+}
+
+/* 원고지 칸 띠: 칸 선이 반복되는 얇은 줄 */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  border-radius: 10px 10px 0 0;
+  background:
+    repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 14px),
+    color-mix(in srgb, var(--grid) 30%, transparent);
+  opacity: 0.8;
+  transition: opacity 0.25s;
+}
+
+.card:hover,
+.card:focus-within {
+  transform: translateY(-3px);
+  border-color: var(--grid-strong);
+  box-shadow: var(--shadow-raised);
+}
+
+.card:hover::before,
+.card:focus-within::before {
+  opacity: 1;
+  background:
+    repeating-linear-gradient(90deg, var(--grid-strong) 0 1px, transparent 1px 14px),
+    color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* 형광펜: 제목 아래쪽에 왼쪽부터 그어진다 */
+.highlight {
+  background-image: linear-gradient(transparent 60%, var(--highlight) 60%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-size 0.5s var(--ease-out);
+}
+
+.card:hover .highlight,
+.card:focus-within .highlight {
+  background-size: 100% 100%;
+}
+
+/* 원고지 매수·읽는 시간 (specs/007 US3): 작은 원고지 칸 표시 */
+.manuscript-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.manuscript-count::before {
+  content: '';
+  width: 0.8em;
+  height: 0.8em;
+  border: 1px solid var(--grid-strong);
+  background:
+    linear-gradient(var(--grid) 0 0) center / 1px 100% no-repeat,
+    linear-gradient(var(--grid) 0 0) center / 100% 1px no-repeat;
 }

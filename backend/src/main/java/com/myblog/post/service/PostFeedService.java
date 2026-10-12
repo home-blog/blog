@@ -26,14 +26,16 @@ public class PostFeedService {
     private final PostFeedRepository feedRepository;
     private final TopicRepository topicRepository;
     private final PostPreview preview;
+    private final ManuscriptMeasure manuscript;
     private final ExploreProperties.Feed settings;
     private final Clock clock;
 
     public PostFeedService(PostFeedRepository feedRepository, TopicRepository topicRepository, PostPreview preview,
-            ExploreProperties properties, Clock clock) {
+            ManuscriptMeasure manuscript, ExploreProperties properties, Clock clock) {
         this.feedRepository = feedRepository;
         this.topicRepository = topicRepository;
         this.preview = preview;
+        this.manuscript = manuscript;
         this.settings = properties.feed();
         this.clock = clock;
     }
@@ -82,9 +84,10 @@ public class PostFeedService {
     }
 
     private FeedRow toRow(FeedItem item) {
+        ManuscriptMeasure.Measure measure = manuscript.of(item.content());
         return new FeedRow(item.postId(), item.blogId(), item.blogName(), item.nickname(), item.title(),
                 item.topicName(), item.categoryId(), item.categoryName(), item.createdAt(), preview.of(item.content()),
-                item.commentCount(), item.likeCount());
+                item.commentCount(), item.likeCount(), measure.sheets(), measure.readMinutes());
     }
 
     /** topic은 고른 주제 이름(모든 주제면 null), topics는 주제 탭에 쓸 다섯 개 이름(정해진 순서). */
@@ -99,6 +102,6 @@ public class PostFeedService {
     /** 글 모음 한 줄. 항상 공개 글이다. */
     public record FeedRow(Long postId, Long blogId, String blogName, String nickname, String title, String topic,
             Long categoryId, String categoryName, Instant createdAt, String preview, long commentCount,
-            long likeCount) {
+            long likeCount, int sheets, int readMinutes) {
     }
 }
