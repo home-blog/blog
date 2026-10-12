@@ -1,5 +1,6 @@
-# 실습 서버 배포: main의 CI가 통과하면 Docker 이미지를 만들어 SSH로 서버에 올리고 deploy/remote-deploy.sh로 켠다.
-# 손으로 다시 돌리기: Actions → 배포 → Run workflow
+# 실습 서버 배포: Docker 이미지를 만들어 SSH로 서버에 올리고 deploy/remote-deploy.sh로 켠다.
+# main에 합친다고 바로 배포하지 않는다. 화면을 눈으로 확인한 뒤 릴리스(버전 태그 v0.2.0 등)를 내면 그 버전을 배포한다 (2026-10-12 사용자).
+# 같은 버전을 다시 올리기: Actions → 배포 → Run workflow (main의 지금 코드)
 #
 # 준비 (Repository secrets): SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD (실습 서버 접속)
 #                            SSH_KNOWN_HOSTS (서버 지문. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과. 없으면 배포를 멈춘다)
@@ -10,10 +11,8 @@
 name: 배포
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 # 배포는 한 번에 하나씩, 도중에 끊지 않는다
@@ -32,20 +31,20 @@ env:
 jobs:
   deploy:
     name: 실습 서버에 배포
-    # main에 push된 코드의 CI가 통과했을 때만 (PR의 CI는 배포하지 않는다). 손으로 돌릴 때도 main만
+    # 릴리스를 냈을 때(정식판만, 미리보기 prerelease는 빼고), 또는 main에서 손으로 돌릴 때만
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+      (github.event_name == 'release' && !github.event.release.prerelease) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}   # 릴리스면 그 태그의 커밋, 손으로 돌리면 main의 마지막 커밋
 
       - name: 이미지 만들기
         env:
-          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SHA: ${{ github.sha }}
         run: |
           tag="${SHA:0:12}"
           echo "IMAGE_TAG=$tag" >> "$GITHUB_ENV"

@@ -170,5 +170,6 @@ stats:
 myblog:
   mail:
     sender: smtp   # smtp(실제 발송) 또는 log(서버 로그에 인증번호만 찍기). dev 설정은 log가 기본
+    from-name: 글결   # 받는 사람에게 보이는 보내는 사람 이름 (주소는 MAIL_USERNAME)
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
