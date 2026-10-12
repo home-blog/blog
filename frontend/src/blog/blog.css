@@ -112,3 +112,34 @@
   color: var(--accent);
   font-weight: 700;
 }
+
+/* RSS 주소 (specs/007 US5) */
+.blog-feed-links {
+  margin: 0.5rem 0 0;
+  font-size: var(--step--1);
+}
+
+.blog-rss {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.blog-rss::before {
+  content: '';
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: #e08a2c;
+}
+
+.blog-rss:hover {
+  border-color: var(--grid-strong);
+  color: var(--ink);
+}

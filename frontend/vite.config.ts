@@ -9,6 +9,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: false },
+      // 로봇이 읽는 주소 (specs/007): RSS, 사이트 지도, 검색엔진 안내, 링크 미리보기 카드(/og/…, 브라우저로 열어 확인)
+      '^/(rss\\.xml|sitemap\\.xml|robots\\.txt|blog/\\d+/rss\\.xml)$': { target: 'http://localhost:8080', changeOrigin: false },
+      '^/og(/|$)': { target: 'http://localhost:8080', changeOrigin: false },
     },
   },
 })

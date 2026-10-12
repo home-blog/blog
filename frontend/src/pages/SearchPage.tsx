@@ -80,7 +80,7 @@ export default function SearchPage() {
             <p className="post-empty">{MESSAGES.emptySearch}</p>
           ) : (
             <>
-              <ul className="post-list">
+              <ul className="post-list rise-list">
                 {shown.data.results.map((post) => (
                   <PostRow key={post.postId} post={post} blogName={post.blogName} />
                 ))}

@@ -14,6 +14,9 @@ export interface PostSummary {
   preview: string
   /** 주인에게만 'private'가 올 수 있다 */
   visibility: Visibility
+  /** 원고지 매수·읽는 시간(분) (specs/007 US3). 블로그 글 목록에만 온다 */
+  sheets?: number
+  readMinutes?: number
 }
 
 export interface PostListPage {
@@ -84,6 +87,9 @@ export interface FeedPost {
   preview: string
   commentCount: number
   likeCount: number
+  /** 원고지 매수·읽는 시간(분) (specs/007 US3) */
+  sheets: number
+  readMinutes: number
 }
 
 export interface FeedPage {

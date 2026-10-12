@@ -40,10 +40,11 @@ public class PostReadService {
     private final ObjectProvider<PostCommentCounter> commentCounter;
     private final ObjectProvider<PostLikeSummary> likeSummary;
     private final PostTagService tagService;
+    private final ManuscriptMeasure manuscript;
 
     public PostReadService(PostRepository posts, TopicRepository topics, BlogDirectory blogDirectory,
             PostVisibility visibility, ObjectProvider<PostCommentCounter> commentCounter,
-            ObjectProvider<PostLikeSummary> likeSummary, PostTagService tagService) {
+            ObjectProvider<PostLikeSummary> likeSummary, PostTagService tagService, ManuscriptMeasure manuscript) {
         this.posts = posts;
         this.topics = topics;
         this.blogDirectory = blogDirectory;
@@ -51,6 +52,7 @@ public class PostReadService {
         this.commentCounter = commentCounter;
         this.likeSummary = likeSummary;
         this.tagService = tagService;
+        this.manuscript = manuscript;
     }
 
     /** viewerId는 로그인하지 않았으면 null. */
@@ -71,12 +73,13 @@ public class PostReadService {
         PostCommentCounter counter = commentCounter.getIfAvailable();
         long commentCount = counter == null ? 0 : counter.count(post.getId());
         LikeSummary likes = likeSummary.getIfAvailable(() -> (id, viewer) -> LikeSummary.NONE).summary(post.getId(), viewerId);
+        ManuscriptMeasure.Measure measure = manuscript.of(post.getContent());
         return new PostDetail(post.getId(), category.blogId(), category.blogName(),
                 new CategoryRef(category.categoryId(), category.name(), category.visibility()),
                 new TopicRef(topic.getId(), topic.getName()),
                 post.getTitle(), post.getContent(), post.getVisibility(), post.getCreatedAt(), post.getUpdatedAt(),
                 prev, next, visibility.isOwner(category, viewerId), commentCount, likes.likeCount(), likes.likedByMe(),
-                tagService.tagsOf(post.getId()));
+                tagService.tagsOf(post.getId()), measure.sheets(), measure.readMinutes());
     }
 
     /** 없는 글과 볼 수 없는 글은 상태 코드·본문이 같아야 한다 (FR-026). */
@@ -90,7 +93,8 @@ public class PostReadService {
 
     public record PostDetail(Long postId, Long blogId, String blogName, CategoryRef category, TopicRef topic, String title,
             String content, String visibility, Instant createdAt, Instant updatedAt, Long prevPostId, Long nextPostId,
-            boolean isOwner, long commentCount, long likeCount, boolean likedByMe, List<String> tags) {
+            boolean isOwner, long commentCount, long likeCount, boolean likedByMe, List<String> tags, int sheets,
+            int readMinutes) {
     }
 
     public record CategoryRef(Long categoryId, String name, String visibility) {

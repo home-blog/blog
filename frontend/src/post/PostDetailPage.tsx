@@ -15,6 +15,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import '../pages/auth-layout.css'
 import { deletePost, getPost, type PostDetail } from './postApi'
 import './post-detail.css'
+import TableOfContents from './TableOfContents'
 
 const MarkdownView = lazy(() => import('./MarkdownView'))
 
@@ -38,6 +39,8 @@ export default function PostDetailPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   // 확인을 빠르게 두 번 눌러도 삭제 요청은 하나만 (deleting은 다음 그리기부터 보인다)
   const deletingRef = useRef(false)
+  // 목차가 소제목을 찾는 본문 영역 (specs/007 US2)
+  const bodyRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!validId || viewer === null) return
@@ -101,6 +104,10 @@ export default function PostDetailPage() {
               · 수정 <time dateTime={post.updatedAt}>{formatTime(post.updatedAt)}</time>
             </>
           )}
+          {/* 원고지 매수·읽는 시간 (specs/007 US3) */}
+          <span className="manuscript-count">
+            원고지 {post.sheets}매 · {post.readMinutes}분
+          </span>
         </p>
         {post.isOwner && (
           <p className="post-owner-actions">
@@ -119,9 +126,12 @@ export default function PostDetailPage() {
         )}
       </header>
 
-      <Suspense fallback={<div className="post-content-raw">{post.content}</div>}>
-        <MarkdownView source={post.content} />
-      </Suspense>
+      <div className="post-body" ref={bodyRef}>
+        <TableOfContents container={bodyRef} source={post.content} />
+        <Suspense fallback={<div className="post-content-raw">{post.content}</div>}>
+          <MarkdownView source={post.content} />
+        </Suspense>
+      </div>
 
       {/* 태그 (specs/005 US5). 누르면 같은 태그의 공개 글 */}
       {post.tags.length > 0 && (

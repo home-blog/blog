@@ -37,14 +37,16 @@ public class PostListService {
     private final PostRepository posts;
     private final PostVisibility visibility;
     private final PostPreview preview;
+    private final ManuscriptMeasure manuscript;
     private final int pageSize;
 
     public PostListService(BlogDirectory blogDirectory, PostRepository posts, PostVisibility visibility,
-            PostPreview preview, ExploreProperties properties) {
+            PostPreview preview, ManuscriptMeasure manuscript, ExploreProperties properties) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
         this.visibility = visibility;
         this.preview = preview;
+        this.manuscript = manuscript;
         this.pageSize = properties.list().pageSize();
     }
 
@@ -113,8 +115,9 @@ public class PostListService {
     }
 
     private PostRow toRow(Post post, CategoryInfo category) {
+        ManuscriptMeasure.Measure measure = manuscript.of(post.getContent());
         return new PostRow(post.getId(), post.getTitle(), category.categoryId(), category.name(), post.getCreatedAt(),
-                preview.of(post.getContent()), post.getVisibility());
+                preview.of(post.getContent()), post.getVisibility(), measure.sheets(), measure.readMinutes());
     }
 
     /** 목록 한 페이지. categoryId는 실제로 적용한 분류 (고르지 않았으면 null). */
@@ -124,6 +127,6 @@ public class PostListService {
 
     /** 목록 한 줄. visibility는 주인에게만 "private"가 올 수 있다 (FR-006). */
     public record PostRow(Long postId, String title, Long categoryId, String categoryName, Instant createdAt,
-            String preview, String visibility) {
+            String preview, String visibility, int sheets, int readMinutes) {
     }
 }

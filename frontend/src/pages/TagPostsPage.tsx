@@ -56,7 +56,7 @@ export default function TagPostsPage() {
             <p className="post-empty">{MESSAGES.emptyList}</p>
           ) : (
             <>
-              <ul className="post-list">
+              <ul className="post-list rise-list">
                 {current.data.posts.map((post) => (
                   <PostRow key={post.postId} post={post} blogName={post.blogName} />
                 ))}

@@ -101,6 +101,14 @@ post:
   content:
     min-length: 1
     max-length: 10000
+  manuscript:   # 원고지 매수·읽는 시간 (specs/007 US3, 가안). 마크다운 기호를 뺀 글자 수(띄어쓰기 포함) ÷ 값, 올림
+    chars-per-sheet: 200    # 200자 원고지
+    chars-per-minute: 500   # 1분에 읽는 글자 수
+
+# 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
+share:
+  rss-size: 20              # RSS 한 번에 주는 최신 공개 글 수
+  sitemap-max-posts: 5000   # 사이트 지도에 넣는 공개 글 수 (최신순)
 
 # 글 목록·검색 (specs/004 plan.md 설정값 목록). 검색 결과도 같은 페이지 글 수·미리보기 길이를 쓴다 (D-3)
 explore:

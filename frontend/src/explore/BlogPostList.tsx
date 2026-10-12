@@ -112,7 +112,7 @@ export default function BlogPostList({ blogId, viewer }: Props) {
             </div>
           ) : (
             <>
-              <ul className="post-list">
+              <ul className="post-list rise-list">
                 {shown.list.posts.map((post) => (
                   <PostRow key={post.postId} post={post} />
                 ))}

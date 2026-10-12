@@ -3,6 +3,7 @@
 // - 화면 폭이 바뀌면 다시 맞춘다 (NF-03). 색은 index.css 토큰을 읽어 쓴다
 // - 같은 숫자를 표로도 볼 수 있게 아래에 접힌 표를 둔다 (화면 낭독기, 정확한 숫자)
 import { useEffect, useRef } from 'react'
+import { useTheme } from '../../theme/theme'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import './charts.css'
@@ -35,6 +36,8 @@ function token(name: string): string {
 
 export default function DailyLineChart({ dates, series, label, height = 220 }: Props) {
   const box = useRef<HTMLDivElement>(null)
+  // 밝게/어둡게가 바뀌면 토큰 색을 다시 읽어 새로 그린다 (specs/007 US1)
+  const theme = useTheme()
 
   useEffect(() => {
     const el = box.current
@@ -74,7 +77,7 @@ export default function DailyLineChart({ dates, series, label, height = 220 }: P
       resize.disconnect()
       plot.destroy()
     }
-  }, [dates, series, height])
+  }, [dates, series, height, theme])
 
   return <div ref={box} className="daily-chart" role="img" aria-label={label} />
 }

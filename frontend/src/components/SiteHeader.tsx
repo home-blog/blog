@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
 import NewBadge from '../manage/NewBadge'
 import { useNewCommentCount } from '../manage/newCommentCount'
+import ThemeToggle from '../theme/ThemeToggle'
 import './site-header.css'
 
 /** 로그인해야 볼 수 있는 화면. 여기서 로그아웃하면 첫 화면으로 보낸다 (FR-031). 기능이 생기면 더한다. */
@@ -36,6 +37,7 @@ export default function SiteHeader() {
       {/* 글 검색은 누구나 (specs/004 US5) */}
       <SearchBox />
       <nav className="site-nav" aria-label="계정">
+        <ThemeToggle />
         {member === undefined ? null : member ? (
           <>
             {logoutError && (
