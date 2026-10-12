@@ -117,8 +117,8 @@ class WithdrawalFlowTest {
                 + "(select 1 from blog b where b.blog_id = c.blog_id)", Integer.class)).isZero();
 
         // 모든 기기에서 로그아웃 (FR-027), 옛 이메일로는 로그인할 수 없다
-        mvc.perform(get("/api/auth/me").cookie(here)).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/auth/me").cookie(other)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").cookie(here)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").cookie(other)).andExpect(status().isUnauthorized());
         loginRequest(member.getEmail(), PASSWORD).andExpect(status().isUnauthorized());
     }
 
@@ -134,7 +134,7 @@ class WithdrawalFlowTest {
         assertThat(blogCount(member.getId())).isEqualTo(1);
         assertThat(jdbc.queryForObject("select failed_login_count from users where users_id = ? and deleted_at is null",
                 Integer.class, member.getId())).isEqualTo(1);
-        mvc.perform(get("/api/auth/me").cookie(here)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/me").cookie(here)).andExpect(status().isOk());
     }
 
     @Test
@@ -149,7 +149,7 @@ class WithdrawalFlowTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("password"))
                 .andExpect(jsonPath("$.fieldErrors[0].message").value("※ 비밀번호를 입력해 주세요"));
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).cookie(here).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).cookie(here).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isBadRequest());
 
@@ -168,7 +168,7 @@ class WithdrawalFlowTest {
         assertThat(blogCount(member.getId())).isEqualTo(1);
         assertThat(jdbc.queryForObject("select count(*) from users where users_id = ? and deleted_at is null",
                 Integer.class, member.getId())).isEqualTo(1);
-        mvc.perform(get("/api/auth/me").cookie(here)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/me").cookie(here)).andExpect(status().isOk());
     }
 
     @Test
@@ -189,12 +189,12 @@ class WithdrawalFlowTest {
     }
 
     private ResultActions withdraw(Cookie session, String password, boolean agreed) throws Exception {
-        return mvc.perform(post("/api/account/withdrawal").with(csrf()).cookie(session).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).cookie(session).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"password\":\"" + password + "\",\"agreed\":" + agreed + "}"));
     }
 
     private ResultActions loginRequest(String email, String password) throws Exception {
-        return mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"));
     }
 

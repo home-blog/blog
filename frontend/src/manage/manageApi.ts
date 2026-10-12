@@ -15,7 +15,7 @@ export interface ManageHeader {
 }
 
 export function getManageHeader(signal?: AbortSignal): Promise<ManageHeader> {
-  return api<ManageHeader>('/api/manage/blog', { signal })
+  return api<ManageHeader>('/api/v1/manage/blog', { signal })
 }
 
 export type VisibilityFilter = 'all' | 'public' | 'private'
@@ -47,12 +47,12 @@ export function getManagePosts(
 ): Promise<ManagePostPage> {
   const params = new URLSearchParams({ visibility: query.visibility, page: String(query.page) })
   if (query.categoryId !== null) params.set('categoryId', String(query.categoryId))
-  return api<ManagePostPage>(`/api/manage/posts?${params}`, { signal })
+  return api<ManagePostPage>(`/api/v1/manage/posts?${params}`, { signal })
 }
 
 /** 댓글 관리를 열 때 먼저 보낸다 (contracts 5-1). previousReadAt은 처음이면 null */
 export function markCommentsRead(): Promise<{ previousReadAt: string | null; readAt: string }> {
-  return api('/api/manage/comments/read', { method: 'POST' })
+  return api('/api/v1/manage/comments/read', { method: 'POST' })
 }
 
 /** 댓글 관리 한 줄 (contracts 5-2) */
@@ -80,12 +80,12 @@ export const NEVER_READ = 'never'
 /** 내 블로그 글의 모든 댓글, 최신순 (contracts 5-2). newSince는 읽음 처리의 previousReadAt (없으면 NEVER_READ) */
 export function getManageComments(page: number, newSince: string, signal?: AbortSignal): Promise<ManageCommentPage> {
   const params = new URLSearchParams({ page: String(page), newSince })
-  return api<ManageCommentPage>(`/api/manage/comments?${params}`, { signal })
+  return api<ManageCommentPage>(`/api/v1/manage/comments?${params}`, { signal })
 }
 
 /** 새 댓글 수 (contracts 6). 메뉴 옆·대시보드와 같은 계산 */
 export async function getNewCommentCount(signal?: AbortSignal): Promise<number> {
-  const res = await api<{ count: number }>('/api/manage/comments/new-count', { signal })
+  const res = await api<{ count: number }>('/api/v1/manage/comments/new-count', { signal })
   return res.count
 }
 
@@ -102,7 +102,7 @@ export interface DailyStat extends DailyCount {
 
 /** 통계 (contracts 7). days는 7 또는 30 */
 export function getStats(days: number, signal?: AbortSignal): Promise<{ days: number; daily: DailyStat[] }> {
-  return api(`/api/manage/stats?days=${days}`, { signal })
+  return api(`/api/v1/manage/stats?days=${days}`, { signal })
 }
 
 export interface Count {
@@ -125,5 +125,5 @@ export interface Dashboard {
 }
 
 export function getDashboard(signal?: AbortSignal): Promise<Dashboard> {
-  return api<Dashboard>('/api/manage/dashboard', { signal })
+  return api<Dashboard>('/api/v1/manage/dashboard', { signal })
 }

@@ -19,7 +19,7 @@ public class DashboardController {
         this.dashboardService = dashboardService;
     }
 
-    @GetMapping("/api/manage/dashboard")
+    @GetMapping("/api/{version}/manage/dashboard")
     public Dashboard dashboard(Authentication authentication) {
         return dashboardService.dashboard(loggedInMember.requireIdOf(authentication));
     }

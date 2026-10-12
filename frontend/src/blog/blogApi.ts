@@ -30,39 +30,39 @@ export interface CategorySummary {
 }
 
 export function getBlog(blogId: number, signal?: AbortSignal): Promise<Blog> {
-  return api<Blog>(`/api/blogs/${blogId}`, { signal })
+  return api<Blog>(`/api/v1/blogs/${blogId}`, { signal })
 }
 
 export async function getCategories(blogId: number, signal?: AbortSignal): Promise<CategorySummary[]> {
-  const res = await api<{ categories: CategorySummary[] }>(`/api/blogs/${blogId}/categories`, { signal })
+  const res = await api<{ categories: CategorySummary[] }>(`/api/v1/blogs/${blogId}/categories`, { signal })
   return res.categories
 }
 
 export function getMyBlog(signal?: AbortSignal): Promise<MyBlog> {
-  return api<MyBlog>('/api/me/blog', { signal })
+  return api<MyBlog>('/api/v1/me/blog', { signal })
 }
 
 /** 내 블로그 이름·소개 고치기 (contracts 4). 앞뒤 공백은 서버가 지운다 */
 export function updateMyBlog(name: string, intro: string): Promise<MyBlog> {
-  return api<MyBlog>('/api/me/blog', { method: 'PUT', body: { name, intro } })
+  return api<MyBlog>('/api/v1/me/blog', { method: 'PUT', body: { name, intro } })
 }
 
 // 분류 관리 (contracts 5 ~ 8): 내 블로그는 세션으로 정한다
 export function createCategory(name: string, visibility: Visibility): Promise<CategorySummary> {
-  return api<CategorySummary>('/api/me/blog/categories', { method: 'POST', body: { name, visibility } })
+  return api<CategorySummary>('/api/v1/me/blog/categories', { method: 'POST', body: { name, visibility } })
 }
 
 /** 보낸 칸만 바꾼다 */
 export function updateCategory(categoryId: number, change: { name?: string; visibility?: Visibility }): Promise<CategorySummary> {
-  return api<CategorySummary>(`/api/me/blog/categories/${categoryId}`, { method: 'PATCH', body: change })
+  return api<CategorySummary>(`/api/v1/me/blog/categories/${categoryId}`, { method: 'PATCH', body: change })
 }
 
 /** 내 분류 번호 전체를 위에서부터 새 순서로 */
 export async function reorderCategories(categoryIds: number[]): Promise<CategorySummary[]> {
-  const res = await api<{ categories: CategorySummary[] }>('/api/me/blog/categories/order', { method: 'PUT', body: { categoryIds } })
+  const res = await api<{ categories: CategorySummary[] }>('/api/v1/me/blog/categories/order', { method: 'PUT', body: { categoryIds } })
   return res.categories
 }
 
 export function deleteCategory(categoryId: number): Promise<void> {
-  return api<void>(`/api/me/blog/categories/${categoryId}`, { method: 'DELETE' })
+  return api<void>(`/api/v1/me/blog/categories/${categoryId}`, { method: 'DELETE' })
 }

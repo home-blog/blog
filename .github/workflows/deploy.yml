@@ -54,6 +54,22 @@ jobs:
             exit 1
           fi
 
+      - name: 릴리스 기록 확인
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # 릴리스는 항상 문서로 남긴다 (2026-10-12 사용자): 태그 v0.4.0이면 서버·화면 버전 번호가 0.4.0이고
+          # CHANGELOG.md에 "## [0.4.0]" 절이 있어야 배포한다
+          version="${TAG#v}"
+          pom=$(sed -n 's#^    <version>\(.*\)</version>#\1#p' backend/pom.xml | head -1)
+          web=$(node -p "require('./frontend/package.json').version")
+          fail=0
+          [ "$pom" = "$version" ] || { echo "::error::backend/pom.xml 버전($pom)이 릴리스 태그($TAG)와 다릅니다"; fail=1; }
+          [ "$web" = "$version" ] || { echo "::error::frontend/package.json 버전($web)이 릴리스 태그($TAG)와 다릅니다"; fail=1; }
+          grep -qF "## [$version]" CHANGELOG.md || { echo "::error::CHANGELOG.md에 '## [$version]' 절이 없습니다"; fail=1; }
+          exit "$fail"
+
       - name: 이미지 만들기
         env:
           SHA: ${{ github.sha }}

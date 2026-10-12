@@ -151,13 +151,13 @@ class AccountPasswordTest {
 
     @Test
     void CSRF_토큰이_없으면_거절한다() throws Exception {
-        mvc.perform(post("/api/account/password").session(session).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/password").session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(body(PASSWORD, NEW_PASSWORD, NEW_PASSWORD)))
                 .andExpect(status().isForbidden());
     }
 
     private ResultActions change(String current, String newPassword, String confirm) throws Exception {
-        return mvc.perform(post("/api/account/password").with(csrf()).session(session)
+        return mvc.perform(post("/api/v1/account/password").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(body(current, newPassword, confirm)));
     }
 
@@ -167,7 +167,7 @@ class AccountPasswordTest {
     }
 
     private ResultActions loginRequest(String email, String password) throws Exception {
-        return mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"));
     }
 

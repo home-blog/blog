@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 같은 태그의 공개 글 목록 (specs/005 contracts 9). 로그인 없이 부르고(SecurityConfig의 GET /api/tags/**), 누가 봐도 같다. */
+/** 같은 태그의 공개 글 목록 (specs/005 contracts 9). 로그인 없이 부르고(SecurityConfig의 GET /api/v1/tags/**), 누가 봐도 같다. */
 @RestController
 public class TagPostController {
 
@@ -17,7 +17,7 @@ public class TagPostController {
         this.tagPostService = tagPostService;
     }
 
-    @GetMapping("/api/tags/{tagName}/posts")
+    @GetMapping("/api/{version}/tags/{tagName}/posts")
     public TagPostsView list(@PathVariable String tagName, @RequestParam(required = false) String page) {
         return tagPostService.list(tagName, page);
     }

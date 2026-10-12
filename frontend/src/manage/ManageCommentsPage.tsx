@@ -2,7 +2,7 @@
 // - 열면 읽음 처리를 먼저 보내고(contracts 5-1), 받은 이전 시각으로 목록을 읽어 그 뒤에 남이 단 댓글에 NEW를 붙인다
 //   새 댓글 수는 0으로 바꾼다. 쪽을 넘겨도 같은 기준을 쓴다 (다시 읽음 처리하지 않음)
 // - 댓글 내용은 글자 그대로 (태그로 그리지 않음). 탈퇴한 작성자는 "탈퇴한 사용자"
-// - 삭제는 확인 창에서 확인했을 때만 005의 DELETE /api/comments/{commentId}
+// - 삭제는 확인 창에서 확인했을 때만 005의 DELETE /api/v1/comments/{commentId}
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'

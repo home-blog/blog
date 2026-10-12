@@ -18,6 +18,7 @@ import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
 import ManagePostsPage from './manage/ManagePostsPage'
 import NewCommentCountProvider from './manage/NewCommentCountProvider'
+import SiteFooter from './components/SiteFooter'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import HomePage from './pages/HomePage'
@@ -54,7 +55,7 @@ function SignupRoute() {
   return <SignupPage onSignedUp={() => navigate('/login', { replace: true, state: { signedUp: true } })} />
 }
 
-/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 새 댓글 수(006), 머리글 */
+/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 새 댓글 수(006), 머리글, 바닥글(릴리스 번호) */
 function Layout() {
   return (
     <AuthProvider>
@@ -64,6 +65,7 @@ function Layout() {
           <main>
             <Outlet />
           </main>
+          <SiteFooter />
         </NewCommentCountProvider>
       </LoginModalProvider>
     </AuthProvider>

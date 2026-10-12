@@ -80,7 +80,7 @@ class DashboardTest {
 
     @Test
     void S9_1_새_블로그는_숫자가_모두_0이고_두_목록은_비어_있다() throws Exception {
-        mvc.perform(get("/api/manage/dashboard").session(session))
+        mvc.perform(get("/api/v1/manage/dashboard").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.views.today").value(0))
                 .andExpect(jsonPath("$.views.yesterday").value(0))
@@ -96,7 +96,7 @@ class DashboardTest {
         stats.addBlogDay(owner.blogId(), TODAY, 12, 8);
         stats.addBlogDay(owner.blogId(), TODAY.minusDays(1), 32, 21);
         stats.addBlogDay(owner.blogId(), TODAY.minusDays(100), 1000, 500);
-        String dashboard = mvc.perform(get("/api/manage/dashboard").session(session))
+        String dashboard = mvc.perform(get("/api/v1/manage/dashboard").session(session))
                 .andExpect(jsonPath("$.views.today").value(12))
                 .andExpect(jsonPath("$.views.yesterday").value(32))
                 .andExpect(jsonPath("$.views.total").value(1044))
@@ -108,7 +108,7 @@ class DashboardTest {
                 .andExpect(jsonPath("$.chart[29].views").value(12))
                 .andExpect(jsonPath("$.chart[28].visitors").value(21))
                 .andReturn().getResponse().getContentAsString();
-        String daily = mvc.perform(get("/api/manage/stats").param("days", "7").session(session))
+        String daily = mvc.perform(get("/api/v1/manage/stats").param("days", "7").session(session))
                 .andReturn().getResponse().getContentAsString();
         assertThat((Integer) JsonPath.read(daily, "$.daily[6].views")).isEqualTo(JsonPath.read(dashboard, "$.views.today"));
         assertThat((Integer) JsonPath.read(daily, "$.daily[5].visitors"))
@@ -120,9 +120,9 @@ class DashboardTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "지울 글", "public");
         stats.addBlogDay(owner.blogId(), TODAY, 5, 1);
         stats.addPostDay(postId, TODAY, 5);
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(session))
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(session))
                 .andExpect(status().isNoContent());
-        mvc.perform(get("/api/manage/dashboard").session(session))
+        mvc.perform(get("/api/v1/manage/dashboard").session(session))
                 .andExpect(jsonPath("$.views.total").value(5))
                 .andExpect(jsonPath("$.popularPosts", hasSize(0)));
     }
@@ -153,7 +153,7 @@ class DashboardTest {
         stats.addPostDay(sixth, TODAY, 1);
         stats.addPostDay(oldOnly, TODAY.minusDays(7), 900);    // 8일 전: 세지 않는다
 
-        String body = mvc.perform(get("/api/manage/dashboard").session(session))
+        String body = mvc.perform(get("/api/v1/manage/dashboard").session(session))
                 .andExpect(jsonPath("$.popularPosts", hasSize(5)))
                 .andExpect(jsonPath("$.popularPosts[0].title").value("최다"))
                 .andExpect(jsonPath("$.popularPosts[0].views").value(100))
@@ -164,7 +164,7 @@ class DashboardTest {
         // 가장 많이 읽힌 글을 비공개로 바꾸면 빠진다
         jdbc.update("update post set visibility = 'private' where post_id = ?", top);
         entityManager.clear(); // 테스트 트랜잭션 하나에서 앞 요청이 읽어 둔 글을 버린다
-        String after = mvc.perform(get("/api/manage/dashboard").session(session)).andReturn().getResponse().getContentAsString();
+        String after = mvc.perform(get("/api/v1/manage/dashboard").session(session)).andReturn().getResponse().getContentAsString();
         List<Number> afterIds = JsonPath.read(after, "$.popularPosts[*].postId");
         assertThat(afterIds.stream().map(Number::longValue).toList()).containsExactly(newerTie, olderTie, third, fourth, fifth);
     }
@@ -175,7 +175,7 @@ class DashboardTest {
         for (int i = 0; i < 6; i++) {
             post("글" + i, i == 5 ? "private" : "public", base.plusSeconds(i * 60L));
         }
-        mvc.perform(get("/api/manage/dashboard").session(session))
+        mvc.perform(get("/api/v1/manage/dashboard").session(session))
                 .andExpect(jsonPath("$.recentPosts", hasSize(5)))
                 .andExpect(jsonPath("$.recentPosts[0].title").value("글5"))
                 .andExpect(jsonPath("$.recentPosts[0].visibility").value("private"))
@@ -189,17 +189,17 @@ class DashboardTest {
         Member reader = members.register("r");
         jdbc.update("insert into comment (users_id, post_id, body, created_at) values (?, ?, '댓글', now()), (?, ?, '댓글2', now())",
                 reader.id(), postId, owner.id(), postId);
-        mvc.perform(get("/api/manage/dashboard").session(session)).andExpect(jsonPath("$.newCommentCount").value(1));
-        mvc.perform(get("/api/manage/comments/new-count").session(session)).andExpect(jsonPath("$.count").value(1));
+        mvc.perform(get("/api/v1/manage/dashboard").session(session)).andExpect(jsonPath("$.newCommentCount").value(1));
+        mvc.perform(get("/api/v1/manage/comments/new-count").session(session)).andExpect(jsonPath("$.count").value(1));
     }
 
     @Test
     void 로그인하지_않으면_401이고_회원_B는_B의_숫자만() throws Exception {
-        mvc.perform(get("/api/manage/dashboard")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/manage/dashboard")).andExpect(status().isUnauthorized());
         stats.addBlogDay(owner.blogId(), TODAY, 12, 8);
         Member b = members.register("b");
         MockHttpSession bSession = members.login(mvc, b);
-        mvc.perform(get("/api/manage/dashboard").session(bSession))
+        mvc.perform(get("/api/v1/manage/dashboard").session(bSession))
                 .andExpect(jsonPath("$.views.today").value(0))
                 .andExpect(jsonPath("$.views.total").value(0));
     }

@@ -73,7 +73,7 @@ class CategoryManageTest {
         create(ownerSession, TestJson.of("name", "비밀", "visibility", "private"))
                 .andExpect(jsonPath("$.visibility").value("private"));
 
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(ownerSession))
                 .andExpect(jsonPath("$.categories.length()").value(3))
                 .andExpect(jsonPath("$.categories[0].name").value("미분류"))
                 .andExpect(jsonPath("$.categories[1].categoryId").value(daily))
@@ -114,8 +114,8 @@ class CategoryManageTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("여행"))
                 .andExpect(jsonPath("$.postCount").value(1));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.category.name").value("여행"));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId())).andExpect(jsonPath("$.categories[1].name").value("여행"));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.category.name").value("여행"));
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId())).andExpect(jsonPath("$.categories[1].name").value("여행"));
 
         update(ownerSession, daily, TestJson.of("name", "여행")).andExpect(status().isOk());
         update(ownerSession, daily, TestJson.of("name", "여행 ")).andExpect(status().isOk());
@@ -135,7 +135,7 @@ class CategoryManageTest {
                 .andExpect(jsonPath("$.postCount").value(2));
         assertThat(jdbc.queryForObject("select count(*) from post where category_id = ? and visibility = 'public'",
                 Long.class, diary)).isEqualTo(2);
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(otherSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(otherSession))
                 .andExpect(jsonPath("$.categories.length()").value(1));
         update(ownerSession, owner.defaultCategoryId(), TestJson.of("visibility", "private"))
                 .andExpect(jsonPath("$.visibility").value("private"));
@@ -151,7 +151,7 @@ class CategoryManageTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories[0].categoryId").value(b))
                 .andExpect(jsonPath("$.categories[2].categoryId").value(a));
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()))
                 .andExpect(jsonPath("$.categories[0].categoryId").value(b))
                 .andExpect(jsonPath("$.categories[1].categoryId").value(d))
                 .andExpect(jsonPath("$.categories[2].categoryId").value(a));
@@ -179,7 +179,7 @@ class CategoryManageTest {
         jdbc.update("update post set category_id = ? where post_id in (?, ?)", owner.defaultCategoryId(), p1, p2);
         remove(ownerSession, daily).andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("select count(*) from category where category_id = ?", Long.class, daily)).isZero();
-        mvc.perform(get("/api/blogs/{id}/categories", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/categories", owner.blogId()).session(ownerSession))
                 .andExpect(jsonPath("$.categories.length()").value(1))
                 .andExpect(jsonPath("$.categories[0].postCount").value(2));
     }
@@ -214,10 +214,10 @@ class CategoryManageTest {
 
     @Test
     void 로그인하지_않으면_401이고_CSRF가_없으면_거절() throws Exception {
-        mvc.perform(post("/api/me/blog/categories").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/me/blog/categories").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("name", "x")))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/me/blog/categories").session(ownerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/me/blog/categories").session(ownerSession).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("name", "x")))
                 .andExpect(status().isForbidden());
     }
@@ -231,22 +231,22 @@ class CategoryManageTest {
     }
 
     private ResultActions create(MockHttpSession session, String json) throws Exception {
-        return mvc.perform(post("/api/me/blog/categories").with(csrf()).session(session)
+        return mvc.perform(post("/api/v1/me/blog/categories").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private ResultActions update(MockHttpSession session, Long categoryId, String json) throws Exception {
-        return mvc.perform(patch("/api/me/blog/categories/{id}", categoryId).with(csrf()).session(session)
+        return mvc.perform(patch("/api/v1/me/blog/categories/{id}", categoryId).with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private ResultActions reorder(MockHttpSession session, String ids) throws Exception {
-        return mvc.perform(put("/api/me/blog/categories/order").with(csrf()).session(session)
+        return mvc.perform(put("/api/v1/me/blog/categories/order").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"categoryIds\":" + ids + "}"));
     }
 
     private ResultActions remove(MockHttpSession session, Long categoryId) throws Exception {
-        return mvc.perform(delete("/api/me/blog/categories/{id}", categoryId).with(csrf()).session(session));
+        return mvc.perform(delete("/api/v1/me/blog/categories/{id}", categoryId).with(csrf()).session(session));
     }
 
     private Long idOf(ResultActions result) {

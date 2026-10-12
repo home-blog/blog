@@ -31,12 +31,12 @@ public class CommentController {
         this.commentService = commentService;
     }
 
-    @GetMapping("/api/posts/{postId}/comments")
+    @GetMapping("/api/{version}/posts/{postId}/comments")
     public CommentList list(@PathVariable Long postId, Authentication authentication) {
         return commentService.list(postId, loggedInMember.idOf(authentication).orElse(null));
     }
 
-    @PostMapping("/api/posts/{postId}/comments")
+    @PostMapping("/api/{version}/posts/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
     public CommentView write(@PathVariable Long postId, Authentication authentication,
             @RequestBody CommentRequests.Write request) {
@@ -44,7 +44,7 @@ public class CommentController {
     }
 
     /** 댓글 삭제 (contracts 3). 작성자 또는 그 글의 블로그 주인만. 아니면 없는 댓글과 같은 404. */
-    @DeleteMapping("/api/comments/{commentId}")
+    @DeleteMapping("/api/{version}/comments/{commentId}")
     public ResponseEntity<Void> delete(@PathVariable Long commentId, Authentication authentication) {
         commentService.delete(loggedInMember.requireIdOf(authentication), commentId);
         return ResponseEntity.noContent().build();

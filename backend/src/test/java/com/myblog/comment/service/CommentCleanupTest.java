@@ -99,7 +99,7 @@ class CommentCleanupTest {
         testComments.rewind(owner.id());
         comment(ownerSession, keep);
 
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
         assertThat(commentsOn(postId)).isZero();
         assertThat(commentsOn(keep)).isOne();
     }
@@ -112,7 +112,7 @@ class CommentCleanupTest {
         comment(ownerSession, postId);
         failing.failWith.set(new IllegalStateException("다른 모듈이 지우다 실패"));
 
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession))
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession))
                 .andExpect(status().isInternalServerError());
         assertThat(jdbc.queryForObject("select count(*) from post where post_id = ?", Long.class, postId)).isOne();
         assertThat(commentsOn(postId)).isOne();
@@ -130,7 +130,7 @@ class CommentCleanupTest {
         comment(members.login(mvc, b), postOfC);
         String oldNickname = c.user().getNickname();
 
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).session(cSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).session(cSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + TestMembers.PASSWORD + "\",\"agreed\":true}"))
                 .andExpect(status().isOk());
 
@@ -143,7 +143,7 @@ class CommentCleanupTest {
         User newcomer = registration.register("n" + System.nanoTime() + "@example.com",
                 passwordEncoder.encode(TestMembers.PASSWORD), oldNickname);
         extraUsers.add(newcomer.getId());
-        mvc.perform(get("/api/posts/{id}/comments", postOfA))
+        mvc.perform(get("/api/v1/posts/{id}/comments", postOfA))
                 .andExpect(jsonPath("$.count").value(1))
                 .andExpect(jsonPath("$.comments[0].author.withdrawn").value(true))
                 .andExpect(jsonPath("$.comments[0].author.nickname").value(nullValue()))
@@ -151,7 +151,7 @@ class CommentCleanupTest {
     }
 
     private void comment(MockHttpSession session, Long postId) throws Exception {
-        mvc.perform(post("/api/posts/{id}/comments", postId).with(csrf()).session(session)
+        mvc.perform(post("/api/v1/posts/{id}/comments", postId).with(csrf()).session(session)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "댓글")))
                 .andExpect(status().isCreated());
     }

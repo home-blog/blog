@@ -1,6 +1,6 @@
 // 글 관리 /manage/posts (specs/006 US2, T021, FR-012 ~ FR-017)
 // - 비공개 포함 내 글을 최신순 10개씩. 공개 여부·분류로 거른다 (주소의 ?visibility=&category=&page=에 남아 새로고침해도 그대로)
-// - 보기 → 글 상세, 수정 → 글 고치기, 삭제 → 확인 창. 취소하면 요청을 보내지 않는다 (003의 DELETE /api/posts/{postId})
+// - 보기 → 글 상세, 수정 → 글 고치기, 삭제 → 확인 창. 취소하면 요청을 보내지 않는다 (003의 DELETE /api/v1/posts/{postId})
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'

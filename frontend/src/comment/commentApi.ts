@@ -26,14 +26,14 @@ export interface CommentList {
 }
 
 export function getComments(postId: number, signal?: AbortSignal): Promise<CommentList> {
-  return api<CommentList>(`/api/posts/${postId}/comments`, { signal })
+  return api<CommentList>(`/api/v1/posts/${postId}/comments`, { signal })
 }
 
 export function writeComment(postId: number, body: string): Promise<CommentItem> {
-  return api<CommentItem>(`/api/posts/${postId}/comments`, { method: 'POST', body: { body } })
+  return api<CommentItem>(`/api/v1/posts/${postId}/comments`, { method: 'POST', body: { body } })
 }
 
 /** 작성자나 그 글의 블로그 주인만. 아니면 서버가 없는 댓글과 같은 404로 답한다 */
 export function deleteComment(commentId: number): Promise<void> {
-  return api<void>(`/api/comments/${commentId}`, { method: 'DELETE' })
+  return api<void>(`/api/v1/comments/${commentId}`, { method: 'DELETE' })
 }

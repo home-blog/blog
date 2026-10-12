@@ -76,10 +76,10 @@ class CommentDeleteTest {
     @Test
     void S4_3_작성자는_자기_댓글을_지우고_줄이_실제로_없어진다() throws Exception {
         Long commentId = write(writerSession, postId);
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(writerSession))
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(writerSession))
                 .andExpect(status().isNoContent());
         assertThat(exists(commentId)).isFalse();
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(writerSession))
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(writerSession))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"));
     }
@@ -87,7 +87,7 @@ class CommentDeleteTest {
     @Test
     void S4_5_블로그_주인은_자기_글의_남의_댓글도_지운다() throws Exception {
         Long commentId = write(writerSession, postId);
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(ownerSession))
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(ownerSession))
                 .andExpect(status().isNoContent());
         assertThat(exists(commentId)).isFalse();
     }
@@ -100,9 +100,9 @@ class CommentDeleteTest {
         // 남의 블로그 주인: 다른 블로그의 주인도 이 글의 댓글은 못 지운다
         members.addPost(stranger.defaultCategoryId(), "남의 글", "public");
 
-        String missing = mvc.perform(delete("/api/comments/{id}", 99_999_999L).with(csrf()).session(strangerSession))
+        String missing = mvc.perform(delete("/api/v1/comments/{id}", 99_999_999L).with(csrf()).session(strangerSession))
                 .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
-        String others = mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(strangerSession))
+        String others = mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(strangerSession))
                 .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
         assertThat(others).isEqualTo(missing).contains("COMMENT_NOT_FOUND");
         assertThat(exists(commentId)).isTrue();
@@ -111,8 +111,8 @@ class CommentDeleteTest {
     @Test
     void S4_8_로그인하지_않으면_401이고_CSRF가_없으면_거절() throws Exception {
         Long commentId = write(writerSession, postId);
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(delete("/api/comments/{id}", commentId).session(writerSession)).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf())).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).session(writerSession)).andExpect(status().isForbidden());
         assertThat(exists(commentId)).isTrue();
     }
 
@@ -120,22 +120,22 @@ class CommentDeleteTest {
     void S4_9_볼_수_없게_된_글의_댓글은_작성자도_404() throws Exception {
         Long commentId = write(writerSession, postId);
         jdbc.update("update post set visibility = 'private' where post_id = ?", postId);
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(writerSession))
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(writerSession))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"));
         assertThat(exists(commentId)).isTrue();
         // 주인은 자기 비공개 글의 댓글을 지운다
-        mvc.perform(delete("/api/comments/{id}", commentId).with(csrf()).session(ownerSession))
+        mvc.perform(delete("/api/v1/comments/{id}", commentId).with(csrf()).session(ownerSession))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void S4_FR005_댓글을_고치는_주소는_없다() throws Exception {
         Long commentId = write(writerSession, postId);
-        mvc.perform(put("/api/comments/{id}", commentId).with(csrf()).session(writerSession)
+        mvc.perform(put("/api/v1/comments/{id}", commentId).with(csrf()).session(writerSession)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "고침")))
                 .andExpect(status().isMethodNotAllowed());
-        mvc.perform(patch("/api/comments/{id}", commentId).with(csrf()).session(writerSession)
+        mvc.perform(patch("/api/v1/comments/{id}", commentId).with(csrf()).session(writerSession)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "고침")))
                 .andExpect(status().isMethodNotAllowed());
         assertThat(jdbc.queryForObject("select body from comment where comment_id = ?", String.class, commentId))
@@ -143,7 +143,7 @@ class CommentDeleteTest {
     }
 
     private Long write(MockHttpSession session, Long target) throws Exception {
-        String response = mvc.perform(post("/api/posts/{id}/comments", target).with(csrf()).session(session)
+        String response = mvc.perform(post("/api/v1/posts/{id}/comments", target).with(csrf()).session(session)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "댓글")))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

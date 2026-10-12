@@ -54,7 +54,7 @@ public class TestMembers {
     }
 
     public MockHttpSession login(MockMvc mvc, Member member) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        return (MockHttpSession) mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + member.user().getEmail() + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getRequest().getSession(false);

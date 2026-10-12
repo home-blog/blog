@@ -118,7 +118,7 @@ class CommentIntervalTest {
     }
 
     private static RequestBuilder request(MockHttpSession who, Long target) {
-        return post("/api/posts/{id}/comments", target).with(csrf()).session(who)
+        return post("/api/v1/posts/{id}/comments", target).with(csrf()).session(who)
                 .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "댓글"));
     }
 

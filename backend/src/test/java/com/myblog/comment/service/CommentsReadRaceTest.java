@@ -146,7 +146,7 @@ class CommentsReadRaceTest {
         try {
             String read = markRead();
             String previous = JsonPath.read(read, "$.previousReadAt");
-            String list = mvc.perform(get("/api/manage/comments").param("newSince", previous == null ? "never" : previous)
+            String list = mvc.perform(get("/api/v1/manage/comments").param("newSince", previous == null ? "never" : previous)
                             .session(ownerSession))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
             List<Number> ids = JsonPath.read(list, "$.items[?(@.isNew == true)].commentId");
@@ -162,7 +162,7 @@ class CommentsReadRaceTest {
 
     private String markRead(MockHttpSession session) {
         try {
-            return mvc.perform(post("/api/manage/comments/read").with(csrf()).session(session))
+            return mvc.perform(post("/api/v1/manage/comments/read").with(csrf()).session(session))
                     .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -171,7 +171,7 @@ class CommentsReadRaceTest {
 
     private Long write() {
         try {
-            String body = mvc.perform(post("/api/posts/{id}/comments", postId).with(csrf()).session(writerSession)
+            String body = mvc.perform(post("/api/v1/posts/{id}/comments", postId).with(csrf()).session(writerSession)
                             .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("body", "새 댓글")))
                     .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
             return ((Number) JsonPath.read(body, "$.id")).longValue();
@@ -181,7 +181,7 @@ class CommentsReadRaceTest {
     }
 
     private long newCount() throws Exception {
-        String body = mvc.perform(get("/api/manage/comments/new-count").session(ownerSession))
+        String body = mvc.perform(get("/api/v1/manage/comments/new-count").session(ownerSession))
                 .andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(body, "$.count")).longValue();
     }

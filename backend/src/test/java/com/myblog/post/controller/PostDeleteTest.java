@@ -78,17 +78,17 @@ class PostDeleteTest {
     @Test
     void 내_글을_지우면_204이고_지우기_전에_PostDeletingEvent를_낸다() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "지울 글", "public");
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
         assertThat(count(postId)).isZero();
         assertThat(listener.heard).containsExactly(postId);
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNotFound());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNotFound());
     }
 
     @Test
     void S8_8_남의_글을_지우려_하면_404이고_그대로() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "남의 글", "public");
         MockHttpSession other = members.login(mvc, register("e"));
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(other))
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(other))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
         assertThat(count(postId)).isOne();
@@ -99,7 +99,7 @@ class PostDeleteTest {
     void S8_7_딸린_것을_지우다_실패하면_글도_그대로_남는다() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "실패할 글", "public");
         listener.failWith.set(new IllegalStateException("댓글을 지우다 실패"));
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession))
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession))
                 .andExpect(status().isInternalServerError());
         assertThat(count(postId)).isOne();
     }
@@ -107,8 +107,8 @@ class PostDeleteTest {
     @Test
     void CSRF가_없으면_거절하고_로그인하지_않으면_401() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public");
-        mvc.perform(delete("/api/posts/{id}", postId).session(ownerSession)).andExpect(status().isForbidden());
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf())).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).session(ownerSession)).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf())).andExpect(status().isUnauthorized());
         assertThat(count(postId)).isOne();
     }
 
@@ -120,7 +120,7 @@ class PostDeleteTest {
         Member other = register("f");
         Long othersPost = members.addPost(other.defaultCategoryId(), "남의 글", "public");
 
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + TestMembers.PASSWORD + "\",\"agreed\":true}"))
                 .andExpect(status().isOk());
 

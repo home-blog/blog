@@ -110,7 +110,7 @@ export default function SignupPage({ onSignedUp }: Props) {
     }
     setBusy('send')
     try {
-      const res = await api<{ message: string; expiresInSeconds: number; verificationToken: string }>('/api/auth/email-verifications', {
+      const res = await api<{ message: string; expiresInSeconds: number; verificationToken: string }>('/api/v1/auth/email-verifications', {
         method: 'POST',
         body: { nickname: nickname.trim(), email: email.trim() },
       })
@@ -136,7 +136,7 @@ export default function SignupPage({ onSignedUp }: Props) {
     }
     setBusy('confirm')
     try {
-      const res = await api<{ message: string }>('/api/auth/email-verifications/confirm', {
+      const res = await api<{ message: string }>('/api/v1/auth/email-verifications/confirm', {
         method: 'POST',
         body: { email: email.trim(), code: code.trim(), verificationToken },
       })
@@ -158,7 +158,7 @@ export default function SignupPage({ onSignedUp }: Props) {
   async function changeEmail() {
     setBusy('cancel')
     try {
-      await api('/api/auth/email-verifications/cancel', { method: 'POST', body: { email: email.trim(), verificationToken } })
+      await api('/api/v1/auth/email-verifications/cancel', { method: 'POST', body: { email: email.trim(), verificationToken } })
     } catch {
       // 지우지 못해도 화면은 처음 상태로 돌린다. 서버의 인증 표시는 시간이 지나면 사라진다
     } finally {
@@ -200,7 +200,7 @@ export default function SignupPage({ onSignedUp }: Props) {
 
     setBusy('signup')
     try {
-      await api('/api/auth/signup', {
+      await api('/api/v1/auth/signup', {
         method: 'POST',
         body: { nickname: nickname.trim(), email: email.trim(), password, passwordConfirm, verificationToken },
       })

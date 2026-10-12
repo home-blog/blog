@@ -61,7 +61,7 @@ class PostReadTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "첫 글", "public", T0);
         jdbc.update("update post set content = ? where post_id = ?", "첫 줄\n\n**둘째** 줄", postId);
 
-        mvc.perform(get("/api/posts/{id}", postId))
+        mvc.perform(get("/api/v1/posts/{id}", postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postId").value(postId))
                 .andExpect(jsonPath("$.blogId").value(owner.blogId()))
@@ -115,7 +115,7 @@ class PostReadTest {
 
     @Test
     void S6_6_없는_번호는_404_존재하지_않는_글입니다() throws Exception {
-        mvc.perform(get("/api/posts/999999999"))
+        mvc.perform(get("/api/v1/posts/999999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 글입니다"));
@@ -124,8 +124,8 @@ class PostReadTest {
     @Test
     void S6_7_주인만_isOwner가_참이다() throws Exception {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public", T0);
-        mvc.perform(get("/api/posts/{id}", postId).session(ownerSession)).andExpect(jsonPath("$.isOwner").value(true));
-        mvc.perform(get("/api/posts/{id}", postId).session(otherSession)).andExpect(jsonPath("$.isOwner").value(false));
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(ownerSession)).andExpect(jsonPath("$.isOwner").value(true));
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(otherSession)).andExpect(jsonPath("$.isOwner").value(false));
     }
 
     @Test
@@ -133,9 +133,9 @@ class PostReadTest {
         Long privatePost = members.addPost(owner.defaultCategoryId(), "비공개", "private", T0);
         Long secret = members.addCategory(owner.blogId(), "비밀", "private", 2);
         Long inSecret = members.addPost(secret, "비공개 분류의 글", "public", T0);
-        mvc.perform(get("/api/posts/{id}", privatePost).session(ownerSession))
+        mvc.perform(get("/api/v1/posts/{id}", privatePost).session(ownerSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.visibility").value("private"));
-        mvc.perform(get("/api/posts/{id}", inSecret).session(ownerSession))
+        mvc.perform(get("/api/v1/posts/{id}", inSecret).session(ownerSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.category.visibility").value("private"));
     }
 
@@ -144,11 +144,11 @@ class PostReadTest {
         Long privatePost = members.addPost(owner.defaultCategoryId(), "비공개", "private", T0);
         Long secret = members.addCategory(owner.blogId(), "비밀", "private", 2);
         Long inSecret = members.addPost(secret, "비공개 분류의 공개 글", "public", T0);
-        MockHttpServletResponse missing = mvc.perform(get("/api/posts/999999999")).andReturn().getResponse();
+        MockHttpServletResponse missing = mvc.perform(get("/api/v1/posts/999999999")).andReturn().getResponse();
 
         for (Long postId : new Long[] {privatePost, inSecret}) {
             for (MockHttpSession session : new MockHttpSession[] {new MockHttpSession(), otherSession}) {
-                MockHttpServletResponse response = mvc.perform(get("/api/posts/{id}", postId).session(session))
+                MockHttpServletResponse response = mvc.perform(get("/api/v1/posts/{id}", postId).session(session))
                         .andReturn().getResponse();
                 assertThat(response.getStatus()).isEqualTo(missing.getStatus()).isEqualTo(404);
                 assertThat(response.getContentAsString()).isEqualTo(missing.getContentAsString());
@@ -161,13 +161,13 @@ class PostReadTest {
         Long postId = members.addPost(owner.defaultCategoryId(), "글", "public", T0);
         jdbc.update("update blog set name = '새 이름' where blog_id = ?", owner.blogId());
         jdbc.update("update category set name = '바뀐 분류' where category_id = ?", owner.defaultCategoryId());
-        mvc.perform(get("/api/posts/{id}", postId))
+        mvc.perform(get("/api/v1/posts/{id}", postId))
                 .andExpect(jsonPath("$.blogName").value("새 이름"))
                 .andExpect(jsonPath("$.category.name").value("바뀐 분류"));
     }
 
     private void expectNeighbors(Long postId, MockHttpSession session, Long prev, Long next) throws Exception {
-        mvc.perform(get("/api/posts/{id}", postId).session(session == null ? new MockHttpSession() : session))
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(session == null ? new MockHttpSession() : session))
                 .andExpect(status().isOk())
                 .andExpect(prev == null ? jsonPath("$.prevPostId").isEmpty() : jsonPath("$.prevPostId").value(prev))
                 .andExpect(next == null ? jsonPath("$.nextPostId").isEmpty() : jsonPath("$.nextPostId").value(next));

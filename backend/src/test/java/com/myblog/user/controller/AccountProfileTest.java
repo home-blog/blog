@@ -62,7 +62,7 @@ class AccountProfileTest {
 
     @Test
     void 내_정보를_본다_비밀번호는_없다() throws Exception {
-        mvc.perform(get("/api/account").session(session))
+        mvc.perform(get("/api/v1/account").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(member.getEmail()))
                 .andExpect(jsonPath("$.nickname").value(member.getNickname()))
@@ -75,13 +75,13 @@ class AccountProfileTest {
 
     @Test
     void 로그인하지_않으면_네_주소_모두_401() throws Exception {
-        mvc.perform(get("/api/account")).andExpect(status().isUnauthorized())
+        mvc.perform(get("/api/v1/account")).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
-        mvc.perform(patch("/api/account/profile").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(patch("/api/v1/account/profile").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/account/password").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(post("/api/v1/account/password").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -94,8 +94,8 @@ class AccountProfileTest {
                 .andExpect(jsonPath("$.nickname").value(nickname))
                 .andExpect(jsonPath("$.intro").value("안녕하세요"));
 
-        mvc.perform(get("/api/auth/me").session(session)).andExpect(jsonPath("$.member.nickname").value(nickname));
-        mvc.perform(get("/api/account").session(session)).andExpect(jsonPath("$.intro").value("안녕하세요"));
+        mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(jsonPath("$.member.nickname").value(nickname));
+        mvc.perform(get("/api/v1/account").session(session)).andExpect(jsonPath("$.intro").value("안녕하세요"));
     }
 
     @Test
@@ -165,7 +165,7 @@ class AccountProfileTest {
 
     @Test
     void CSRF_토큰이_없으면_거절한다() throws Exception {
-        mvc.perform(patch("/api/account/profile").session(session).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(patch("/api/v1/account/profile").session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(profile("x")))
                 .andExpect(status().isForbidden());
     }
@@ -174,8 +174,8 @@ class AccountProfileTest {
     void 탈퇴한_회원의_세션은_401() throws Exception {
         jdbc.update("update users set deleted_at = now() where users_id = ?", member.getId());
 
-        mvc.perform(get("/api/account").session(session)).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/account").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isUnauthorized());
     }
 
     private String profile(String intro) {
@@ -183,7 +183,7 @@ class AccountProfileTest {
     }
 
     private ResultActions save(String body) throws Exception {
-        return mvc.perform(patch("/api/account/profile").with(csrf()).session(session)
+        return mvc.perform(patch("/api/v1/account/profile").with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
@@ -193,7 +193,7 @@ class AccountProfileTest {
     }
 
     private MockHttpSession login(String email) throws Exception {
-        return (MockHttpSession) mvc.perform(post("/api/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        return (MockHttpSession) mvc.perform(post("/api/v1/auth/login").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk())
                 .andReturn().getRequest().getSession(false);

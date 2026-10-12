@@ -61,12 +61,12 @@ class PostSearchKeywordTest {
 
     @Test
     void S6_1_2_3_4_2자_미만은_400이고_찾지_않는다() throws Exception {
-        mvc.perform(get("/api/search/posts"))
+        mvc.perform(get("/api/v1/search/posts"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SEARCH_KEYWORD_TOO_SHORT"))
                 .andExpect(jsonPath("$.message").value("검색어를 2자 이상 입력해 주세요"));
         for (String q : new String[] {"", "   ", "가", " 가 ", "　가　"}) {
-            mvc.perform(get("/api/search/posts").param("q", q))
+            mvc.perform(get("/api/v1/search/posts").param("q", q))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("SEARCH_KEYWORD_TOO_SHORT"));
         }
@@ -74,18 +74,18 @@ class PostSearchKeywordTest {
 
     @Test
     void S6_10_50자를_넘으면_400이고_50자는_된다() throws Exception {
-        mvc.perform(get("/api/search/posts").param("q", "가".repeat(51)))
+        mvc.perform(get("/api/v1/search/posts").param("q", "가".repeat(51)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("SEARCH_KEYWORD_TOO_LONG"))
                 .andExpect(jsonPath("$.message").value("검색어는 50자까지 입력할 수 있습니다"));
-        mvc.perform(get("/api/search/posts").param("q", "  " + "가".repeat(50) + "  ")).andExpect(status().isOk());
-        mvc.perform(get("/api/search/posts").param("q", "😀".repeat(50))).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/search/posts").param("q", "  " + "가".repeat(50) + "  ")).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/search/posts").param("q", "😀".repeat(50))).andExpect(status().isOk());
     }
 
     @Test
     void S6_5_앞뒤_공백은_지우고_찾는다() throws Exception {
         Long id = posts.add(a.defaultCategoryId(), "단풍" + tag, "본문", "public", BASE);
-        mvc.perform(get("/api/search/posts").param("q", "  단풍" + tag + "  "))
+        mvc.perform(get("/api/v1/search/posts").param("q", "  단풍" + tag + "  "))
                 .andExpect(jsonPath("$.keyword").value("단풍" + tag))
                 .andExpect(jsonPath("$.results[0].postId").value(id));
     }
@@ -106,7 +106,7 @@ class PostSearchKeywordTest {
         posts.add(a.defaultCategoryId(), tag + " 비밀", "본문", "private", BASE);
         for (String q : new String[] {"\\\\", "''", "\"\"", ";;", "--", "<script>", "((", "))",
                 "' OR 1=1 --", "'; DROP TABLE post; --", "\\%_"}) {
-            String body = mvc.perform(get("/api/search/posts").param("q", q))
+            String body = mvc.perform(get("/api/v1/search/posts").param("q", q))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
             assertThat(body).doesNotContain("Exception").doesNotContain("select ");
@@ -117,7 +117,7 @@ class PostSearchKeywordTest {
     }
 
     private List<Long> ids(String q) throws Exception {
-        String body = mvc.perform(get("/api/search/posts").param("q", q)).andExpect(status().isOk()).andReturn()
+        String body = mvc.perform(get("/api/v1/search/posts").param("q", q)).andExpect(status().isOk()).andReturn()
                 .getResponse().getContentAsString(StandardCharsets.UTF_8);
         List<Number> ids = JsonPath.read(body, "$.results[*].postId");
         return ids.stream().map(Number::longValue).toList();

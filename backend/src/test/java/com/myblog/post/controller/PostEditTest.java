@@ -69,7 +69,7 @@ class PostEditTest {
 
     @Test
     void 수정_화면은_지금_값과_분류_주제_목록() throws Exception {
-        mvc.perform(get("/api/posts/{id}/edit", postId).session(ownerSession))
+        mvc.perform(get("/api/v1/posts/{id}/edit", postId).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postId").value(postId))
                 .andExpect(jsonPath("$.title").value("제목"))
@@ -116,7 +116,7 @@ class PostEditTest {
     void S2a_5_6_주제만_바꾸면_수정이고_주제를_빼면_400() throws Exception {
         update(postId, ownerSession, body("제목", "본문", owner.defaultCategoryId(), dev, "public"))
                 .andExpect(jsonPath("$.changed").value(true));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.topic.name").value("개발"));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.topic.name").value("개발"));
 
         update(postId, ownerSession, body("제목", "본문", owner.defaultCategoryId(), null, "public"))
                 .andExpect(status().isBadRequest())
@@ -156,7 +156,7 @@ class PostEditTest {
 
     @Test
     void S7_6_7_남의_글은_수정_화면도_수정도_404이고_형식이_틀려도_404() throws Exception {
-        mvc.perform(get("/api/posts/{id}/edit", postId).session(otherSession))
+        mvc.perform(get("/api/v1/posts/{id}/edit", postId).session(otherSession))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 글입니다"));
@@ -172,16 +172,16 @@ class PostEditTest {
 
     @Test
     void 로그인하지_않으면_401이고_CSRF가_없으면_거절() throws Exception {
-        mvc.perform(get("/api/posts/{id}/edit", postId)).andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/posts/{id}", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(get("/api/v1/posts/{id}/edit", postId)).andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(put("/api/posts/{id}", postId).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(put("/api/v1/posts/{id}", postId).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
                         .content(body("새 제목", "본문", owner.defaultCategoryId(), travel, "public")))
                 .andExpect(status().isForbidden());
     }
 
     private ResultActions update(Long id, MockHttpSession session, String json) throws Exception {
-        return mvc.perform(put("/api/posts/{id}", id).with(csrf()).session(session)
+        return mvc.perform(put("/api/v1/posts/{id}", id).with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(json));
     }
 

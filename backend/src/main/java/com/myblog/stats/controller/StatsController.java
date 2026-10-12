@@ -29,7 +29,7 @@ public class StatsController {
         this.properties = properties.stats();
     }
 
-    @GetMapping("/api/manage/stats")
+    @GetMapping("/api/{version}/manage/stats")
     public StatsResponse stats(Authentication authentication, @RequestParam(required = false) Integer days) {
         Long memberId = loggedInMember.requireIdOf(authentication);
         int period = days == null ? properties.periodDefault() : days;

@@ -43,7 +43,12 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
 
 ## 배포하기
 
-- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 화면을 확인한 뒤 GitHub에서 릴리스(태그 `v0.2.0`처럼, 대상 `main`)를 내면 그 버전이 배포된다. 미리보기(pre-release)로 낸 릴리스는 배포하지 않는다. 진행은 Actions 탭 → `배포`에서 본다.
+- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 화면을 확인한 뒤 GitHub에서 릴리스(태그 `v0.4.0`처럼, 대상 `main`)를 내면 그 버전이 배포된다. 미리보기(pre-release)로 낸 릴리스는 배포하지 않는다. 진행은 Actions 탭 → `배포`에서 본다.
+- **릴리스는 항상 기록을 남긴다** (맨 위 [`CHANGELOG.md`](../CHANGELOG.md)):
+  1. `CHANGELOG.md`에 그 버전의 절(`## [0.4.0] - 날짜`)을 채운다. 화면·API·운영으로 나눠 적고, API가 바뀌었으면 주소 버전(v1 그대로인지, v2를 열었는지)도 적는다.
+  2. `backend/pom.xml`의 `<version>`과 `frontend/package.json`(그리고 `package-lock.json` 맨 위)의 `version`을 같은 번호로 맞춘다.
+  3. 이 둘을 PR로 `main`에 합친 뒤 릴리스를 낸다. 릴리스 설명에는 `CHANGELOG.md`의 그 절을 붙인다.
+  4. 배포 작업이 태그·버전 번호·`CHANGELOG.md`의 절이 맞는지 먼저 확인하고, 다르면 멈춘다.
 - **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 
 ## 서버에서 볼 때 (SSH 접속 후)

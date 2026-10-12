@@ -101,7 +101,7 @@ class PostSearchTest {
     void S5_4_5_비공개_글은_로그아웃이든_주인이든_나오지_않는다() throws Exception {
         MockHttpSession owner = members.login(mvc, a);
         for (MockHttpSession session : new MockHttpSession[] {new MockHttpSession(), owner}) {
-            mvc.perform(get("/api/search/posts").param("q", "비밀단어" + tag).session(session))
+            mvc.perform(get("/api/v1/search/posts").param("q", "비밀단어" + tag).session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalCount").value(0))
                     .andExpect(jsonPath("$.results.length()").value(0));
@@ -114,20 +114,20 @@ class PostSearchTest {
         for (int i = 1; i <= 15; i++) {
             posts.add(a.defaultCategoryId(), word + " " + i, "본문", "public", BASE.plus(i, ChronoUnit.DAYS));
         }
-        mvc.perform(get("/api/search/posts").param("q", word))
+        mvc.perform(get("/api/v1/search/posts").param("q", word))
                 .andExpect(jsonPath("$.totalCount").value(15))
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.pageSize").value(10))
                 .andExpect(jsonPath("$.results.length()").value(10))
                 .andExpect(jsonPath("$.results[0].title").value(word + " 15"));
-        mvc.perform(get("/api/search/posts").param("q", word).param("page", "2"))
+        mvc.perform(get("/api/v1/search/posts").param("q", word).param("page", "2"))
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.results.length()").value(5))
                 .andExpect(jsonPath("$.results[4].title").value(word + " 1"));
-        mvc.perform(get("/api/search/posts").param("q", word).param("page", "99"))
+        mvc.perform(get("/api/v1/search/posts").param("q", word).param("page", "99"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2));
-        mvc.perform(get("/api/search/posts").param("q", word).param("page", "abc"))
+        mvc.perform(get("/api/v1/search/posts").param("q", word).param("page", "abc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1));
     }
@@ -136,7 +136,7 @@ class PostSearchTest {
     void S5_7_한_줄에_블로그_이름_분류_작성일_제목_미리보기가_있고_공개_여부는_없다() throws Exception {
         String longBody = maple + " " + "가".repeat(150);
         posts.add(a.defaultCategoryId(), "긴 글", longBody, "public", BASE.plus(10, ChronoUnit.DAYS));
-        mvc.perform(get("/api/search/posts").param("q", maple))
+        mvc.perform(get("/api/v1/search/posts").param("q", maple))
                 .andExpect(jsonPath("$.keyword").value(maple))
                 .andExpect(jsonPath("$.results[0].blogId").value(a.blogId()))
                 .andExpect(jsonPath("$.results[0].blogName").value(a.user().getNickname() + "의 블로그"))
@@ -153,7 +153,7 @@ class PostSearchTest {
 
     @Test
     void S5_8_없는_단어는_200과_0건() throws Exception {
-        mvc.perform(get("/api/search/posts").param("q", "없는단어조합xyz" + tag))
+        mvc.perform(get("/api/v1/search/posts").param("q", "없는단어조합xyz" + tag))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0))
                 .andExpect(jsonPath("$.page").value(1))
@@ -168,11 +168,11 @@ class PostSearchTest {
         posts.add(diary, hidden + " 1", "본문", "public", BASE);
         posts.add(diary, hidden + " 2", "본문", "public", BASE.plusSeconds(1));
         for (MockHttpSession session : new MockHttpSession[] {new MockHttpSession(), members.login(mvc, d)}) {
-            mvc.perform(get("/api/search/posts").param("q", hidden).session(session))
+            mvc.perform(get("/api/v1/search/posts").param("q", hidden).session(session))
                     .andExpect(jsonPath("$.totalCount").value(0));
         }
         jdbc.update("update category set visibility = 'public' where category_id = ?", diary);
-        mvc.perform(get("/api/search/posts").param("q", hidden))
+        mvc.perform(get("/api/v1/search/posts").param("q", hidden))
                 .andExpect(jsonPath("$.totalCount").value(2))
                 .andExpect(jsonPath("$.results[0].categoryName").value("일기"));
     }
@@ -182,7 +182,7 @@ class PostSearchTest {
     }
 
     private String read(String q) throws Exception {
-        return mvc.perform(get("/api/search/posts").param("q", q)).andExpect(status().isOk()).andReturn()
+        return mvc.perform(get("/api/v1/search/posts").param("q", q)).andExpect(status().isOk()).andReturn()
                 .getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 

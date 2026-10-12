@@ -56,12 +56,12 @@ class ExploreAnonymousTest {
     void S7_1_로그인_없이_목록_분류별_목록_검색_2페이지가_모두_200() throws Exception {
         for (MockHttpSession session : new MockHttpSession[] {null, expiredSession()}) {
             for (RequestBuilder request : new RequestBuilder[] {
-                    withSession(get("/api/blogs/{id}/posts", owner.blogId()), session),
-                    withSession(get("/api/blogs/{id}/posts", owner.blogId())
+                    withSession(get("/api/v1/blogs/{id}/posts", owner.blogId()), session),
+                    withSession(get("/api/v1/blogs/{id}/posts", owner.blogId())
                             .param("categoryId", owner.defaultCategoryId().toString()), session),
-                    withSession(get("/api/blogs/{id}/posts", owner.blogId()).param("page", "2"), session),
-                    withSession(get("/api/search/posts").param("q", "글 1"), session),
-                    withSession(get("/api/search/posts").param("q", "글 1").param("page", "2"), session)}) {
+                    withSession(get("/api/v1/blogs/{id}/posts", owner.blogId()).param("page", "2"), session),
+                    withSession(get("/api/v1/search/posts").param("q", "글 1"), session),
+                    withSession(get("/api/v1/search/posts").param("q", "글 1").param("page", "2"), session)}) {
                 mvc.perform(request).andExpect(status().isOk());
             }
         }
@@ -70,7 +70,7 @@ class ExploreAnonymousTest {
     /** 로그아웃한 뒤 남은 옛 세션 쿠키. */
     private MockHttpSession expiredSession() throws Exception {
         MockHttpSession session = members.login(mvc, owner);
-        mvc.perform(post("/api/auth/logout").session(session).with(csrf())).andExpect(status().is2xxSuccessful());
+        mvc.perform(post("/api/v1/auth/logout").session(session).with(csrf())).andExpect(status().is2xxSuccessful());
         return session;
     }
 

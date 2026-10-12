@@ -116,7 +116,7 @@ class ImageUploadTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IMAGE"));
         upload(TestImages.file("a.png", "image/png", new byte[0]))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IMAGE"));
-        mvc.perform(multipart("/api/images").with(csrf()).session(session))
+        mvc.perform(multipart("/api/v1/images").with(csrf()).session(session))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_IMAGE"));
         assertThat(rows()).isEqualTo(3);
     }
@@ -175,8 +175,8 @@ class ImageUploadTest {
 
     @Test
     void S7_10_로그인하지_않으면_401_CSRF가_없으면_거절() throws Exception {
-        mvc.perform(multipart("/api/images").file(TestImages.png()).with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(multipart("/api/images").file(TestImages.png()).session(session)).andExpect(status().isForbidden());
+        mvc.perform(multipart("/api/v1/images").file(TestImages.png()).with(csrf())).andExpect(status().isUnauthorized());
+        mvc.perform(multipart("/api/v1/images").file(TestImages.png()).session(session)).andExpect(status().isForbidden());
         assertThat(rows()).isZero();
     }
 
@@ -222,11 +222,11 @@ class ImageUploadTest {
     }
 
     private ResultActions upload(MockMultipartFile file) throws Exception {
-        return mvc.perform(multipart("/api/images").file(file).with(csrf()).session(session));
+        return mvc.perform(multipart("/api/v1/images").file(file).with(csrf()).session(session));
     }
 
     private ResultActions uploadTo(Long postId, MockMultipartFile file) throws Exception {
-        MockMultipartHttpServletRequestBuilder request = multipart("/api/images").file(file);
+        MockMultipartHttpServletRequestBuilder request = multipart("/api/v1/images").file(file);
         request.param("postId", String.valueOf(postId));
         return mvc.perform(request.with(csrf()).session(session));
     }

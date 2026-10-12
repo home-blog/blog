@@ -26,7 +26,7 @@ public class ManagePostController {
         this.queryService = queryService;
     }
 
-    @GetMapping("/api/manage/posts")
+    @GetMapping("/api/{version}/manage/posts")
     public ManagePostPage list(Authentication authentication,
             @RequestParam(defaultValue = "all") String visibility,
             @RequestParam(required = false) Long categoryId,

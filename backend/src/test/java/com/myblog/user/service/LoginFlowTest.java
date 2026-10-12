@@ -66,26 +66,26 @@ class LoginFlowTest {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         assertThat(session).isNotNull();
 
-        mvc.perform(get("/api/auth/me").session(session))
+        mvc.perform(get("/api/v1/auth/me").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.member.nickname").value(member.getNickname()));
 
-        mvc.perform(post("/api/auth/logout").with(csrf()).session(session)).andExpect(status().isNoContent());
-        mvc.perform(get("/api/auth/me").session(session))
+        mvc.perform(post("/api/v1/auth/logout").with(csrf()).session(session)).andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/auth/me").session(session))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
     @Test
     void 이미_로그아웃했어도_로그아웃은_204() throws Exception {
-        mvc.perform(post("/api/auth/logout").with(csrf())).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/auth/logout").with(csrf())).andExpect(status().isNoContent());
     }
 
     @Test
     void 로그인할_때_세션_ID가_바뀐다() throws Exception {
         MockHttpSession before = new MockHttpSession();
         String oldId = before.getId();
-        MvcResult result = mvc.perform(post("/api/auth/login").with(csrf()).session(before)
+        MvcResult result = mvc.perform(post("/api/v1/auth/login").with(csrf()).session(before)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}"))
                 .andExpect(status().isOk())
@@ -152,7 +152,7 @@ class LoginFlowTest {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         session.setAttribute(SessionLifetimeFilter.LOGIN_AT, Instant.now().minus(Duration.ofDays(30)).minusSeconds(1).toEpochMilli());
 
-        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -160,13 +160,13 @@ class LoginFlowTest {
         MvcResult result = login(email, PASSWORD).andExpect(status().isOk()).andReturn();
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
 
-        MvcResult me = mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andReturn();
+        MvcResult me = mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isOk()).andReturn();
         assertThat(me.getResponse().getHeaders("Set-Cookie"))
                 .anySatisfy(cookie -> assertThat(cookie).startsWith("SESSION=").contains("Max-Age=604800"));
     }
 
     private ResultActions login(String mailAddress, String password) throws Exception {
-        return mvc.perform(post("/api/auth/login").with(csrf())
+        return mvc.perform(post("/api/v1/auth/login").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + mailAddress + "\",\"password\":\"" + password + "\"}"));
     }

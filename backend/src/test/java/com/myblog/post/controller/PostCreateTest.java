@@ -64,7 +64,7 @@ class PostCreateTest {
 
     @Test
     void S2_1_처음_여는_글쓰기_화면은_미분류_주제_없음_공개() throws Exception {
-        mvc.perform(get("/api/me/blog/post-form").session(session))
+        mvc.perform(get("/api/v1/me/blog/post-form").session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories.length()").value(1))
                 .andExpect(jsonPath("$.categories[0].name").value("미분류"))
@@ -99,7 +99,7 @@ class PostCreateTest {
         create(body("하나", "본문", owner.defaultCategoryId(), travel)).andExpect(status().isCreated());
         create(body("둘", "본문", daily, food)).andExpect(status().isCreated());
 
-        mvc.perform(get("/api/me/blog/post-form").session(session))
+        mvc.perform(get("/api/v1/me/blog/post-form").session(session))
                 .andExpect(jsonPath("$.defaultCategoryId").value(daily))
                 .andExpect(jsonPath("$.defaultTopicId").value(food))
                 .andExpect(jsonPath("$.categories.length()").value(2));
@@ -205,11 +205,11 @@ class PostCreateTest {
 
     @Test
     void S4_1_로그인하지_않으면_401() throws Exception {
-        mvc.perform(post("/api/posts").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts").with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content(body("제목", "본문", owner.defaultCategoryId(), travel)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
-        mvc.perform(get("/api/me/blog/post-form")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/me/blog/post-form")).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -233,7 +233,7 @@ class PostCreateTest {
 
     @Test
     void S12_7_CSRF_토큰이_없으면_거절한다() throws Exception {
-        mvc.perform(post("/api/posts").session(session).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts").session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(body("제목", "본문", owner.defaultCategoryId(), travel)))
                 .andExpect(status().isForbidden());
         assertThat(postCountOf(owner)).isZero();
@@ -249,7 +249,7 @@ class PostCreateTest {
     }
 
     private ResultActions create(String json) throws Exception {
-        return mvc.perform(post("/api/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON).content(json));
+        return mvc.perform(post("/api/v1/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON).content(json));
     }
 
     private void expectFieldError(String json, String field, String message) throws Exception {

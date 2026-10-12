@@ -85,18 +85,18 @@ class PostLikeTest {
 
     @Test
     void S6_1_2_누르면_수가_오르고_다시_취소하면_내려간다() throws Exception {
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(readerSession))
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likeCount").value(1))
                 .andExpect(jsonPath("$.likedByMe").value(true));
-        mvc.perform(get("/api/posts/{id}", postId).session(readerSession))
+        mvc.perform(get("/api/v1/posts/{id}", postId).session(readerSession))
                 .andExpect(jsonPath("$.likeCount").value(1))
                 .andExpect(jsonPath("$.likedByMe").value(true));
-        mvc.perform(get("/api/posts/{id}", postId))
+        mvc.perform(get("/api/v1/posts/{id}", postId))
                 .andExpect(jsonPath("$.likeCount").value(1))
                 .andExpect(jsonPath("$.likedByMe").value(false));
 
-        mvc.perform(delete("/api/posts/{id}/like", postId).with(csrf()).session(readerSession))
+        mvc.perform(delete("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likeCount").value(0))
                 .andExpect(jsonPath("$.likedByMe").value(false));
@@ -106,13 +106,13 @@ class PostLikeTest {
     @Test
     void S6_3_누르기를_여러_번_보내도_줄은_하나이고_누르지_않은_채_취소해도_200() throws Exception {
         for (int i = 0; i < 5; i++) {
-            mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(readerSession))
+            mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.likeCount").value(1));
         }
         assertThat(likes()).isOne();
-        mvc.perform(delete("/api/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
-        mvc.perform(delete("/api/posts/{id}/like", postId).with(csrf()).session(readerSession))
+        mvc.perform(delete("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(delete("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likeCount").value(0));
     }
@@ -121,7 +121,7 @@ class PostLikeTest {
     void S6_3_동시에_5번_눌러도_줄은_하나() throws Exception {
         List<RequestBuilder> requests = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            requests.add(put("/api/posts/{id}/like", postId).with(csrf()).session(readerSession));
+            requests.add(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession));
         }
         List<Integer> statuses = together(requests);
         assertThat(statuses).containsOnly(200);
@@ -130,7 +130,7 @@ class PostLikeTest {
 
     @Test
     void S6_4_자기_글은_403이고_줄이_생기지_않는다() throws Exception {
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(ownerSession))
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(ownerSession))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("SELF_LIKE_NOT_ALLOWED"))
                 .andExpect(jsonPath("$.message").value("※ 자기 글에는 좋아요를 누를 수 없습니다"));
@@ -139,31 +139,31 @@ class PostLikeTest {
 
     @Test
     void S6_5_로그인하지_않으면_401이고_CSRF가_없으면_거절() throws Exception {
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()))
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
-        mvc.perform(put("/api/posts/{id}/like", postId).session(readerSession)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).session(readerSession)).andExpect(status().isForbidden());
         assertThat(likes()).isZero();
     }
 
     @Test
     void S6_8_남의_비공개_글은_없는_글과_같은_404() throws Exception {
         Long hidden = members.addPost(owner.defaultCategoryId(), "비공개", "private");
-        String missing = mvc.perform(put("/api/posts/{id}/like", 99_999_999L).with(csrf()).session(readerSession))
+        String missing = mvc.perform(put("/api/v1/posts/{id}/like", 99_999_999L).with(csrf()).session(readerSession))
                 .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
-        String others = mvc.perform(put("/api/posts/{id}/like", hidden).with(csrf()).session(readerSession))
+        String others = mvc.perform(put("/api/v1/posts/{id}/like", hidden).with(csrf()).session(readerSession))
                 .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
         assertThat(others).isEqualTo(missing).contains("POST_NOT_FOUND");
-        mvc.perform(delete("/api/posts/{id}/like", hidden).with(csrf()).session(readerSession)).andExpect(status().isNotFound());
+        mvc.perform(delete("/api/v1/posts/{id}/like", hidden).with(csrf()).session(readerSession)).andExpect(status().isNotFound());
     }
 
     @Test
     void S11_글을_지우면_그_글의_좋아요가_모두_지워진다() throws Exception {
         Member second = register("s");
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(members.login(mvc, second)))
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(members.login(mvc, second)))
                 .andExpect(status().isOk());
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
         assertThat(likes()).isZero();
     }
 
@@ -171,11 +171,11 @@ class PostLikeTest {
     void SC005_탈퇴하면_그_회원이_남의_글에_누른_좋아요가_모두_지워진다() throws Exception {
         Member other = register("t");
         Long otherPost = members.addPost(other.defaultCategoryId(), "다른 글", "public");
-        mvc.perform(put("/api/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
-        mvc.perform(put("/api/posts/{id}/like", otherPost).with(csrf()).session(readerSession)).andExpect(status().isOk());
-        mvc.perform(put("/api/posts/{id}/like", otherPost).with(csrf()).session(ownerSession)).andExpect(status().isOk());
+        mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(put("/api/v1/posts/{id}/like", otherPost).with(csrf()).session(readerSession)).andExpect(status().isOk());
+        mvc.perform(put("/api/v1/posts/{id}/like", otherPost).with(csrf()).session(ownerSession)).andExpect(status().isOk());
 
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + TestMembers.PASSWORD + "\",\"agreed\":true}"))
                 .andExpect(status().isOk());
 
@@ -203,7 +203,7 @@ class PostLikeTest {
                 jdbc.update("update users set deleted_at = now() where users_id = ?", reader.id());
             }));
             assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
-            Future<Integer> like = pool.submit(() -> mvc.perform(put("/api/posts/{id}/like", postId).with(csrf())
+            Future<Integer> like = pool.submit(() -> mvc.perform(put("/api/v1/posts/{id}/like", postId).with(csrf())
                     .session(readerSession)).andReturn().getResponse().getStatus());
             Thread.sleep(500);
             assertThat(like.isDone()).as("탈퇴가 끝날 때까지 기다린다").isFalse();

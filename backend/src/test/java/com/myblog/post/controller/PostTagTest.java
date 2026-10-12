@@ -80,18 +80,18 @@ class PostTagTest {
     @Test
     void S9_1_샵을_빼고_소문자로_저장하고_글_상세_아래에_보인다() throws Exception {
         Long postId = create(owner.defaultCategoryId(), "public", List.of("#여행" + t, " Java" + t + " ", "##ab" + t));
-        mvc.perform(get("/api/posts/{id}", postId))
+        mvc.perform(get("/api/v1/posts/{id}", postId))
                 .andExpect(jsonPath("$.tags", contains("ab" + t, "java" + t, "여행" + t)));
-        mvc.perform(get("/api/posts/{id}/edit", postId).session(ownerSession))
+        mvc.perform(get("/api/v1/posts/{id}/edit", postId).session(ownerSession))
                 .andExpect(jsonPath("$.tags", contains("ab" + t, "java" + t, "여행" + t)));
     }
 
     @Test
     void S9_2_태그_없이도_저장한다() throws Exception {
         Long postId = create(owner.defaultCategoryId(), "public", List.of());
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.tags", empty()));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.tags", empty()));
         Long noField = createWithBody(body(owner.defaultCategoryId(), "public", null));
-        mvc.perform(get("/api/posts/{id}", noField)).andExpect(jsonPath("$.tags", empty()));
+        mvc.perform(get("/api/v1/posts/{id}", noField)).andExpect(jsonPath("$.tags", empty()));
     }
 
     @Test
@@ -121,7 +121,7 @@ class PostTagTest {
                 .andExpect(jsonPath("$.fieldErrors[0].code").value("TAG_INVALID"));
         String fifteen = t + "가".repeat(9);
         Long postId = create(owner.defaultCategoryId(), "public", List.of(fifteen, "#" + t + "나".repeat(9)));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.tags.length()").value(2));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.tags.length()").value(2));
     }
 
     @Test
@@ -144,7 +144,7 @@ class PostTagTest {
         MockHttpSession otherSession = members.login(mvc, other);
         Long second = createAs(otherSession, other.defaultCategoryId(), "public", List.of("#" + tag.toUpperCase()));
 
-        mvc.perform(get("/api/tags/{name}/posts", tag).session(ownerSession))
+        mvc.perform(get("/api/v1/tags/{name}/posts", tag).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tag").value(tag))
                 .andExpect(jsonPath("$.totalCount").value(2))
@@ -156,11 +156,11 @@ class PostTagTest {
                 .andExpect(jsonPath("$.posts[1].categoryName").value("미분류"))
                 .andExpect(jsonPath("$.posts[1].preview").value("본문"));
         // 주소의 이름도 같은 방법으로 다듬는다 (#, 대소문자)
-        mvc.perform(get("/api/tags/{name}/posts", "#" + tag.toUpperCase())).andExpect(jsonPath("$.totalCount").value(2));
+        mvc.perform(get("/api/v1/tags/{name}/posts", "#" + tag.toUpperCase())).andExpect(jsonPath("$.totalCount").value(2));
 
         // 공개 글을 비공개로 바꾸면 바로 빠진다
         update(first, "private", List.of(tag)).andExpect(status().isOk());
-        mvc.perform(get("/api/tags/{name}/posts", tag))
+        mvc.perform(get("/api/v1/tags/{name}/posts", tag))
                 .andExpect(jsonPath("$.totalCount").value(1))
                 .andExpect(jsonPath("$.posts[0].postId").value(second));
         assertThat(hidden).isNotNull();
@@ -168,11 +168,11 @@ class PostTagTest {
 
     @Test
     void 없는_태그나_규칙에_맞지_않는_이름은_빈_목록_200() throws Exception {
-        mvc.perform(get("/api/tags/{name}/posts", "없는" + t))
+        mvc.perform(get("/api/v1/tags/{name}/posts", "없는" + t))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0))
                 .andExpect(jsonPath("$.posts", empty()));
-        mvc.perform(get("/api/tags/{name}/posts", "가".repeat(30)))
+        mvc.perform(get("/api/v1/tags/{name}/posts", "가".repeat(30)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(0));
     }
@@ -186,9 +186,9 @@ class PostTagTest {
         update(postId, "public", List.of("둘" + t, "셋" + t))
                 .andExpect(jsonPath("$.changed").value(true))
                 .andExpect(jsonPath("$.updatedAt").isString());
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.tags", contains("둘" + t, "셋" + t)));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.tags", contains("둘" + t, "셋" + t)));
         update(postId, "public", null).andExpect(jsonPath("$.changed").value(true));
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(jsonPath("$.tags", empty()));
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(jsonPath("$.tags", empty()));
         // 수정에서도 같은 규칙
         update(postId, "public", List.of("a1", "a2", "a3", "a4", "a5", "a6"))
                 .andExpect(status().isBadRequest())
@@ -207,7 +207,7 @@ class PostTagTest {
     @Test
     void S11_글을_지우면_연결은_지워지고_태그_줄은_남는다() throws Exception {
         Long postId = create(owner.defaultCategoryId(), "public", List.of("남는" + t));
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
         assertThat(jdbc.queryForObject("select count(*) from post_tag where post_id = ?", Long.class, postId)).isZero();
         assertThat(jdbc.queryForObject("select count(*) from tag where name = ?", Long.class, "남는" + t)).isOne();
     }
@@ -217,7 +217,7 @@ class PostTagTest {
     }
 
     private Long createAs(MockHttpSession session, Long categoryId, String visibility, List<String> tags) throws Exception {
-        String response = mvc.perform(post("/api/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        String response = mvc.perform(post("/api/v1/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(body(categoryId, visibility, tags)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -230,12 +230,12 @@ class PostTagTest {
     }
 
     private ResultActions write(String body) throws Exception {
-        return mvc.perform(post("/api/posts").with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/api/v1/posts").with(csrf()).session(ownerSession).contentType(MediaType.APPLICATION_JSON)
                 .content(body));
     }
 
     private ResultActions update(Long postId, String visibility, List<String> tags) throws Exception {
-        return mvc.perform(put("/api/posts/{id}", postId).with(csrf()).session(ownerSession)
+        return mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body(owner.defaultCategoryId(), visibility, tags)));
     }
 

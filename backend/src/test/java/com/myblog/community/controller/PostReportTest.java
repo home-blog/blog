@@ -96,7 +96,7 @@ class PostReportTest {
     void S10_3_동시에_5번_보내도_한_건만_접수된다() throws Exception {
         List<RequestBuilder> requests = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            requests.add(post("/api/posts/{id}/reports", postId).with(csrf()).session(readerSession)
+            requests.add(post("/api/v1/posts/{id}/reports", postId).with(csrf()).session(readerSession)
                     .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("reason", "SPAM")));
         }
         List<Integer> statuses = together(requests);
@@ -153,10 +153,10 @@ class PostReportTest {
 
     @Test
     void 로그인하지_않으면_401_CSRF가_없으면_거절_남의_비공개_글은_404() throws Exception {
-        mvc.perform(post("/api/posts/{id}/reports", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts/{id}/reports", postId).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("reason", "SPAM")))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/posts/{id}/reports", postId).session(readerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/posts/{id}/reports", postId).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("reason", "SPAM")))
                 .andExpect(status().isForbidden());
         Long hidden = members.addPost(owner.defaultCategoryId(), "비공개", "private");
@@ -171,28 +171,28 @@ class PostReportTest {
     @Test
     void FR020_신고해도_글은_그대로_보인다() throws Exception {
         report(readerSession, postId, TestJson.of("reason", "ADULT")).andExpect(status().isCreated());
-        mvc.perform(get("/api/posts/{id}", postId)).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/posts/{id}", postId)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("신고할 글"));
     }
 
     @Test
     void S11_글을_지우면_그_글의_신고도_지워지고_신고가_있어도_삭제는_막히지_않는다() throws Exception {
         report(readerSession, postId, TestJson.of("reason", "SPAM")).andExpect(status().isCreated());
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(ownerSession)).andExpect(status().isNoContent());
         assertThat(reports()).isZero();
     }
 
     @Test
     void D5_탈퇴해도_그_회원이_한_신고는_남는다() throws Exception {
         report(readerSession, postId, TestJson.of("reason", "SPAM")).andExpect(status().isCreated());
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + TestMembers.PASSWORD + "\",\"agreed\":true}"))
                 .andExpect(status().isOk());
         assertThat(reports()).isOne();
     }
 
     private ResultActions report(MockHttpSession session, Long target, String body) throws Exception {
-        return mvc.perform(post("/api/posts/{id}/reports", target).with(csrf()).session(session)
+        return mvc.perform(post("/api/v1/posts/{id}/reports", target).with(csrf()).session(session)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 

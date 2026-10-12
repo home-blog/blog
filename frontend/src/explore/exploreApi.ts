@@ -43,7 +43,7 @@ export function getBlogPosts(
   if (options.page && options.page > 1) params.set('page', String(options.page))
   if (options.categoryId != null && options.categoryId !== '') params.set('categoryId', String(options.categoryId))
   const query = params.toString()
-  return api<PostListPage>(`/api/blogs/${blogId}/posts${query ? `?${query}` : ''}`, { signal })
+  return api<PostListPage>(`/api/v1/blogs/${blogId}/posts${query ? `?${query}` : ''}`, { signal })
 }
 
 /** 검색 결과 한 줄. 항상 공개 글이라 visibility가 없다 */
@@ -73,10 +73,10 @@ export interface SearchPage {
 export function searchPosts(q: string, page: number, signal?: AbortSignal): Promise<SearchPage> {
   const params = new URLSearchParams({ q })
   if (page > 1) params.set('page', String(page))
-  return api<SearchPage>(`/api/search/posts?${params.toString()}`, { signal })
+  return api<SearchPage>(`/api/v1/search/posts?${params.toString()}`, { signal })
 }
 
-/** 첫 화면 글 모음 한 줄: 여러 블로그의 공개 글 (GET /api/posts, /api/posts/popular) */
+/** 첫 화면 글 모음 한 줄: 여러 블로그의 공개 글 (GET /api/v1/posts, /api/posts/popular) */
 export interface FeedPost {
   postId: number
   blogId: number
@@ -126,9 +126,9 @@ function topicParams(topic: string | null, page = 1): string {
 }
 
 export function getFeed(topic: string | null, page: number, signal?: AbortSignal): Promise<FeedPage> {
-  return api<FeedPage>(`/api/posts${topicParams(topic, page)}`, { signal })
+  return api<FeedPage>(`/api/v1/posts${topicParams(topic, page)}`, { signal })
 }
 
 export function getPopular(topic: string | null, signal?: AbortSignal): Promise<PopularPosts> {
-  return api<PopularPosts>(`/api/posts/popular${topicParams(topic)}`, { signal })
+  return api<PopularPosts>(`/api/v1/posts/popular${topicParams(topic)}`, { signal })
 }

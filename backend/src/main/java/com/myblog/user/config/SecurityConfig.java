@@ -1,5 +1,6 @@
 package com.myblog.user.config;
 
+import com.myblog.common.ApiVersionConfig;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.JsonErrorWriter;
 import com.myblog.user.security.MemberDetailsService;
@@ -36,8 +37,8 @@ import org.springframework.session.web.http.CookieSerializer;
  *   <li>로그인: Spring Security의 AuthenticationManager(DaoAuthenticationProvider + BCrypt)로 확인한다.
  *       잠금은 UserDetails의 isAccountNonLocked로, 실패 횟수는 Security의 인증 이벤트로 센다 (LoginAttemptListener).</li>
  *   <li>로그인 상태는 서버 세션(Spring Session JDBC)에 저장한다. 로그인할 때 세션 ID를 새로 만든다 (FR-032).</li>
- *   <li>로그아웃: Security의 LogoutFilter가 POST /api/auth/logout에서 세션을 지우고 쿠키를 만료시킨 뒤 204 (contracts 7).</li>
- *   <li>변경 요청(POST 등)은 CSRF 토큰을 헤더(X-XSRF-TOKEN)에 실어야 한다. 토큰은 GET /api/auth/csrf로 받는다 (NF-11).</li>
+ *   <li>로그아웃: Security의 LogoutFilter가 POST /api/v1/auth/logout에서 세션을 지우고 쿠키를 만료시킨 뒤 204 (contracts 7).</li>
+ *   <li>변경 요청(POST 등)은 CSRF 토큰을 헤더(X-XSRF-TOKEN)에 실어야 한다. 토큰은 GET /api/v1/auth/csrf로 받는다 (NF-11).</li>
  *   <li>로그인이 필요한 요청을 로그인 없이 보내면 401 + UNAUTHENTICATED (contracts 9).</li>
  *   <li><b>기본은 "로그인 필요"</b>다. 다른 기능에서 로그인 없이 열어 둘 주소는 아래 authorizeHttpRequests에 하나씩 적는다 (T035).</li>
  * </ul>
@@ -62,7 +63,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
                 .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
+                        .logoutUrl("/api/v1/auth/logout")   // 로그아웃은 필터가 받으므로 버전을 적어 둔다 (ApiVersionConfig)
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .deleteCookies(SessionConfig.COOKIE_NAME)
@@ -72,20 +73,24 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDenied()))
                 .authorizeHttpRequests(authorize -> authorize
                         // 로그인 없이 쓰는 주소 (001)
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/*/auth/**").permitAll()   // /api/{버전}/… (ApiVersionConfig)
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // API 문서 (springdoc). 개발 설정에서만 켜지고 배포에는 없다 (OpenApiConfig)
+                        .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
+                        // 버전이 없거나 지원하지 않는 API 주소: 로그인과 상관없이 400 API_VERSION_UNSUPPORTED (ApiVersionConfig)
+                        .requestMatchers(ApiVersionConfig::isUnsupportedApiRequest).permitAll()
                         // 누구나 읽는 블로그·글 (003 contracts 1, 2, 11). 비공개는 서비스가 주인인지 보고 거른다
-                        .requestMatchers(HttpMethod.GET, "/api/blogs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/popular").permitAll()   // 첫 화면 글 모음
-                        .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/*/blogs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/*/posts", "/api/*/posts/popular").permitAll()   // 첫 화면 글 모음
+                        .requestMatchers(HttpMethod.GET, "/api/*/posts/{postId:\\d+}").permitAll()
                         // 공개 글 검색 (004 contracts 2). 누가 검색하든 공개 분류의 공개 글만 찾는다
-                        .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/*/search/**").permitAll()
                         // 글의 댓글 목록 (005 contracts 1). 볼 수 없는 글이면 서비스가 없는 글과 같은 404로 답한다
-                        .requestMatchers(HttpMethod.GET, "/api/posts/{postId:\\d+}/comments").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/*/posts/{postId:\\d+}/comments").permitAll()
                         // 같은 태그의 공개 글 목록 (005 contracts 9). 누가 보든 공개 분류의 공개 글만
-                        .requestMatchers(HttpMethod.GET, "/api/tags/**").permitAll()
-                        // 이미지 보기 (005 contracts 11). 볼 수 있는지는 서비스가 글·올린 사람을 보고 정한다
+                        .requestMatchers(HttpMethod.GET, "/api/*/tags/**").permitAll()
+                        // 이미지 보기 (005 contracts 11). 볼 수 있는지는 서비스가 글·올린 사람을 보고 정한다. 본문에 저장되는 주소라 버전 없이 고정
                         .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
                         // 로봇이 읽는 주소: 링크 미리보기 카드, RSS, 사이트 지도, 검색엔진 안내 (specs/007)
                         .requestMatchers(HttpMethod.GET, "/og", "/og/", "/og/blog/{blogId:\\d+}", "/og/posts/{postId:\\d+}")

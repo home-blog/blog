@@ -84,7 +84,7 @@ class StatsCleanerTest {
         stats.addPostDay(othersPost, DAY, 5);
         MockHttpSession session = members.login(mvc, owner);
 
-        mvc.perform(post("/api/account/withdrawal").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/v1/account/withdrawal").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"" + TestMembers.PASSWORD + "\",\"agreed\":true}"))
                 .andExpect(status().isOk());
 
@@ -106,7 +106,7 @@ class StatsCleanerTest {
         stats.addBlogDay(owner.blogId(), DAY, 9, 3);
         MockHttpSession session = members.login(mvc, owner);
 
-        mvc.perform(delete("/api/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/posts/{id}", postId).with(csrf()).session(session)).andExpect(status().isNoContent());
 
         assertThat(stats.postRows(postId)).isZero();
         assertThat(stats.postRows(kept)).isOne();

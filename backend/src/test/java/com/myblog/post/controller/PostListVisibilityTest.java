@@ -68,7 +68,7 @@ class PostListVisibilityTest {
     void S2_1_2_방문자와_다른_회원에게는_비공개_글이_없다() throws Exception {
         Member other = members.register("b");
         for (MockHttpSession session : new MockHttpSession[] {new MockHttpSession(), members.login(mvc, other)}) {
-            mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).session(session))
+            mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isOwner").value(false))
                     .andExpect(jsonPath("$.totalCount").value(29))
@@ -79,7 +79,7 @@ class PostListVisibilityTest {
 
     @Test
     void S2_3_주인에게는_비공개_글도_보이고_표시가_있다() throws Exception {
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOwner").value(true))
                 .andExpect(jsonPath("$.totalCount").value(31))
@@ -91,7 +91,7 @@ class PostListVisibilityTest {
     @Test
     void S2_4_요청_값으로_비공개를_달라고_해도_무시한다() throws Exception {
         MockHttpSession otherSession = members.login(mvc, members.register("b"));
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).session(otherSession)
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).session(otherSession)
                         .param("visibility", "private").param("includePrivate", "true").param("isOwner", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOwner").value(false))
@@ -101,8 +101,8 @@ class PostListVisibilityTest {
     @Test
     void S2_6_로그아웃한_뒤의_옛_쿠키는_401이_아니라_방문자다() throws Exception {
         MockHttpSession session = members.login(mvc, owner);
-        mvc.perform(post("/api/auth/logout").session(session).with(csrf())).andExpect(status().is2xxSuccessful());
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).session(session))
+        mvc.perform(post("/api/v1/auth/logout").session(session).with(csrf())).andExpect(status().is2xxSuccessful());
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOwner").value(false))
                 .andExpect(jsonPath("$.totalCount").value(29));
@@ -111,7 +111,7 @@ class PostListVisibilityTest {
     @Test
     void 탈퇴한_회원의_세션은_방문자로_본다() throws Exception {
         jdbc.update("update users set deleted_at = now() where users_id = ?", owner.id());
-        mvc.perform(get("/api/blogs/{id}/posts", owner.blogId()).session(ownerSession))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", owner.blogId()).session(ownerSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isOwner").value(false))
                 .andExpect(jsonPath("$.totalCount").value(29));
@@ -127,15 +127,15 @@ class PostListVisibilityTest {
 
         for (MockHttpSession session : new MockHttpSession[] {new MockHttpSession(),
                 members.login(mvc, members.register("b"))}) {
-            mvc.perform(get("/api/blogs/{id}/posts", diary.blogId()).session(session))
+            mvc.perform(get("/api/v1/blogs/{id}/posts", diary.blogId()).session(session))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalCount").value(0))
                     .andExpect(jsonPath("$.posts.length()").value(0));
-            mvc.perform(get("/api/blogs/{id}/categories", diary.blogId()).session(session))
+            mvc.perform(get("/api/v1/blogs/{id}/categories", diary.blogId()).session(session))
                     .andExpect(jsonPath("$.categories[*].name", Matchers.not(Matchers.hasItem("일기"))));
         }
 
-        mvc.perform(get("/api/blogs/{id}/posts", diary.blogId()).session(members.login(mvc, diary)))
+        mvc.perform(get("/api/v1/blogs/{id}/posts", diary.blogId()).session(members.login(mvc, diary)))
                 .andExpect(jsonPath("$.isOwner").value(true))
                 .andExpect(jsonPath("$.totalCount").value(3))
                 .andExpect(jsonPath("$.posts[0].title").value("숨김단어 2"))

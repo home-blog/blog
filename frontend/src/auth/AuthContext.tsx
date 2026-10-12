@@ -1,4 +1,4 @@
-// 로그인 상태 (specs/001 T030): 처음 열 때 GET /api/auth/me로 확인하고, 로그인·로그아웃을 화면 전체에 알린다.
+// 로그인 상태 (specs/001 T030): 처음 열 때 GET /api/v1/auth/me로 확인하고, 로그인·로그아웃을 화면 전체에 알린다.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, ApiError, resetCsrfToken } from '../api/client'
 import { AuthContext, type Member } from './useAuth'
@@ -12,7 +12,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     const started = version.current
     const fresh = () => !cancelled && started === version.current
-    api<{ member: Member }>('/api/auth/me', { notifyUnauthenticated: false })
+    api<{ member: Member }>('/api/v1/auth/me', { notifyUnauthenticated: false })
       .then((res) => fresh() && setMember(res.member))
       .catch((err: unknown) => {
         // 서버가 "로그인 안 함"(401)이라고 답했을 때만 로그아웃 상태로 본다.
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await api<{ member: Member }>('/api/auth/login', { method: 'POST', body: { email, password } })
+    const res = await api<{ member: Member }>('/api/v1/auth/login', { method: 'POST', body: { email, password } })
     resetCsrfToken() // 로그인으로 상태가 바뀌었으니 다음 변경 요청 때 토큰을 새로 받는다
     version.current += 1
     setMember(res.member)
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** 서버가 로그아웃을 마쳤을 때만 화면도 로그아웃으로 바꾼다. 실패하면 오류를 그대로 던진다 (공용 기기에서 안전하게) */
   const logout = useCallback(async () => {
     try {
-      await api('/api/auth/logout', { method: 'POST' })
+      await api('/api/v1/auth/logout', { method: 'POST' })
     } finally {
       resetCsrfToken()
     }
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const started = version.current
     try {
-      const res = await api<{ member: Member }>('/api/auth/me', { notifyUnauthenticated: false })
+      const res = await api<{ member: Member }>('/api/v1/auth/me', { notifyUnauthenticated: false })
       if (started === version.current) setMember(res.member)
     } catch (err) {
       if (started === version.current && err instanceof ApiError && err.status === 401) setMember(null)

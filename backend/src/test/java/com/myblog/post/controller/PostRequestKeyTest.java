@@ -113,7 +113,7 @@ class PostRequestKeyTest {
     void 같은_키로_내용을_바꿔_다시_보내면_처음_글을_저장된_것처럼_답하지_않고_409() throws Exception {
         String key = UUID.randomUUID().toString();
         assertThat(send(key).getStatus()).isEqualTo(201);
-        MockHttpServletResponse changed = mvc.perform(post("/api/posts").with(csrf()).session(session)
+        MockHttpServletResponse changed = mvc.perform(post("/api/v1/posts").with(csrf()).session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("title", "연속", "content", "본문", "categoryId", owner.defaultCategoryId(),
                                 "topicId", topicId, "visibility", "private", "requestKey", key)))
@@ -133,7 +133,7 @@ class PostRequestKeyTest {
     }
 
     private MockHttpServletResponse send(String key) throws Exception {
-        return mvc.perform(post("/api/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
+        return mvc.perform(post("/api/v1/posts").with(csrf()).session(session).contentType(MediaType.APPLICATION_JSON)
                         .content(TestJson.of("title", "연속", "content", "본문", "categoryId", owner.defaultCategoryId(),
                                 "topicId", topicId, "requestKey", key)))
                 .andReturn().getResponse();

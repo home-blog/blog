@@ -1,5 +1,7 @@
 package com.myblog.common.error;
 
+import com.myblog.common.ApiVersionConfig;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
@@ -16,6 +18,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.accept.InvalidApiVersionException;
+import org.springframework.web.accept.MissingApiVersionException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -79,13 +83,23 @@ public class GlobalExceptionHandler {
         return badRequest(ErrorResponse.of(ErrorCode.VALIDATION_FAILED));
     }
 
+    /** 주소의 API 버전이 없거나(/api/posts) 지원하지 않는 버전(/api/v9/…)일 때 (ApiVersionConfig). */
+    @ExceptionHandler({InvalidApiVersionException.class, MissingApiVersionException.class})
+    public ResponseEntity<ErrorResponse> handleApiVersion(Exception e) {
+        return respond(ErrorCode.API_VERSION_UNSUPPORTED);
+    }
+
+    /** 없는 주소. 버전 칸이 빠진 예전 API 주소(/api/posts)면 버전 오류로 알려 준다 (ApiVersionConfig). */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException e) {
+    public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException e, HttpServletRequest request) {
+        if (ApiVersionConfig.isUnsupportedApiRequest(request)) {
+            return respond(ErrorCode.API_VERSION_UNSUPPORTED);
+        }
         return respond(ErrorCode.NOT_FOUND);
     }
 
     /**
-     * 숫자 자리에 글자가 온 경우. 주소 안의 번호(/api/blogs/abc)면 그런 주소가 없는 것이므로 404,
+     * 숫자 자리에 글자가 온 경우. 주소 안의 번호(/api/v1/blogs/abc)면 그런 주소가 없는 것이므로 404,
      * 물음표 뒤의 값(?page=abc)이면 입력값이 틀린 것이므로 400 VALIDATION_FAILED.
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
