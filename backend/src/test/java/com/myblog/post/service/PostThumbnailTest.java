@@ -56,4 +56,22 @@ class PostThumbnailTest {
     void 닫히지_않은_코드_블록은_글_끝까지_코드다() {
         assertThat(PostThumbnail.of("~~~\n![a](/api/images/a.png)\n")).isEmpty();
     }
+
+    @Test
+    void 뒤에_글자가_있는_펜스_줄은_코드_블록을_닫지_않는다() {
+        String markdown = "```\n```설명\n![코드](/api/images/a.png)\n```\n\n![진짜](/api/images/b.png)";
+        assertThat(PostThumbnail.of(markdown)).contains("/api/images/b.png");
+    }
+
+    @Test
+    void 백틱_여러_개나_여러_줄의_인라인_코드도_코드다() {
+        String markdown = "``한 개 ` 섞인 ![a](/api/images/a.png \"대표\")`` 그리고 `둘째 줄로\n![b](/api/images/b.png)` 끝\n\n"
+                + "![진짜](/api/images/c.png)";
+        assertThat(PostThumbnail.of(markdown)).contains("/api/images/c.png");
+    }
+
+    @Test
+    void 짝이_없는_백틱은_빈_줄_너머의_이미지를_가리지_않는다() {
+        assertThat(PostThumbnail.of("글 속 ` 하나\n\n![진짜](/api/images/c.png) 와 `")).contains("/api/images/c.png");
+    }
 }
