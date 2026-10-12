@@ -29,13 +29,14 @@ const EditorPreview = forwardRef<HTMLElement, Props>(function EditorPreview(
         </span>
       </header>
       <article className="editor-preview-paper">
+        {/* 제목을 맨 위에 두어 왼쪽 쓰기 칸의 제목과 높이를 맞춘다. 분류·주제는 그 아래 */}
+        <h1 className={title.trim() ? 'post-title' : 'post-title is-placeholder'}>{title.trim() || '제목'}</h1>
         {(topicName || categoryName) && (
           <p className="post-meta-top">
             {categoryName && <span className="post-category">{categoryName}</span>}
             {topicName && <span className="post-topic">{topicName}</span>}
           </p>
         )}
-        <h1 className={title.trim() ? 'post-title' : 'post-title is-placeholder'}>{title.trim() || '제목'}</h1>
         {deferred.trim() ? (
           <Suspense fallback={<div className="post-content-raw">{deferred}</div>}>
             <MarkdownView source={deferred} />

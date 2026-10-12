@@ -117,11 +117,6 @@
   font-weight: 600;
 }
 
-.editor-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* 태그 입력 (specs/005 US5): 붙은 태그는 둥근 칩, 그 뒤에 입력칸 */
 .tag-box {
   display: flex;
@@ -181,15 +176,7 @@
   box-shadow: none;
 }
 
-/* 본문 칸 위: 이름과 이미지 올리기 버튼 (specs/005 US4) */
-.editor-content-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
+/* 이미지 올리기 버튼 (specs/005 US4) */
 .image-upload {
   display: inline-flex;
   flex-wrap: wrap;
@@ -211,38 +198,137 @@
   outline-offset: 2px;
 }
 
-/* ── 나란히 미리보기 (specs/007 US7): 넓으면 왼쪽 쓰기 · 오른쪽 원고지 미리보기, 좁으면 탭 ── */
+/* ── 나란히 미리보기 (specs/007 US7) ──
+   맨 위 한 줄(분류·주제·공개·보기 전환), 가운데 두 장의 종이(쓰기 | 미리보기)는 위·아래 끝을 맞추고,
+   본문 줄 간격은 둘 다 2rem(원고지 한 칸)이다. 맨 아래 막대에 저장 */
 .editor.has-preview {
-  max-width: 96rem;
+  max-width: 100rem;
+}
+
+.editor-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem 1.25rem;
+}
+
+.editor-top .editor-meta {
+  flex: 1 1 36rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.editor-view-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .editor-split {
   display: grid;
-  gap: 2rem;
-  align-items: start;
+  gap: 1.5rem;
 }
 
-.editor-write {
-  display: grid;
-  gap: 1.25rem;
+/* 두 장의 종이: 같은 테두리·머리줄 높이 */
+.editor-write,
+.editor-preview {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+}
+
+.editor-pane-head,
+.editor-preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--grid);
+}
+
+.editor-pane-label,
+.editor-preview-label {
+  font-weight: 600;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.editor-pane-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+/* 쓰기 칸 안에서는 제목 칸도 미리보기 제목과 같은 크기·줄 */
+.editor-pane-body .editor-title-input {
+  padding: 0.25rem 0 0.75rem;
+}
+
+.editor-pane-body .editor-content-input {
+  flex: 1;
+  min-height: 26rem;
+  border-radius: 8px;
+  /* 미리보기 원고지와 같은 2rem 줄: 위 여백 1rem에서 줄이 시작한다 */
+  padding-top: 1rem;
+  background-position: 0 1rem;
+}
+
+.editor-content-hint {
+  margin: 0;
+}
+
+/* 맨 아래 막대: 화면 아래에 붙어 있다 */
+.editor-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--grid);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 .editor-mode-tabs {
   display: none;
 }
 
+/* 넓은 화면: 두 장을 나란히. 미리보기는 쓰기 종이 높이에 맞추고 안에서 스크롤 (contain: size로 내용이 칸 높이를 늘리지 않게) */
 @media (min-width: 64rem) {
   .editor.has-preview .editor-split {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .editor.has-preview .editor-content-input {
+    min-height: max(26rem, calc(100dvh - 24rem));
+  }
+
+  .editor.has-preview .editor-preview {
+    contain: size;
+    overflow-y: auto;
   }
 }
 
-/* 좁은 화면(또는 미리보기를 펼친 좁은 화면): 쓰기/미리보기 중 하나만 */
+/* 좁은 화면: 쓰기/미리보기 중 하나만 */
 @media (max-width: 63.99rem) {
+  .editor-preview-toggle {
+    display: none;
+  }
+
   .editor.has-preview .editor-mode-tabs {
     display: inline-flex;
-    justify-self: start;
     padding: 0.2rem;
     border: 1px solid var(--grid);
     border-radius: var(--radius-button);
@@ -252,6 +338,10 @@
   .editor.has-preview .editor-split[data-mode='write'] .editor-preview,
   .editor.has-preview .editor-split[data-mode='preview'] .editor-write {
     display: none;
+  }
+
+  .editor-preview {
+    min-height: 60vh;
   }
 }
 
@@ -264,7 +354,9 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .editor-mode-tab[aria-pressed='true'] {
@@ -273,7 +365,7 @@
 }
 
 .editor-preview-toggle {
-  padding: 0.2rem 0.75rem;
+  padding: 0.35rem 0.9rem;
   border: 1px solid var(--grid);
   border-radius: var(--radius-button);
   background: var(--paper-raised);
@@ -297,10 +389,7 @@
   padding: 0.3rem;
   border: 1px solid var(--grid);
   border-radius: 10px;
-  background: var(--paper-raised);
-  position: sticky;
-  top: 0.5rem;
-  z-index: 2;
+  background: var(--paper);
 }
 
 .md-tool {
@@ -314,7 +403,10 @@
   font: inherit;
   font-size: var(--step--1);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s, transform 0.15s var(--ease-out);
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    transform 0.15s var(--ease-out);
 }
 
 .md-tool:hover:not(:disabled) {
@@ -355,16 +447,8 @@
   font-size: var(--step--1);
 }
 
-/* 오른쪽 미리보기: 원고지 종이 한 장. 화면 높이만큼 붙어 있고 안에서 스크롤 */
+/* 미리보기 종이 */
 .editor-preview {
-  position: sticky;
-  top: 1rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
-  border: 1px solid var(--grid);
-  border-radius: 12px;
-  background: var(--paper-raised);
-  box-shadow: var(--shadow);
   animation: rise-in 0.4s var(--ease-out) both;
 }
 
@@ -372,45 +456,91 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.65rem 1.25rem;
-  border-bottom: 1px solid var(--grid);
   background: color-mix(in srgb, var(--paper-raised) 92%, transparent);
   backdrop-filter: blur(6px);
+  border-radius: 12px 12px 0 0;
 }
 
-.editor-preview-label {
-  font-weight: 600;
-  font-size: var(--step--1);
-  color: var(--ink-soft);
-}
-
+/* 원고지 칸: 2rem 네모. 제목·문단·소제목이 모두 2rem 줄에 맞춰 놓여 글자가 칸 줄 사이에 들어간다
+   (왼쪽 쓰기 칸도 2rem 줄. 위 여백 1rem에서 칸 줄이 시작한다) */
 .editor-preview-paper {
-  min-height: 60vh;
-  padding: 1.5rem clamp(1.25rem, 3vw, 2.5rem) 3rem;
-  /* 원고지 칸: 아주 옅은 네모 칸 */
+  flex: 1;
+  padding: 1rem 1.25rem 2rem;
   background-image:
     repeating-linear-gradient(90deg, color-mix(in srgb, var(--grid) 22%, transparent) 0 1px, transparent 1px 2rem),
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--grid) 22%, transparent) 0 1px, transparent 1px 2rem);
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--grid) 26%, transparent) 0 1px, transparent 1px 2rem);
+  background-position: 1.25rem 1rem;
 }
 
+/* 제목: 2rem 줄, 아래 굵은 줄은 자리를 차지하지 않게 그림자로 */
 .editor-preview-paper .post-title {
-  margin-top: 0.25rem;
-  padding-bottom: 0.75rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid var(--grid-strong);
+  margin: 0 0 1rem;
+  padding: 0 0 1rem;
+  font-size: 1.6rem;
+  line-height: 2rem;
+  border: 0;
+  box-shadow: inset 0 -2px 0 var(--grid-strong);
 }
 
 .editor-preview-paper .post-title.is-placeholder {
   color: color-mix(in srgb, var(--ink-soft) 60%, transparent);
 }
 
+.editor-preview-paper .post-meta-top {
+  margin: 0 0 2rem;
+  line-height: 2rem;
+}
+
+/* 본문: 쓰기 칸과 같은 글꼴 크기, 줄 간격 2rem. 문단 사이도 한 줄(2rem) */
+.editor-preview .markdown {
+  font-size: 1.05rem;
+  line-height: 2rem;
+}
+
+.editor-preview .markdown > * {
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.editor-preview .markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 0;
+  line-height: 2rem;
+}
+
+.editor-preview .markdown h1 {
+  font-size: 1.45rem;
+}
+
+.editor-preview .markdown h2 {
+  font-size: 1.3rem;
+}
+
+.editor-preview .markdown h3 {
+  font-size: 1.15rem;
+}
+
+.editor-preview .markdown blockquote {
+  padding: 0 1rem;
+}
+
+.editor-preview .markdown blockquote > * {
+  margin: 0;
+}
+
+.editor-preview .markdown :is(ul, ol) {
+  padding-left: 1.5rem;
+}
+
+.editor-preview .markdown pre {
+  padding: 0 1rem;
+  line-height: 2rem;
+}
+
 .editor-preview-empty {
+  margin: 0;
   color: var(--ink-soft);
   font-family: var(--font-letter);
+  line-height: 2rem;
 }
 
 .editor-preview .post-tags {
