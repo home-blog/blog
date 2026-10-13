@@ -1,12 +1,12 @@
 // 블로그 머리 (v0.5.1 원고지 손길): 블로그 이름을 원고지에 한 자씩 적고, 지금까지 쓴 원고지 매수를 세어 올린다
 // 이름은 화면 읽기 도구용 제목(h1)으로도 둔다. 원고지는 꾸밈이다
 import { useEffect, useState } from 'react'
+import { useCountUp } from '../components/useCountUp'
 import ManuscriptSheet from '../pages/ManuscriptSheet'
 import { getBlogManuscript, type BlogManuscript } from './blogApi'
 
 const COLUMNS = 10
 const MAX_ROWS = 3
-const COUNT_MS = 1200
 
 function nameLines(name: string): string[] {
   const chars = [...name]
@@ -15,29 +15,6 @@ function nameLines(name: string): string[] {
     lines.push(chars.slice(i, i + COLUMNS).join(''))
   }
   return lines
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-}
-
-/** 0에서 target까지 세어 올린다. 움직임 줄이기 설정이거나 0이면 바로 target */
-function useCountUp(target: number | null): number | null {
-  const instant = target === null || target === 0 || prefersReducedMotion()
-  const [animated, setAnimated] = useState(0)
-  useEffect(() => {
-    if (instant || target === null) return
-    let frame = 0
-    const start = performance.now()
-    function step(now: number) {
-      const progress = Math.min(1, (now - start) / COUNT_MS)
-      setAnimated(Math.round(target! * (1 - Math.pow(1 - progress, 3))))
-      if (progress < 1) frame = requestAnimationFrame(step)
-    }
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
-  }, [target, instant])
-  return instant ? target : animated
 }
 
 interface Props {

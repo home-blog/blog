@@ -10,6 +10,7 @@ import FeedItem from '../explore/FeedItem'
 import Pagination from '../explore/Pagination'
 import { getFeed, getPopular, type FeedPage, type PopularPosts } from '../explore/exploreApi'
 import { formatDate, pageFrom } from '../explore/rules'
+import HomeCover from './HomeCover'
 import ManuscriptSheet from './ManuscriptSheet'
 import EmptySheet from '../components/EmptySheet'
 import '../explore/explore.css'
@@ -81,33 +82,7 @@ export default function HomePage() {
       )}
 
       <section className="home-hero" aria-labelledby="home-hero-title">
-        <div className="home-hero-text">
-          <h1 id="home-hero-title" className="home-hero-title">
-            오늘은 누구의 이야기를 읽을까요
-          </h1>
-          <p className="home-lead">
-            여행, 음식, 취미, 운동, 개발. 여러 사람이 각자의 블로그에 꾹꾹 눌러 쓴 글을 한곳에서 둘러보세요.
-          </p>
-          {member ? (
-            <p className="home-actions">
-              <Link to="/write" className="btn btn-primary">
-                글쓰기
-              </Link>
-              <Link to="/me/blog" className="home-link">
-                내 블로그로 가기
-              </Link>
-            </p>
-          ) : member === null ? (
-            <p className="home-actions">
-              <Link to="/signup" className="btn btn-primary">
-                내 블로그 만들기
-              </Link>
-              <Link to="/login" className="home-link">
-                로그인
-              </Link>
-            </p>
-          ) : null}
-        </div>
+        <HomeCover member={member} />
         <ManuscriptSheet lines={['', member ? `${member.nickname}님,` : '오늘은', '무엇을 쓸까요.']} rows={3} />
       </section>
 

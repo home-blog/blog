@@ -3,6 +3,7 @@ package com.myblog.post.controller;
 import com.myblog.post.service.PostFeedService;
 import com.myblog.post.service.PostFeedService.FeedView;
 import com.myblog.post.service.PostFeedService.PopularView;
+import com.myblog.post.service.PostFeedService.SiteSummary;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +25,12 @@ public class PostFeedController {
     @GetMapping("/api/{version}/posts")
     public FeedView feed(@RequestParam(required = false) String topic, @RequestParam(required = false) String page) {
         return feedService.feed(topic, page);
+    }
+
+    /** 첫 화면 머리의 분량 (v0.5.1). GET /api/v1/posts/summary */
+    @GetMapping("/api/{version}/posts/summary")
+    public SiteSummary summary() {
+        return feedService.summary();
     }
 
     /** 이번 주 인기 글. GET /api/v1/posts/popular?topic=여행 */

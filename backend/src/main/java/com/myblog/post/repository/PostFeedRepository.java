@@ -9,7 +9,9 @@ import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.BiConsumer;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -45,6 +47,9 @@ public class PostFeedRepository {
 
     private static final String COUNT = "select count(*) " + FROM + OPEN_POSTS;
 
+    /** 첫 화면 머리의 분량 (v0.5.1): 모든 공개 글의 블로그 번호와 본문. 매수는 글마다 올림하므로 본문을 읽어 센다. */
+    private static final String OPEN_CONTENTS = "select c.blog_id, p.content " + FROM + OPEN_POSTS;
+
     private static final String PAGE = COLUMNS + FROM + OPEN_POSTS + """
             order by p.created_at desc, p.post_id desc
             offset ? limit ?
@@ -69,6 +74,12 @@ public class PostFeedRepository {
     public long count(Long topicId) {
         Long count = jdbc.query(connection -> prepare(connection, COUNT, topicId), rs -> rs.next() ? rs.getLong(1) : 0L);
         return count == null ? 0 : count;
+    }
+
+    /** 모든 공개 글을 하나씩 (블로그 번호, 본문)으로 넘긴다. 목록을 한꺼번에 쥐지 않는다. */
+    public void forEachOpenPost(BiConsumer<Long, String> consumer) {
+        jdbc.query(connection -> prepare(connection, OPEN_CONTENTS, null),
+                (RowCallbackHandler) rs -> consumer.accept(rs.getLong(1), rs.getString(2)));
     }
 
     /** 최신순으로 offset부터 limit개. */

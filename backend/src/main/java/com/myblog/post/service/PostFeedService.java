@@ -11,7 +11,9 @@ import com.myblog.post.service.PageNumbers.PageSlice;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,26 @@ public class PostFeedService {
                 .toList();
         return new FeedView(chosen == null ? null : chosen.getName(), topics.stream().map(Topic::getName).toList(),
                 totalCount, slice.page(), slice.totalPages(), slice.pageSize(), rows);
+    }
+
+    /**
+     * 첫 화면 머리의 "원고지 표지" (v0.5.1): 공개 글을 쓴 블로그 수, 공개 글 수, 그 글들의 원고지 매수 합.
+     * 글 모음과 같은 공개 규칙(공개 분류의 공개 글, 탈퇴하지 않은 회원)이고, 매수는 글마다 올림한 값을 더한다.
+     */
+    public SiteSummary summary() {
+        Set<Long> blogIds = new HashSet<>();
+        long[] postCount = {0};
+        long[] sheets = {0};
+        feedRepository.forEachOpenPost((blogId, content) -> {
+            blogIds.add(blogId);
+            postCount[0]++;
+            sheets[0] += manuscript.of(content).sheets();
+        });
+        return new SiteSummary(blogIds.size(), postCount[0], sheets[0]);
+    }
+
+    /** 첫 화면 머리의 분량: 쓴 사람(공개 글이 있는 블로그) 수, 공개 글 수, 원고지 매수 합. */
+    public record SiteSummary(long bloggerCount, long postCount, long sheets) {
     }
 
     /**
