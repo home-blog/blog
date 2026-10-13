@@ -26,13 +26,38 @@ export default function SocialAccountsCard() {
     if (params.has('linked') || params.has('linkError')) setParams({}, { replace: true })
   }, [params, setParams])
 
+  // 불러오지 못하면 카드를 숨기지 않고 안내와 다시 시도 버튼을 보여 준다
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reload, setReload] = useState(0)
+
   useEffect(() => {
     const controller = new AbortController()
     getSocialAccounts(controller.signal)
-      .then(setAccounts)
-      .catch(() => undefined)
+      .then((res) => {
+        setAccounts(res)
+        setLoadFailed(false)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setLoadFailed(true)
+      })
     return () => controller.abort()
-  }, [])
+  }, [reload])
+
+  if (loadFailed && !accounts) {
+    return (
+      <section className="mypage-card" aria-labelledby="social-title">
+        <h2 id="social-title" className="mypage-card-title">
+          연결된 계정
+        </h2>
+        <p className="msg msg-error" role="alert">
+          ※ 연결된 계정을 불러오지 못했습니다
+        </p>
+        <button type="button" className="btn btn-outline btn-small" onClick={() => setReload((n) => n + 1)}>
+          다시 시도
+        </button>
+      </section>
+    )
+  }
 
   if (!accounts || accounts.providers.length + accounts.linked.length === 0) return null
 

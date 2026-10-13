@@ -25,7 +25,7 @@
 - 클라우드 세션에서는 Maven과 Docker가 된다. `dockerd`를 켜고 `cp .env.example .env`(처음 한 번), `docker compose up -d --wait` 뒤 `cd backend && mvn verify`, `cd frontend && npm ci && npm run lint && npm run build`를 **push 전에** 돌린다. 화면은 서버와 `npx vite`를 띄우고 Playwright(`/opt/node-tools/node_modules/playwright`, 브라우저는 미리 설치됨)로 확인할 수 있다.
 - 커밋 작성자는 `JaeUng <rnrn4308428@gmail.com>`. 메시지는 한국어로, 무엇을 왜 바꿨는지와 작업 ID(T001 등)를 적는다.
 - **PR은 묶어서 적게** 올린다 (2026-10-12 사용자: PR마다 CodeRabbit·SonarQube·CI를 기다리느라 늦어진다). 한 번의 작업(디자인 수정, 기능 추가 여러 개)을 브랜치 하나에 커밋으로 쌓고, 사용자가 로컬(5173)에서 확인한 뒤 끝날 때(또는 "올려"라고 할 때) PR 하나로 올린다. 브랜치 push만으로는 CI·Sonar가 돌지 않는다. 브랜치는 Git Flow를 따른다(아래). 리뷰 수정은 같은 PR에서 한다.
-- PR을 올리면 CI 3개(서버, 화면, 품질 분석)와 CodeRabbit을 확인하고, 맞는 지적은 고쳐 스레드에 답한 뒤 해결 표시한다. 모두 통과하면 merge한다 (2026-10-08 사용자: PR 올리기·품질 검사 대응·merge는 알아서).
+- PR을 올리면 CI 3개(서버, 화면, 품질 분석)와 CodeRabbit을 확인하고, 맞는 지적은 고쳐 스레드에 답한 뒤 해결 표시한다. 모두 통과하면 merge한다 (2026-10-08 사용자: PR 올리기·품질 검사 대응·merge는 알아서). 문서(`*.md`, `docs/`, `specs/`)만 바꾼 PR은 CI가 돌지 않으므로(`paths-ignore`) CodeRabbit 리뷰만 보고 합친다 (README와 같은 기준).
 - **Dependabot PR은 직접 merge하지 않는다**. 같은 변경을 내 PR로 반영하면 Dependabot이 자기 PR을 닫는다.
 - **Git Flow (2026-10-13 사용자)**: 기본 브랜치는 `develop`. 기능은 `develop`에서 `feature/<내용>`을 만들어 `develop`으로 PR한다. 릴리스는 `develop`에서 `release/<번호>`(CHANGELOG 날짜·버전 확인)를 만들어 `main`으로 PR → merge 뒤 Actions `배포`를 main으로 손 실행(번호 입력) → `main`을 `develop`에 다시 합친다. 급한 버그는 `main`에서 `hotfix/<번호>` → `main` → `develop`. `main`·`develop`에 직접 push하지 않는다. 쉬운 설명은 문서 저장소 `docs/4-가이드/07-브랜치-전략.md`.
 - 원격 브랜치 삭제와 새 저장소 만들기는 클라우드 세션에서 막혀 있다.

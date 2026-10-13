@@ -7,11 +7,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * 소셜 로그인 설정 (application.yml의 social.*, specs/010).
  * clients의 키는 회사 이름(github, google, kakao, naver). 열쇠는 환경 변수로만 들어오고, 둘 중 하나라도 비면 그 회사는 쓰지 않는다 (D-9).
+ * httpTimeout은 회사 서버에 따로 묻는 요청(GitHub 이메일 목록)의 연결·읽기 제한 시간이다.
  */
 @ConfigurationProperties(prefix = "social")
-public record SocialProperties(Duration pendingTtl, Map<String, Client> clients) {
+public record SocialProperties(Duration pendingTtl, Duration httpTimeout, Map<String, Client> clients) {
+
+    private static final Duration DEFAULT_HTTP_TIMEOUT = Duration.ofSeconds(5);
 
     public SocialProperties {
+        httpTimeout = httpTimeout == null ? DEFAULT_HTTP_TIMEOUT : httpTimeout;
         clients = clients == null ? Map.of() : Map.copyOf(clients);
     }
 

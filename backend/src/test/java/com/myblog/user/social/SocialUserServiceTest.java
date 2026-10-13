@@ -21,7 +21,7 @@ import org.springframework.web.client.RestClient;
 /** 회사마다 다른 회원 정보를 같은 모양으로 맞추고, "인증된 이메일"을 research D-2대로 판정한다 (specs/010 T003). */
 class SocialUserServiceTest {
 
-    private static final SocialClientRegistrations REGISTRATIONS = new SocialClientRegistrations(new SocialProperties(null,
+    private static final SocialClientRegistrations REGISTRATIONS = new SocialClientRegistrations(new SocialProperties(null, null,
             Map.of("github", new SocialProperties.Client("g", "gs"), "google", new SocialProperties.Client("o", "os"),
                     "kakao", new SocialProperties.Client("k", "ks"), "naver", new SocialProperties.Client("n", "ns"))));
 
