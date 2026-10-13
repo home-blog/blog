@@ -36,9 +36,23 @@ cd frontend && npm install && npm run dev
 
 ## 작업 방식
 
-- `main`에 직접 올리지 않고, 브랜치를 만들어 PR로 올립니다. PR은 기능(사용자 이야기) 하나에 하나입니다.
+- **Git Flow**로 일합니다. `main`과 `develop`에는 직접 올리지 않고 모두 PR로 합칩니다.
+
+  | 브랜치 | 어디서 만들어 | 어디로 합치나 | 하는 일 |
+  |---|---|---|---|
+  | `main` | — | — | 배포된 코드. 릴리스마다 태그 `v0.x.0` |
+  | `develop` | `main` | — | 다음 릴리스를 모으는 곳 (기본 브랜치) |
+  | `feature/<내용>` | `develop` | `develop` | 기능 하나 (예: `feature/v0.5-social-login`) |
+  | `release/<번호>` | `develop` | `main`, 그다음 `develop` | 릴리스 준비: CHANGELOG 날짜, 마지막 확인. 합치면 배포 |
+  | `hotfix/<번호>` | `main` | `main`, 그다음 `develop` | 서비스가 멈추는 급한 버그만 (예: `hotfix/0.4.1`) |
+
+  ```text
+  feature/* ──PR──▶ develop ──release/0.5.0──PR──▶ main ──▶ Actions 배포(0.5.0) → 태그 v0.5.0
+                       ▲                                 │
+                       └─────────── main을 다시 합침 ◀────┘   (hotfix/*도 main → develop 순서)
+  ```
 - PR마다 자동 검사가 돕니다: **CI**(서버 빌드·테스트, 화면 린트·빌드), **CodeRabbit**(1차 코드 리뷰, 한국어), **SonarQube**(품질·커버리지, 아카데미 서버).
-- CI가 통과해야 merge합니다.
+- CI가 통과해야 merge합니다. `develop`과 `main`으로 가는 PR 모두 같은 검사를 거칩니다.
 - 무엇을 만들지는 문서 저장소의 `specs/<기능>/tasks.md`, 어떻게는 같은 폴더의 `plan.md`, `contracts/`를 따릅니다.
 - 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않습니다. 로컬은 `.env`(git 제외), 배포는 환경 변수나 GitHub Secrets로 넣습니다. (`.env.example`의 값은 개발 전용입니다)
 - 실습 서버 배포는 GitHub Actions(`.github/workflows/deploy.yml`)가 합니다. 방법은 [`deploy/README.md`](deploy/README.md)에 있습니다.

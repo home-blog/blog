@@ -7,6 +7,10 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    # Git Flow: 기능 PR은 develop으로, 릴리스·급한 수정 PR은 main으로 간다. 둘 다 리뷰한다
+    base_branches:
+      - "^main$"
+      - "^develop$"
   path_filters:
     - "!frontend/package-lock.json"
     - "!**/dist/**"
@@ -22,7 +26,7 @@ reviews:
         - 여러 표를 함께 바꾸는 일이 한 트랜잭션인가
         - 모듈 사이의 부르는 방향을 어기지 않는가 (user ← blog ← post ← comment/community/image, stats는 읽기만)
     - path: "backend/src/main/resources/db/migration/**"
-      instructions: "이미 main에 들어간 마이그레이션 파일을 고치지 않았는지, 팀 공통 ERD와 다른 점이 있으면 설명이 있는지 본다."
+      instructions: "이미 develop이나 main에 들어간 마이그레이션 파일을 고치지 않았는지, 팀 공통 ERD와 다른 점이 있으면 설명이 있는지 본다."
     - path: "frontend/**/*.{ts,tsx}"
       instructions: |
         - 사용자 입력이나 글 본문을 HTML로 그대로 넣지 않는가 (dangerouslySetInnerHTML 금지, 스크립트 실행 방지)
