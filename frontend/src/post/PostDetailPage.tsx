@@ -5,21 +5,32 @@
 // - 주인에게만 수정·삭제. 삭제는 확인 창을 거치고, 끝나면 내 블로그로 간다 (FR-021, FR-022)
 // - 본문 아래에 태그(US5), 좋아요(US3)·신고(US6), 댓글 영역(US1) (specs/005)
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import CommentSection from '../comment/CommentSection'
 import LikeButton from '../community/LikeButton'
 import ReportDialog from '../community/ReportDialog'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ProofNotFound from '../components/ProofNotFound'
 import '../pages/auth-layout.css'
-import { deletePost, getPost, type PostDetail } from './postApi'
+import { deletePost, getPost, type PostDetail, type SavedState } from './postApi'
 import './post-detail.css'
+import PostEnd from './PostEnd'
+import ReadingProgress from './ReadingProgress'
+import SavedToast from './SavedToast'
 import TableOfContents from './TableOfContents'
 
 const MarkdownView = lazy(() => import('./MarkdownView'))
 
-type Result = { key: string; post: PostDetail } | { key: string; error: string }
+type Result = { key: string; post: PostDetail } | { key: string; error: string; notFound: boolean }
+
+/** 글쓰기 화면이 저장한 뒤 넘긴 표시 (PostEditorPage). 이 글의 것일 때만 알림을 띄운다 */
+function savedState(state: unknown, postId: number): SavedState | null {
+  if (typeof state !== 'object' || state === null) return null
+  const { saved, postId: savedId } = state as Partial<SavedState>
+  return (saved === 'created' || saved === 'edited') && savedId === postId ? { saved, postId } : null
+}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })
@@ -41,6 +52,21 @@ export default function PostDetailPage() {
   const deletingRef = useRef(false)
   // 목차가 소제목을 찾는 본문 영역 (specs/007 US2)
   const bodyRef = useRef<HTMLDivElement>(null)
+  // 읽기 진행 띠가 재는 글 전체 (v0.5.1)
+  const articleRef = useRef<HTMLElement>(null)
+  // 저장 알림 ("탈고"·"퇴고", v0.5.1): 한 번 보여 준 뒤 주소의 표시는 지워 새로 고침해도 다시 뜨지 않게 한다
+  const location = useLocation()
+  const [saved, setSaved] = useState(() => savedState(location.state, id))
+
+  useEffect(() => {
+    if (savedState(location.state, id)) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, id, navigate])
+
+  useEffect(() => {
+    if (!saved) return
+    const timer = window.setTimeout(() => setSaved(null), 6000)
+    return () => window.clearTimeout(timer)
+  }, [saved])
 
   useEffect(() => {
     if (!validId || viewer === null) return
@@ -50,16 +76,30 @@ export default function PostDetailPage() {
       .then((post) => setResult({ key: requestKey, post }))
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
-        setResult({ key: requestKey, error: err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요' })
+        setResult({
+          key: requestKey,
+          error: err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요',
+          notFound: err instanceof ApiError && err.status === 404,
+        })
       })
     return () => controller.abort()
   }, [id, validId, viewer])
 
   const current = result?.key === key ? result : null
-  if (!validId || (current && 'error' in current)) {
+  if (!validId || (current && 'error' in current && current.notFound)) {
+    // 없는 글·볼 수 없는 글은 교정부호로 (v0.5.1 원고지 손길). 서버는 둘을 똑같이 404로 답한다 (FR-026)
+    return (
+      <ProofNotFound
+        struck="쪽"
+        inserted="글"
+        message={current && 'error' in current ? current.error : '존재하지 않는 글입니다'}
+      />
+    )
+  }
+  if (current && 'error' in current) {
     return (
       <p className="post-status msg msg-error" role="alert">
-        {current && 'error' in current ? current.error : '존재하지 않는 글입니다'}
+        {current.error}
       </p>
     )
   }
@@ -83,7 +123,11 @@ export default function PostDetailPage() {
     }
   }
   return (
-    <article className="post">
+    <article className="post" ref={articleRef}>
+      <ReadingProgress target={articleRef} />
+      {saved?.postId === post.postId && (
+        <SavedToast kind={saved.saved} sheets={post.sheets} onClose={() => setSaved(null)} />
+      )}
       <header className="post-head">
         <p className="post-meta-top">
           <Link to={`/blog/${post.blogId}`} className="post-blog">
@@ -138,6 +182,8 @@ export default function PostDetailPage() {
         </Suspense>
       </div>
 
+      <PostEnd sheets={post.sheets} readMinutes={post.readMinutes} />
+
       {/* 태그 (specs/005 US5). 누르면 같은 태그의 공개 글 */}
       {post.tags.length > 0 && (
         <ul className="post-tags" aria-label="태그">
@@ -160,7 +206,7 @@ export default function PostDetailPage() {
           isOwner={post.isOwner}
         />
         {/* 신고 (US6). 자기 글에서는 숨긴다 */}
-        {!post.isOwner && <ReportDialog key={key} postId={post.postId} />}
+        {!post.isOwner && <ReportDialog key={`report-${key}`} postId={post.postId} />}
       </div>
 
       <nav className="post-nav" aria-label="이전·다음 글">

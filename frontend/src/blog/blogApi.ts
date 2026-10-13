@@ -33,6 +33,17 @@ export function getBlog(blogId: number, signal?: AbortSignal): Promise<Blog> {
   return api<Blog>(`/api/v1/blogs/${blogId}`, { signal })
 }
 
+/** 블로그 머리의 "지금까지 쓴 원고지" (v0.5.1). 보이는 글만 센다: 방문자는 공개 글, 주인은 비공개까지 */
+export interface BlogManuscript {
+  blogId: number
+  postCount: number
+  sheets: number
+}
+
+export function getBlogManuscript(blogId: number, signal?: AbortSignal): Promise<BlogManuscript> {
+  return api<BlogManuscript>(`/api/v1/blogs/${blogId}/manuscript`, { signal })
+}
+
 export async function getCategories(blogId: number, signal?: AbortSignal): Promise<CategorySummary[]> {
   const res = await api<{ categories: CategorySummary[] }>(`/api/v1/blogs/${blogId}/categories`, { signal })
   return res.categories

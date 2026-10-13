@@ -1,0 +1,69 @@
+/* 교정부호: 빨간 펜으로 긋고, 위에 ∨ 표시와 함께 고쳐 쓴다 */
+.proof {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  margin: clamp(2rem, 8vw, 5rem) auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.proof-line {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 2.6;
+  text-wrap: balance;
+}
+
+.proof-del {
+  position: relative;
+}
+
+.proof-del::after {
+  content: '';
+  position: absolute;
+  inset: 52% -0.1em auto;
+  height: 2px;
+  background: var(--seal);
+  transform-origin: left;
+  animation: proof-strike 420ms var(--ease-out) 300ms both;
+}
+
+.proof-ins {
+  display: inline-block;
+  margin-inline: 0.05em;
+  color: var(--seal);
+  font-size: 0.72em;
+  vertical-align: super;
+  animation: proof-write 360ms ease-out 800ms both;
+}
+
+.proof-caret {
+  margin-inline-end: 0.1em;
+}
+
+.proof-message {
+  margin: 0;
+}
+
+.proof-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+
+@keyframes proof-strike {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes proof-write {
+  from {
+    opacity: 0;
+    transform: translateY(0.25em);
+  }
+}

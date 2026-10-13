@@ -60,6 +60,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByCategoryIdInAndVisibility(Collection<Long> categoryIds, String visibility, Pageable pageable);
 
+    /* 블로그 머리의 쓴 원고지 매수 (v0.5.1): 매수는 글마다 올림하므로 본문을 읽어 서비스가 센다 */
+
+    @Query("select p.content from Post p where p.categoryId in :categoryIds")
+    List<String> findContentsByCategoryIdIn(@Param("categoryIds") Collection<Long> categoryIds);
+
+    @Query("select p.content from Post p where p.categoryId in :categoryIds and p.visibility = :visibility")
+    List<String> findContentsByCategoryIdInAndVisibility(@Param("categoryIds") Collection<Long> categoryIds,
+            @Param("visibility") String visibility);
+
     /* 006 블로그 관리 (PostSummaryQueryAdapter) */
 
     @Query("select p.id from Post p where p.categoryId in :categoryIds")

@@ -14,6 +14,8 @@
   --shadow: 0 1px 2px rgb(29 39 33 / 0.06), 0 6px 18px rgb(29 39 33 / 0.08);
   --shadow-raised: 0 2px 4px rgb(29 39 33 / 0.08), 0 14px 32px rgb(29 39 33 / 0.14);
   --highlight: #fff3b0;    /* 형광펜 */
+  --seal: #b8372b;         /* 도장 인주 (v0.5.1 원고지 손길) */
+  --seal-ink: #fff8f4;     /* 도장 안 글자 */
   --focus: #1f5fbf;
 
   /* 분류 색 목록 (specs/006 T025, D-9): 원고지 초록과 어울리는 먹·물감 색 6개. 개수는 서버 category.color-count와 같다 */
@@ -67,6 +69,8 @@
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.35);
   --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.45), 0 14px 32px rgb(0 0 0 / 0.5);
   --highlight: #4d4520;
+  --seal: #e0705f;
+  --seal-ink: #1b0f0e;
 
   --category-1: #7fc8a0;
   --category-2: #8fb8e0;
@@ -261,4 +265,20 @@ body {
   background:
     linear-gradient(var(--grid) 0 0) center / 1px 100% no-repeat,
     linear-gradient(var(--grid) 0 0) center / 100% 1px no-repeat;
+}
+
+/* 형광펜 긋기 (v0.5.1 원고지 손길): 구역 제목 아래쪽 절반에 형광펜이 왼쪽에서 오른쪽으로 한 번 그어진다.
+   움직임 줄이기 설정이면 처음부터 그어져 있다 */
+.ink-highlight {
+  padding: 0 0.15em;
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat 0 88% / 100% 52%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  animation: ink-highlight 700ms var(--ease-out) 250ms both;
+}
+
+@keyframes ink-highlight {
+  from {
+    background-size: 0% 52%;
+  }
 }

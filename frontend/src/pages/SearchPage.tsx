@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
+import EmptySheet from '../components/EmptySheet'
 import { searchPosts, type SearchPage as SearchResultPage } from '../explore/exploreApi'
 import Pagination from '../explore/Pagination'
 import PostRow from '../explore/PostRow'
@@ -77,7 +78,7 @@ export default function SearchPage() {
             <strong className="search-keyword">{shown.data.keyword}</strong> 검색 결과 {shown.data.totalCount}건
           </p>
           {shown.data.totalCount === 0 ? (
-            <p className="post-empty">{MESSAGES.emptySearch}</p>
+            <EmptySheet lines={['찾는 글이', '없어요.']} message={MESSAGES.emptySearch} />
           ) : (
             <>
               <ul className="post-list rise-list">
