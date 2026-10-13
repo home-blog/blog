@@ -57,8 +57,10 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
 - **릴리스 내는 순서** (맨 위 [`CHANGELOG.md`](../CHANGELOG.md)가 기록의 원본):
   1. PR마다 `CHANGELOG.md`의 다음 번호 절(`## [0.5.0] - 준비 중`)에 화면·API·운영으로 나눠 쌓고(낼 때 날짜를 적는다), API가 바뀌었으면 주소 버전(v1 그대로인지, v2를 열었는지)도 적는다.
   2. `backend/pom.xml`의 `<version>`, `frontend/package.json`(그리고 `package-lock.json` 맨 위)의 `version`을 같은 번호로 맞춘다.
-  3. "배포해줘"를 받으면 Actions → `배포` → Run workflow(브랜치 `main`)에 번호를 넣는다. 확인 → 배포 → 성공하면 태그 `v<번호>`와 GitHub 릴리스를 `CHANGELOG.md`의 그 절로 만든다.
-  4. 번호와 `pom.xml`·`package.json`·`package-lock.json`의 버전, `CHANGELOG.md`의 절이 다르거나 같은 태그가 이미 있으면 배포 전에 멈춘다.
+  3. "배포해줘"를 받으면 Git Flow대로 `develop`에서 `release/<번호>`를 만들어 `CHANGELOG.md`의 `준비 중`을 날짜로 바꾸고 `main`으로 PR을 올려 합친다.
+  4. Actions → `배포` → Run workflow(브랜치 `main`)에 번호를 넣는다. 확인 → 배포 → 성공하면 태그 `v<번호>`와 GitHub 릴리스를 `CHANGELOG.md`의 그 절로 만든다.
+  5. 배포가 끝나면 `main`을 `develop`에 다시 합친다(PR). 급한 수정(`hotfix/<번호>`)도 `main`에 합치고 배포한 뒤 `develop`에 합친다.
+  6. 번호와 `pom.xml`·`package.json`·`package-lock.json`의 버전, `CHANGELOG.md`의 절이 다르거나 같은 태그가 이미 있으면 배포 전에 멈춘다.
   - GitHub 화면에서 직접 릴리스(태그 `v<번호>`, 대상 `main`)를 내도 같은 확인을 거쳐 배포된다. 미리보기(pre-release)는 배포하지 않는다. **지난 버전을 기록용으로 새로 낼 때는 미리보기로** 낸다(옛 커밋에는 이 확인이 없어 그대로 배포된다).
 - **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 
