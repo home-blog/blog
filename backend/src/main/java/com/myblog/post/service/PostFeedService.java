@@ -29,6 +29,8 @@ public class PostFeedService {
     private final TopicRepository topicRepository;
     private final PostPreview preview;
     private final ManuscriptMeasure manuscript;
+    /** 마지막으로 센 첫 화면 머리 분량 (summary-ttl 동안 다시 쓴다). 여러 요청이 같이 읽으므로 volatile */
+    private volatile CachedSummary cachedSummary;
     private final ExploreProperties.Feed settings;
     private final Clock clock;
 
@@ -64,6 +66,18 @@ public class PostFeedService {
      * 글 모음과 같은 공개 규칙(공개 분류의 공개 글, 탈퇴하지 않은 회원)이고, 매수는 글마다 올림한 값을 더한다.
      */
     public SiteSummary summary() {
+        // 세려면 공개 글 본문을 모두 읽으므로, summary-ttl 동안은 센 값을 다시 쓴다 (첫 화면마다 부른다)
+        Instant now = clock.instant();
+        CachedSummary hit = cachedSummary;
+        if (hit != null && hit.countedAt().plus(settings.summaryTtl()).isAfter(now)) {
+            return hit.summary();
+        }
+        SiteSummary fresh = countSummary();
+        cachedSummary = new CachedSummary(fresh, now);
+        return fresh;
+    }
+
+    private SiteSummary countSummary() {
         Set<Long> blogIds = new HashSet<>();
         long[] postCount = {0};
         long[] sheets = {0};
@@ -77,6 +91,9 @@ public class PostFeedService {
 
     /** 첫 화면 머리의 분량: 쓴 사람(공개 글이 있는 블로그) 수, 공개 글 수, 원고지 매수 합. */
     public record SiteSummary(long bloggerCount, long postCount, long sheets) {
+    }
+
+    private record CachedSummary(SiteSummary summary, Instant countedAt) {
     }
 
     /**

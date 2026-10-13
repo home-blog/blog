@@ -52,8 +52,6 @@ export default function PostDetailPage() {
   const deletingRef = useRef(false)
   // 목차가 소제목을 찾는 본문 영역 (specs/007 US2)
   const bodyRef = useRef<HTMLDivElement>(null)
-  // 읽기 진행 띠가 재는 글 전체 (v0.5.1)
-  const articleRef = useRef<HTMLElement>(null)
   // 저장 알림 ("탈고"·"퇴고", v0.5.1): 한 번 보여 준 뒤 주소의 표시는 지워 새로 고침해도 다시 뜨지 않게 한다
   const location = useLocation()
   const [saved, setSaved] = useState(() => savedState(location.state, id))
@@ -62,11 +60,14 @@ export default function PostDetailPage() {
     if (savedState(location.state, id)) navigate(location.pathname, { replace: true, state: null })
   }, [location.state, location.pathname, id, navigate])
 
+  // 알림이 실제로 보이기 시작한 뒤(이 글을 불러온 뒤)부터 6초
+  const loadedPostId = result && result.key === key && 'post' in result ? result.post.postId : null
+  const savedShown = saved !== null && saved.postId === loadedPostId
   useEffect(() => {
-    if (!saved) return
+    if (!savedShown) return
     const timer = window.setTimeout(() => setSaved(null), 6000)
     return () => window.clearTimeout(timer)
-  }, [saved])
+  }, [savedShown])
 
   useEffect(() => {
     if (!validId || viewer === null) return
@@ -123,11 +124,10 @@ export default function PostDetailPage() {
     }
   }
   return (
-    <article className="post" ref={articleRef}>
-      <ReadingProgress target={articleRef} />
-      {saved?.postId === post.postId && (
-        <SavedToast kind={saved.saved} sheets={post.sheets} onClose={() => setSaved(null)} />
-      )}
+    <article className="post">
+      {/* 본문만 잰다: 태그·댓글까지 재면 본문을 다 읽어도 칸이 다 차지 않는다 */}
+      <ReadingProgress target={bodyRef} />
+      {savedShown && saved && <SavedToast kind={saved.saved} sheets={post.sheets} onClose={() => setSaved(null)} />}
       <header className="post-head">
         <p className="post-meta-top">
           <Link to={`/blog/${post.blogId}`} className="post-blog">

@@ -10,18 +10,20 @@ function prefersReducedMotion(): boolean {
 
 export function useCountUp(target: number | null): number | null {
   const instant = target === null || target === 0 || prefersReducedMotion()
-  const [animated, setAnimated] = useState(0)
+  // 어느 target을 세던 값인지 같이 둔다: target이 바뀐 첫 그리기에 이전 숫자가 잠깐 보이지 않게
+  const [animated, setAnimated] = useState<{ target: number; value: number } | null>(null)
   useEffect(() => {
     if (instant || target === null) return
     let frame = 0
     const start = performance.now()
     function step(now: number) {
       const progress = Math.min(1, (now - start) / COUNT_MS)
-      setAnimated(Math.round(target! * (1 - Math.pow(1 - progress, 3))))
+      setAnimated({ target: target!, value: Math.round(target! * (1 - Math.pow(1 - progress, 3))) })
       if (progress < 1) frame = requestAnimationFrame(step)
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
   }, [target, instant])
-  return instant ? target : animated
+  if (instant) return target
+  return animated?.target === target ? animated.value : 0
 }
