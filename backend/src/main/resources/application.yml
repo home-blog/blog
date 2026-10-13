@@ -123,6 +123,7 @@ post:
   manuscript:   # 원고지 매수·읽는 시간 (specs/007 US3, 가안). 마크다운 기호를 뺀 글자 수(띄어쓰기 포함) ÷ 값, 올림
     chars-per-sheet: 200    # 200자 원고지
     chars-per-minute: 500   # 1분에 읽는 글자 수
+    read-batch-size: 200    # 매수 합계(첫 화면 분량·블로그 머리)를 셀 때 본문을 한 번에 받아 오는 줄 수
 
 # 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
 share:

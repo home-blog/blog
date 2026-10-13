@@ -8,6 +8,7 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.post.config.ExploreProperties;
 import com.myblog.post.domain.Post;
+import com.myblog.post.repository.PostFeedRepository;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.service.PageNumbers.PageSlice;
 import com.myblog.post.service.PostVisibility.ListScope;
@@ -38,15 +39,17 @@ public class PostListService {
     private final PostVisibility visibility;
     private final PostPreview preview;
     private final ManuscriptMeasure manuscript;
+    private final PostFeedRepository contents;
     private final int pageSize;
 
     public PostListService(BlogDirectory blogDirectory, PostRepository posts, PostVisibility visibility,
-            PostPreview preview, ManuscriptMeasure manuscript, ExploreProperties properties) {
+            PostPreview preview, ManuscriptMeasure manuscript, PostFeedRepository contents, ExploreProperties properties) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
         this.visibility = visibility;
         this.preview = preview;
         this.manuscript = manuscript;
+        this.contents = contents;
         this.pageSize = properties.list().pageSize();
     }
 
@@ -88,11 +91,14 @@ public class PostListService {
         if (categoryIds.isEmpty()) {
             return new ManuscriptTotal(blogId, 0, 0);
         }
-        List<String> contents = scope.publicPostsOnly()
-                ? posts.findContentsByCategoryIdInAndVisibility(categoryIds, Visibility.PUBLIC.value())
-                : posts.findContentsByCategoryIdIn(categoryIds);
-        long sheets = contents.stream().mapToLong(content -> manuscript.of(content).sheets()).sum();
-        return new ManuscriptTotal(blogId, contents.size(), sheets);
+        // 본문을 목록으로 쥐지 않고 나눠 받으며 센다
+        long[] postCount = {0};
+        long[] sheets = {0};
+        contents.forEachContentIn(categoryIds, scope.publicPostsOnly(), content -> {
+            postCount[0]++;
+            sheets[0] += manuscript.of(content).sheets();
+        });
+        return new ManuscriptTotal(blogId, postCount[0], sheets[0]);
     }
 
     /**
