@@ -1,11 +1,13 @@
 package com.myblog.user.social;
 
+import com.myblog.user.config.SocialProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -32,8 +34,10 @@ public class SocialUserService implements OAuth2UserService<OAuth2UserRequest, O
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate;
     private final RestClient restClient;
 
-    public SocialUserService() {
-        this(new DefaultOAuth2UserService(), RestClient.builder().requestFactory(timeouts()).build());
+    @Autowired
+    public SocialUserService(SocialProperties properties) {
+        this(new DefaultOAuth2UserService(),
+                RestClient.builder().requestFactory(timeouts(properties.httpTimeout())).build());
     }
 
     SocialUserService(OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate, RestClient restClient) {
@@ -130,10 +134,10 @@ public class SocialUserService implements OAuth2UserService<OAuth2UserRequest, O
         return text.isEmpty() ? null : text;
     }
 
-    private static SimpleClientHttpRequestFactory timeouts() {
+    private static SimpleClientHttpRequestFactory timeouts(Duration timeout) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(5));
+        factory.setConnectTimeout(timeout);
+        factory.setReadTimeout(timeout);
         return factory;
     }
 }

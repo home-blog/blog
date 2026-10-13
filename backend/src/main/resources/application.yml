@@ -79,6 +79,7 @@ auth:
 # 콜백 주소: {사이트 주소}/login/oauth2/code/{github|google|kakao|naver}
 social:
   pending-ttl: 10m   # 회사 화면을 다녀온 뒤 소셜 가입을 마쳐야 하는 시간, 연결하기 표시의 유효 시간 (D-8)
+  http-timeout: 5s   # 회사 서버에 따로 묻는 요청(GitHub 이메일 목록)의 연결·읽기 제한 시간
   clients:
     github:
       client-id: ${SOCIAL_GITHUB_CLIENT_ID:}
