@@ -64,10 +64,8 @@ export default function PasswordChangePage() {
       setNext('')
       setConfirm('')
       setDone(true)
-      if (creating) {
-        setCreated(true)
-        setHasPassword(true) // 다음부터는 현재 비밀번호를 묻는다
-      }
+      setCreated(creating) // 완료 문구는 이번 요청의 모드를 따른다
+      if (creating) setHasPassword(true) // 다음부터는 현재 비밀번호를 묻는다
     } catch (err) {
       setCurrent('')
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
