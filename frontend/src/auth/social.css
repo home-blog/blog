@@ -1,4 +1,4 @@
-/* 소셜 로그인 버튼 (specs/010). 회사마다 정한 바탕색, 모양은 이 사이트의 둥근 버튼 */
+/* 소셜 로그인 버튼 (specs/010). 회사 로고와 회사마다 정한 바탕색, 동그란 버튼 한 줄 */
 /* 입력 칸(.auth-form)과 같은 폭, 아래 안내 문구와 띄운다 */
 .social-login {
   display: grid;
@@ -24,26 +24,30 @@
 }
 
 .social-buttons {
-  display: grid;
-  gap: 0.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* 로고만 있는 동그란 버튼. 손가락으로 누르기 좋은 크기(44px 이상) */
 .social-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 0.65rem 1.1rem;
-  border-radius: var(--radius-button);
-  border: 1px solid transparent;
-  font-weight: 600;
-  text-decoration: none;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--grid-strong);
   transition:
     transform 0.15s,
     box-shadow 0.15s;
+}
+
+.social-btn svg {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .social-btn:hover {
@@ -56,47 +60,38 @@
   outline-offset: 2px;
 }
 
-.social-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
-  font-size: 0.8rem;
-  font-weight: 700;
-  background: rgb(255 255 255 / 0.2);
-}
-
 .social-github {
   color: #fff;
   background: #24292f;
 }
 
 .social-google {
-  color: #1f1f1f;
   background: #fff;
-  border-color: #c7cbd1;
 }
 
-.social-google .social-mark {
-  color: #fff;
-  background: #4285f4;
-}
-
-/* 카카오 안내: 노란 바탕에 검은 글자(85%) */
+/* 카카오 안내: 노란 바탕에 검은 말풍선(85%) */
 .social-kakao {
   color: rgb(0 0 0 / 0.85);
   background: #fee500;
-}
-
-.social-kakao .social-mark {
-  background: rgb(0 0 0 / 0.85);
-  color: #fee500;
+  border-color: #fee500;
 }
 
 .social-naver {
   color: #fff;
-  background: #03a94d;
+  background: #03c75a;
+  border-color: #03c75a;
+}
+
+.social-naver svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* 좁은 화면에서는 입력 칸이 화면 폭을 다 쓰므로 같이 넓힌다 (auth-layout.css) */
+@media (max-width: 860px) {
+  .social-login {
+    max-width: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
