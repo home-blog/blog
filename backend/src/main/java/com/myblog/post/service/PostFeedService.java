@@ -31,6 +31,7 @@ public class PostFeedService {
     private final ManuscriptMeasure manuscript;
     /** 마지막으로 센 첫 화면 머리 분량 (summary-ttl 동안 다시 쓴다). 여러 요청이 같이 읽으므로 volatile */
     private volatile CachedSummary cachedSummary;
+    private final Object summaryLock = new Object();
     private final ExploreProperties.Feed settings;
     private final Clock clock;
 
@@ -67,14 +68,26 @@ public class PostFeedService {
      */
     public SiteSummary summary() {
         // 세려면 공개 글 본문을 모두 읽으므로, summary-ttl 동안은 센 값을 다시 쓴다 (첫 화면마다 부른다)
-        Instant now = clock.instant();
-        CachedSummary hit = cachedSummary;
-        if (hit != null && hit.countedAt().plus(settings.summaryTtl()).isAfter(now)) {
+        CachedSummary hit = freshCache();
+        if (hit != null) {
             return hit.summary();
         }
-        SiteSummary fresh = countSummary();
-        cachedSummary = new CachedSummary(fresh, now);
-        return fresh;
+        // 만료된 순간 여러 요청이 함께 와도 한 번만 센다: 잠근 뒤 다시 확인한다
+        synchronized (summaryLock) {
+            hit = freshCache();
+            if (hit != null) {
+                return hit.summary();
+            }
+            SiteSummary fresh = countSummary();
+            cachedSummary = new CachedSummary(fresh, clock.instant());
+            return fresh;
+        }
+    }
+
+    /** 아직 summary-ttl 안이면 센 값, 아니면 null. */
+    private CachedSummary freshCache() {
+        CachedSummary hit = cachedSummary;
+        return hit != null && hit.countedAt().plus(settings.summaryTtl()).isAfter(clock.instant()) ? hit : null;
     }
 
     private SiteSummary countSummary() {
