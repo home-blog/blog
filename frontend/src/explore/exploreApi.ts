@@ -132,3 +132,14 @@ export function getFeed(topic: string | null, page: number, signal?: AbortSignal
 export function getPopular(topic: string | null, signal?: AbortSignal): Promise<PopularPosts> {
   return api<PopularPosts>(`/api/v1/posts/popular${topicParams(topic)}`, { signal })
 }
+
+/** 첫 화면 머리 "원고지 표지"의 분량 (v0.5.1): 공개 글이 있는 블로그 수, 공개 글 수, 원고지 매수 합 */
+export interface SiteSummary {
+  bloggerCount: number
+  postCount: number
+  sheets: number
+}
+
+export function getSiteSummary(signal?: AbortSignal): Promise<SiteSummary> {
+  return api<SiteSummary>('/api/v1/posts/summary', { signal })
+}

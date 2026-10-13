@@ -140,3 +140,9 @@ export function getTagPosts(tag: string, page: number, signal?: AbortSignal): Pr
   const query = page > 1 ? `?page=${page}` : ''
   return api<TagPostsPage>(`/api/v1/tags/${encodeURIComponent(tag)}/posts${query}`, { signal })
 }
+
+/** 글쓰기 화면이 저장한 뒤 글 화면으로 넘기는 표시: 글 화면이 "탈고"·"퇴고" 알림을 한 번 띄운다 (v0.5.1) */
+export interface SavedState {
+  saved: 'created' | 'edited'
+  postId: number
+}

@@ -26,6 +26,7 @@ import PostDetailPage from './post/PostDetailPage'
 import PostEditorPage from './post/PostEditorPage'
 import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
+import NotFoundPage from './pages/NotFoundPage'
 import SearchPage from './pages/SearchPage'
 import SignupPage from './pages/SignupPage'
 import SocialSignupPage from './pages/SocialSignupPage'
@@ -164,7 +165,7 @@ const router = createBrowserRouter([
           { path: 'blog', element: <BlogSettingsPage /> },
         ],
       },
-      { path: '*', element: <HomePage /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

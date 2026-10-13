@@ -78,6 +78,24 @@ public class PostListService {
     }
 
     /**
+     * 블로그 머리에 보이는 "지금까지 쓴 원고지" (v0.5.1). 글 목록과 같은 공개 규칙으로 보이는 글만 센다:
+     * 방문자에게는 공개 분류의 공개 글, 주인에게는 비공개까지. 매수는 글마다 올림한 값(글 읽기 화면과 같은 수)을 더한다.
+     */
+    public ManuscriptTotal manuscriptTotal(Long blogId, Long viewerId) {
+        BlogInfo blog = blogDirectory.blog(blogId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));
+        ListScope scope = visibility.listScope(blog.ownerId(), blogDirectory.categoriesOf(blogId), viewerId);
+        List<Long> categoryIds = scope.categoryIds();
+        if (categoryIds.isEmpty()) {
+            return new ManuscriptTotal(blogId, 0, 0);
+        }
+        List<String> contents = scope.publicPostsOnly()
+                ? posts.findContentsByCategoryIdInAndVisibility(categoryIds, Visibility.PUBLIC.value())
+                : posts.findContentsByCategoryIdIn(categoryIds);
+        long sheets = contents.stream().mapToLong(content -> manuscript.of(content).sheets()).sum();
+        return new ManuscriptTotal(blogId, contents.size(), sheets);
+    }
+
+    /**
      * 고른 분류는 보이는 분류 묶음 안에 있을 때만 쓴다 (FR-007). 다른 블로그의 분류, 없는 번호, 숫자가 아닌 값,
      * 방문자가 보낸 비공개 분류 번호는 모두 똑같이 "존재하지 않는 분류"다: 비공개 분류가 있다는 것을 드러내지 않는다
      * (004 D-2: 가, D-7).
@@ -119,6 +137,10 @@ public class PostListService {
         return new PostRow(post.getId(), post.getTitle(), category.categoryId(), category.name(), post.getCreatedAt(),
                 preview.of(post.getContent()), post.getVisibility(), measure.sheets(), measure.readMinutes(),
                 PostThumbnail.of(post.getContent()).orElse(null));
+    }
+
+    /** 보이는 글 수와 그 글들의 원고지 매수 합. */
+    public record ManuscriptTotal(Long blogId, long postCount, long sheets) {
     }
 
     /** 목록 한 페이지. categoryId는 실제로 적용한 분류 (고르지 않았으면 null). */

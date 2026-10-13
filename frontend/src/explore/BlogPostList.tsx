@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
+import EmptySheet from '../components/EmptySheet'
 import { getBlogPosts, type PostListPage } from './exploreApi'
 import Pagination from './Pagination'
 import PostRow from './PostRow'
@@ -98,8 +99,7 @@ export default function BlogPostList({ blogId, viewer }: Props) {
         <>
           <p className="post-count">{shown.list.totalCount}개의 글</p>
           {shown.list.totalCount === 0 ? (
-            <div className="post-empty">
-              <p>{MESSAGES.emptyList}</p>
+            <EmptySheet lines={['아직 쓴 글이', '없어요.']} message={MESSAGES.emptyList}>
               {shown.list.isOwner && (
                 <>
                   <p>{MESSAGES.firstPost}</p>
@@ -109,7 +109,7 @@ export default function BlogPostList({ blogId, viewer }: Props) {
                   </Link>
                 </>
               )}
-            </div>
+            </EmptySheet>
           ) : (
             <>
               <ul className="post-list rise-list">

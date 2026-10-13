@@ -1,0 +1,46 @@
+/* 원고지 칸 버튼: 칸마다 한 자. 주 버튼은 먹(강조색) 바탕 */
+.cell-link {
+  display: inline-flex;
+  border: 2px solid var(--grid-strong);
+  background: var(--paper-raised);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease-out),
+    box-shadow 0.2s;
+}
+
+.cell-link span {
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.cell-link span + span {
+  border-left: 1px solid var(--grid);
+}
+
+.cell-link-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.cell-link-primary span + span {
+  border-left-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+}
+
+.cell-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.cell-link:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}

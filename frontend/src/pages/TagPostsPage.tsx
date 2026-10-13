@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
+import EmptySheet from '../components/EmptySheet'
 import Pagination from '../explore/Pagination'
 import PostRow from '../explore/PostRow'
 import { MESSAGES, pageFrom } from '../explore/rules'
@@ -53,7 +54,7 @@ export default function TagPostsPage() {
         <>
           <p className="post-count">글 {current.data.totalCount}개</p>
           {current.data.totalCount === 0 ? (
-            <p className="post-empty">{MESSAGES.emptyList}</p>
+            <EmptySheet lines={['이 태그의', '글이 없어요.']} message={MESSAGES.emptyList} />
           ) : (
             <>
               <ul className="post-list rise-list">

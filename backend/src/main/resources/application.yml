@@ -142,6 +142,7 @@ explore:
     popular-size: 5   # 이번 주 인기 글 수
     popular-days: 7   # 인기 글을 고르는 기간 (오늘 포함)
     day-zone: ${stats.day-zone}
+    summary-ttl: 5m   # 첫 화면 머리 분량(블로거·글·원고지 매수)을 다시 세기까지 (v0.5.1). 세려면 공개 글 본문을 모두 읽는다
 
 # 댓글·좋아요·신고·태그·이미지 (specs/005 plan.md 설정값 목록). 글자는 코드 포인트로 센다
 community:

@@ -2,6 +2,7 @@ package com.myblog.post.controller;
 
 import com.myblog.post.controller.dto.ExploreResponses.PostListResponse;
 import com.myblog.post.service.PostListService;
+import com.myblog.post.service.PostListService.ManuscriptTotal;
 import com.myblog.user.LoggedInMember;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,5 +31,11 @@ public class PostListController {
             @RequestParam(required = false) String categoryId, Authentication authentication) {
         return PostListResponse.of(
                 listService.list(blogId, loggedInMember.idOf(authentication).orElse(null), page, categoryId));
+    }
+
+    /** 블로그 머리의 "지금까지 쓴 원고지" (v0.5.1). 보이는 글만 센다: 방문자는 공개 글, 주인은 비공개까지. */
+    @GetMapping("/api/{version}/blogs/{blogId}/manuscript")
+    public ManuscriptTotal manuscript(@PathVariable Long blogId, Authentication authentication) {
+        return listService.manuscriptTotal(blogId, loggedInMember.idOf(authentication).orElse(null));
     }
 }
