@@ -40,7 +40,7 @@ cd frontend && npm install && npm run dev
 
   | 브랜치 | 어디서 만들어 | 어디로 합치나 | 하는 일 |
   |---|---|---|---|
-  | `main` | — | — | 배포된 코드. 릴리스마다 태그 `v0.x.0` |
+  | `main` | — | — | 배포된 코드. 릴리스마다 태그 `v<번호>` (예: `v0.5.0`, 급한 수정 `v0.5.1`) |
   | `develop` | `main` | — | 다음 릴리스를 모으는 곳 (기본 브랜치) |
   | `feature/<내용>` | `develop` | `develop` | 기능 하나 (예: `feature/v0.5-social-login`) |
   | `release/<번호>` | `develop` | `main`, 그다음 `develop` | 릴리스 준비: CHANGELOG 날짜, 마지막 확인. 합치면 배포 |
@@ -52,7 +52,7 @@ cd frontend && npm install && npm run dev
                        └─────────── main을 다시 합침 ◀────┘   (hotfix/*도 main → develop 순서)
   ```
 - PR마다 자동 검사가 돕니다: **CI**(서버 빌드·테스트, 화면 린트·빌드), **CodeRabbit**(1차 코드 리뷰, 한국어), **SonarQube**(품질·커버리지, 아카데미 서버).
-- CI가 통과해야 merge합니다. `develop`과 `main`으로 가는 PR 모두 같은 검사를 거칩니다.
+- CI가 통과해야 merge합니다. `develop`과 `main`으로 가는 PR 모두 같은 검사를 거칩니다. 단, 문서(`*.md`, `docs/`, `specs/`)만 바꾼 PR은 CI가 돌지 않으므로(`paths-ignore`) CodeRabbit 리뷰만 보고 합칩니다.
 - 무엇을 만들지는 문서 저장소의 `specs/<기능>/tasks.md`, 어떻게는 같은 폴더의 `plan.md`, `contracts/`를 따릅니다.
 - 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않습니다. 로컬은 `.env`(git 제외), 배포는 환경 변수나 GitHub Secrets로 넣습니다. (`.env.example`의 값은 개발 전용입니다)
 - 실습 서버 배포는 GitHub Actions(`.github/workflows/deploy.yml`)가 합니다. 방법은 [`deploy/README.md`](deploy/README.md)에 있습니다.
