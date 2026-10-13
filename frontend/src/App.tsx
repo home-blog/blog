@@ -1,4 +1,4 @@
-// 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /mypage 마이페이지, /mypage/password 비밀번호 변경, /mypage/withdrawal 회원 탈퇴(로그인 필요)
+// 화면 주소: / 첫 화면, /login 로그인, /signup 회원 가입, /signup/social 소셜 가입(specs/010), /mypage 마이페이지, /mypage/password 비밀번호 변경, /mypage/withdrawal 회원 탈퇴(로그인 필요)
 // /blog/:blogId 블로그(누구나), /posts/:postId 글(누구나), /me/blog 내 블로그로 가기·/write 글쓰기·/write/:postId 글 고치기(로그인 필요) — specs/003
 // /manage 블로그 관리(로그인 필요, specs/006): 대시보드, /manage/posts 글, /manage/categories 분류(003 화면), /manage/comments 댓글, /manage/stats 통계, /manage/blog 설정(003 화면)
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
@@ -28,6 +28,7 @@ import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
 import SearchPage from './pages/SearchPage'
 import SignupPage from './pages/SignupPage'
+import SocialSignupPage from './pages/SocialSignupPage'
 import TagPostsPage from './pages/TagPostsPage'
 
 // 그래프 도구(uPlot)를 쓰는 화면은 따로 불러온다: 첫 화면이 가벼워지고, 블로그 관리를 열 때만 받는다 (specs/006 T058)
@@ -80,6 +81,7 @@ const router = createBrowserRouter([
       { path: '/', element: <HomePage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupRoute /> },
+      { path: '/signup/social', element: <SocialSignupPage /> },
       {
         path: '/mypage',
         element: (

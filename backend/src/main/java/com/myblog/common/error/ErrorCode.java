@@ -108,7 +108,17 @@ public enum ErrorCode {
     INTRO_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 소개는 100자 이하로 입력해 주세요"),
     CURRENT_PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "※ 현재 비밀번호를 입력해 주세요"),
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "※ 비밀번호를 입력해 주세요"),
-    WITHDRAWAL_NOT_AGREED(HttpStatus.BAD_REQUEST, "※ 탈퇴 안내를 확인해 주세요");
+    WITHDRAWAL_NOT_AGREED(HttpStatus.BAD_REQUEST, "※ 탈퇴 안내를 확인해 주세요"),
+
+    // 소셜 로그인 (specs/010 contracts)
+    /** 회사 화면에서 취소했거나 회사와 주고받다 실패했다. 화면 주소(?socialError=…)로만 알린다. */
+    SOCIAL_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "※ 소셜 로그인을 마치지 못했습니다. 다시 시도해 주세요"),
+    SOCIAL_PENDING_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 시간이 지났습니다. 소셜 로그인을 다시 해 주세요"),
+    SOCIAL_PROVIDER_UNKNOWN(HttpStatus.NOT_FOUND, "※ 지금은 쓸 수 없는 로그인 방법입니다"),
+    SOCIAL_ACCOUNT_IN_USE(HttpStatus.CONFLICT, "※ 이미 다른 회원과 연결된 계정입니다"),
+    SOCIAL_ALREADY_LINKED(HttpStatus.CONFLICT, "※ 이미 이 회사의 다른 계정과 연결되어 있습니다. 연결을 해제한 뒤 다시 시도해 주세요"),
+    SOCIAL_NOT_LINKED(HttpStatus.NOT_FOUND, "※ 연결되지 않은 계정입니다"),
+    LAST_LOGIN_METHOD(HttpStatus.CONFLICT, "※ 로그인할 방법이 하나는 있어야 합니다. 비밀번호를 먼저 만들어 주세요");
 
     private final HttpStatus status;
     private final String message;

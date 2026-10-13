@@ -5,6 +5,7 @@ import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.ErrorResponse;
 import com.myblog.user.MemberWithdrawnEvent;
 import com.myblog.user.domain.User;
+import com.myblog.user.repository.SocialAccountRepository;
 import com.myblog.user.repository.UserRepository;
 import com.myblog.user.security.MemberSessions;
 import java.time.Clock;
@@ -26,6 +27,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class WithdrawalService {
 
     private final UserRepository users;
+    private final SocialAccountRepository socialAccounts;
     private final CurrentPasswordChecker currentPassword;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher events;
@@ -33,9 +35,11 @@ public class WithdrawalService {
     private final TransactionTemplate transaction;
     private final Clock clock;
 
-    public WithdrawalService(UserRepository users, CurrentPasswordChecker currentPassword, PasswordEncoder passwordEncoder,
-            ApplicationEventPublisher events, MemberSessions memberSessions, TransactionTemplate transaction, Clock clock) {
+    public WithdrawalService(UserRepository users, SocialAccountRepository socialAccounts,
+            CurrentPasswordChecker currentPassword, PasswordEncoder passwordEncoder, ApplicationEventPublisher events,
+            MemberSessions memberSessions, TransactionTemplate transaction, Clock clock) {
         this.users = users;
+        this.socialAccounts = socialAccounts;
         this.currentPassword = currentPassword;
         this.passwordEncoder = passwordEncoder;
         this.events = events;
@@ -45,14 +49,24 @@ public class WithdrawalService {
     }
 
     public void withdraw(User member, String password) {
-        currentPassword.check(member.getEmail(), password, "password");
+        boolean hasPassword = member.getPasswordHash() != null;
+        if (hasPassword) {
+            if (password == null || password.isBlank()) {
+                ErrorCode code = ErrorCode.PASSWORD_REQUIRED;
+                throw new ApiException(ErrorCode.VALIDATION_FAILED, ErrorCode.VALIDATION_FAILED.message(),
+                        List.of(new ErrorResponse.FieldErrorItem("password", code.name(), code.message())));
+            }
+            currentPassword.check(member.getEmail(), password, "password");
+        }
         try {
             transaction.executeWithoutResult(status -> {
                 User locked = users.findActiveByIdForUpdate(member.getId())
                         .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
                 // 잠근 줄의 비밀번호로 한 번 더 확인한다. ①과 이 사이에 다른 기기에서 비밀번호를 바꿨다면
                 // 옛 비밀번호로 탈퇴되지 않게 거절한다 (PasswordChangeService와 같은 방식, PR #19 리뷰)
-                if (!passwordEncoder.matches(password, locked.getPasswordHash())) {
+                // 비밀번호가 없는 회원(소셜 가입)은 동의만 확인한다. 그사이 비밀번호를 만들었다면 비밀번호를 받아야 한다 (specs/010 D-4)
+                if (locked.getPasswordHash() != null
+                        && (password == null || !passwordEncoder.matches(password, locked.getPasswordHash()))) {
                     ErrorCode code = ErrorCode.CURRENT_PASSWORD_MISMATCH;
                     throw new ApiException(code, code.message(),
                             List.of(new ErrorResponse.FieldErrorItem("password", code.name(), code.message())));
@@ -61,6 +75,7 @@ public class WithdrawalService {
                 // 그 뒤에 바꾼 값은 저장되지 않기 때문이다. 한 트랜잭션이라 어느 쪽이 실패해도 전부 취소된다
                 locked.withdraw(Instant.now(clock));
                 users.flush();
+                socialAccounts.deleteAllByUserId(locked.getId());   // 소셜 연결도 지운다 (specs/010 US5)
                 events.publishEvent(new MemberWithdrawnEvent(locked.getId()));
             });
         } catch (DataIntegrityViolationException e) {

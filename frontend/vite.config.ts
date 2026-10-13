@@ -20,6 +20,10 @@ export default defineConfig({
         changeOrigin: false,
       },
       '^/og(/|$)': { target: 'http://localhost:8080', changeOrigin: false },
+      // 소셜 로그인 (specs/010): 회사 화면으로 보내기와 돌아오는 주소. Host를 그대로 넘겨 서버가 콜백 주소를
+      // http://localhost:5173/login/oauth2/code/{회사}로 만든다 (회사 앱에 등록한 주소). /login 자체는 화면 주소라 넘기지 않는다
+      '/oauth2/': { target: 'http://localhost:8080', changeOrigin: false },
+      '/login/oauth2/': { target: 'http://localhost:8080', changeOrigin: false },
     },
   },
 })

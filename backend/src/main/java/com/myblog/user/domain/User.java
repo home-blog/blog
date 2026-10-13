@@ -29,8 +29,8 @@ public class User {
     @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    /** BCrypt 해시. 원문은 어디에도 남기지 않는다 (FR-010). */
-    @Column(name = "password", nullable = false, length = 255)
+    /** BCrypt 해시. 원문은 어디에도 남기지 않는다 (FR-010). 소셜로만 가입한 회원은 비어 있다 (specs/010 D-4). */
+    @Column(name = "password", length = 255)
     private String passwordHash;
 
     @Column(name = "nickname", nullable = false, length = 20)
@@ -68,7 +68,10 @@ public class User {
         this.failedLoginCount = 0;
     }
 
-    /** 새 회원. passwordHash는 이미 BCrypt로 바꾼 값이어야 한다. 가입 시각은 저장할 때 자동으로 채워진다. */
+    /**
+     * 새 회원. passwordHash는 이미 BCrypt로 바꾼 값이어야 하고, 소셜 가입이면 null이다.
+     * 가입 시각은 저장할 때 자동으로 채워진다.
+     */
     public static User create(String email, String passwordHash, String nickname) {
         return new User(email, passwordHash, nickname);
     }
