@@ -12,6 +12,7 @@
 #                            SSH_KNOWN_HOSTS (서버 지문. 내 컴퓨터에서 ssh-keyscan -p <포트> <주소> 결과. 없으면 배포를 멈춘다)
 #                            DB_ADDRESS, DB_PORT, DB_NAME, DB_SCHEMA, DB_USERNAME, DB_PASSWORD (실습 DB)
 #                 있으면 씀:  MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD (인증 메일. 없으면 가입이 안 된다)
+#                             SOCIAL_{GITHUB|GOOGLE|KAKAO|NAVER}_CLIENT_ID, ..._CLIENT_SECRET (소셜 로그인. 없는 회사는 버튼이 안 보인다)
 #           (Repository variables, 있으면 씀): SESSION_COOKIE_SECURE (HTTPS가 붙으면 true. 없으면 false)
 # 서버에는 ~/<DEPLOY_NAME> 폴더 하나만 쓴다. 화면 입구는 127.0.0.1:<WEB_PORT>, 도메인 연결은 deploy/README.md 참고
 name: 배포
@@ -155,6 +156,14 @@ jobs:
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          SOCIAL_GITHUB_CLIENT_ID: ${{ secrets.SOCIAL_GITHUB_CLIENT_ID }}
+          SOCIAL_GITHUB_CLIENT_SECRET: ${{ secrets.SOCIAL_GITHUB_CLIENT_SECRET }}
+          SOCIAL_GOOGLE_CLIENT_ID: ${{ secrets.SOCIAL_GOOGLE_CLIENT_ID }}
+          SOCIAL_GOOGLE_CLIENT_SECRET: ${{ secrets.SOCIAL_GOOGLE_CLIENT_SECRET }}
+          SOCIAL_KAKAO_CLIENT_ID: ${{ secrets.SOCIAL_KAKAO_CLIENT_ID }}
+          SOCIAL_KAKAO_CLIENT_SECRET: ${{ secrets.SOCIAL_KAKAO_CLIENT_SECRET }}
+          SOCIAL_NAVER_CLIENT_ID: ${{ secrets.SOCIAL_NAVER_CLIENT_ID }}
+          SOCIAL_NAVER_CLIENT_SECRET: ${{ secrets.SOCIAL_NAVER_CLIENT_SECRET }}
           SESSION_COOKIE_SECURE: ${{ vars.SESSION_COOKIE_SECURE || 'false' }}
         run: |
           # 비밀번호는 명령줄이 아닌 환경 변수(SSHPASS)로 넘긴다
@@ -166,7 +175,9 @@ jobs:
 
           # 2) 접속 정보: 파일을 거치지 않고 바로 서버의 .env.deploy(나만 읽기)로 쓴다. 값은 셸 따옴표로 감싼다
           for k in DEPLOY_NAME WEB_PORT IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
-                   MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE; do
+                   MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE \
+                   SOCIAL_GITHUB_CLIENT_ID SOCIAL_GITHUB_CLIENT_SECRET SOCIAL_GOOGLE_CLIENT_ID SOCIAL_GOOGLE_CLIENT_SECRET \
+                   SOCIAL_KAKAO_CLIENT_ID SOCIAL_KAKAO_CLIENT_SECRET SOCIAL_NAVER_CLIENT_ID SOCIAL_NAVER_CLIENT_SECRET; do
             if [ -n "${!k}" ]; then printf '%s=%q\n' "$k" "${!k}"; fi
           done | remote "umask 077 && cat > $dir/.env.deploy"
 

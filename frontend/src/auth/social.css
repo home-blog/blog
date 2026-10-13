@@ -1,0 +1,105 @@
+/* 소셜 로그인 버튼 (specs/010). 회사 로고와 회사마다 정한 바탕색, 동그란 버튼 한 줄 */
+/* 입력 칸(.auth-form)과 같은 폭, 아래 안내 문구와 띄운다 */
+.social-login {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 26rem;
+  margin: 1.25rem 0 1.25rem;
+}
+
+.social-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.social-divider::before,
+.social-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed var(--grid);
+}
+
+.social-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 로고만 있는 동그란 버튼. 손가락으로 누르기 좋은 크기(44px 이상) */
+.social-btn {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--grid-strong);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.social-btn svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.social-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgb(29 39 33 / 0.12);
+}
+
+.social-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.social-github {
+  color: #fff;
+  background: #24292f;
+}
+
+.social-google {
+  background: #fff;
+}
+
+/* 카카오 안내: 노란 바탕에 검은 말풍선(85%) */
+.social-kakao {
+  color: rgb(0 0 0 / 0.85);
+  background: #fee500;
+  border-color: #fee500;
+}
+
+.social-naver {
+  color: #fff;
+  background: #03c75a;
+  border-color: #03c75a;
+}
+
+.social-naver svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* 좁은 화면에서는 입력 칸이 화면 폭을 다 쓰므로 같이 넓힌다 (auth-layout.css) */
+@media (max-width: 860px) {
+  .social-login {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-btn {
+    transition: none;
+  }
+
+  .social-btn:hover {
+    transform: none;
+  }
+}

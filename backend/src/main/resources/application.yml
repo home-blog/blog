@@ -75,6 +75,25 @@ auth:
     idle-timeout: 7d
     absolute-timeout: 30d
 
+# 소셜 로그인 (specs/010). 열쇠(앱 등록 값)는 환경 변수로만 넣는다 (공개 저장소). 열쇠가 빈 회사는 버튼이 보이지 않는다 (D-9)
+# 콜백 주소: {사이트 주소}/login/oauth2/code/{github|google|kakao|naver}
+social:
+  pending-ttl: 10m   # 회사 화면을 다녀온 뒤 소셜 가입을 마쳐야 하는 시간, 연결하기 표시의 유효 시간 (D-8)
+  http-timeout: 5s   # 회사 서버에 따로 묻는 요청(GitHub 이메일 목록)의 연결·읽기 제한 시간
+  clients:
+    github:
+      client-id: ${SOCIAL_GITHUB_CLIENT_ID:}
+      client-secret: ${SOCIAL_GITHUB_CLIENT_SECRET:}
+    google:
+      client-id: ${SOCIAL_GOOGLE_CLIENT_ID:}
+      client-secret: ${SOCIAL_GOOGLE_CLIENT_SECRET:}
+    kakao:
+      client-id: ${SOCIAL_KAKAO_CLIENT_ID:}
+      client-secret: ${SOCIAL_KAKAO_CLIENT_SECRET:}
+    naver:
+      client-id: ${SOCIAL_NAVER_CLIENT_ID:}
+      client-secret: ${SOCIAL_NAVER_CLIENT_SECRET:}
+
 # 계정 관리 (specs/002 plan.md 설정값 목록)
 account:
   intro:

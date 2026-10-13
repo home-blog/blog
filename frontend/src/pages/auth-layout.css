@@ -5,6 +5,22 @@
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
 }
 
+/* 원고지 없이 입력 한 칸만 (소셜 가입 대기가 없을 때 등, specs/010) */
+.auth-layout-single {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
+.auth-layout-single .auth-form-wrap {
+  width: min(100%, 36rem);
+  background: none;
+}
+
+.auth-loading {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
 .auth-sheet {
   display: flex;
   flex-direction: column;

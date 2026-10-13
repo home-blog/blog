@@ -5,6 +5,11 @@ import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.JsonErrorWriter;
 import com.myblog.user.security.MemberDetailsService;
 import com.myblog.user.security.SessionLifetimeFilter;
+import com.myblog.user.social.DiscardingAuthorizedClientRepository;
+import com.myblog.user.social.KnownProviderAuthorizationRequestResolver;
+import com.myblog.user.social.SocialClientRegistrations;
+import com.myblog.user.social.SocialLoginHandlers;
+import com.myblog.user.social.SocialUserService;
 import java.time.Clock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +45,7 @@ import org.springframework.session.web.http.CookieSerializer;
  *   <li>로그아웃: Security의 LogoutFilter가 POST /api/v1/auth/logout에서 세션을 지우고 쿠키를 만료시킨 뒤 204 (contracts 7).</li>
  *   <li>변경 요청(POST 등)은 CSRF 토큰을 헤더(X-XSRF-TOKEN)에 실어야 한다. 토큰은 GET /api/v1/auth/csrf로 받는다 (NF-11).</li>
  *   <li>로그인이 필요한 요청을 로그인 없이 보내면 401 + UNAUTHENTICATED (contracts 9).</li>
+ *   <li>소셜 로그인(specs/010)은 oauth2Login이 회사 화면을 오가고, 돌아오면 같은 세션 로그인으로 바꾼다.</li>
  *   <li><b>기본은 "로그인 필요"</b>다. 다른 기능에서 로그인 없이 열어 둘 주소는 아래 authorizeHttpRequests에 하나씩 적는다 (T035).</li>
  * </ul>
  */
@@ -48,7 +54,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
-            CookieSerializer cookieSerializer, AuthProperties properties, Clock clock) throws Exception {
+            CookieSerializer cookieSerializer, AuthProperties properties, Clock clock,
+            SocialClientRegistrations socialRegistrations, SocialUserService socialUserService,
+            SocialLoginHandlers socialLoginHandlers) throws Exception {
         // 빈으로 만들지 않는다: 빈이면 서블릿 필터로도 따로 등록돼 보안 필터 밖에서 한 번 더 돈다
         SessionLifetimeFilter sessionLifetimeFilter = new SessionLifetimeFilter(cookieSerializer, properties, clock);
         CookieCsrfTokenRepository csrfTokenRepository = new CookieCsrfTokenRepository();
@@ -64,6 +72,18 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .requestCache(AbstractHttpConfigurer::disable)
+                // 소셜 로그인 (specs/010): /oauth2/authorization/{회사} → 회사 화면 → /login/oauth2/code/{회사}.
+                // 회사 토큰은 저장하지 않고(D-7), 돌아오면 SocialLoginHandlers가 우리 회원 세션으로 바꾼다.
+                // loginPage는 화면(React)의 로그인 창이다. 적어 두면 Spring의 기본 로그인 페이지가 생기지 않는다
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/login")
+                        .clientRegistrationRepository(socialRegistrations)
+                        .authorizationEndpoint(authorization -> authorization
+                                .authorizationRequestResolver(new KnownProviderAuthorizationRequestResolver(socialRegistrations)))
+                        .authorizedClientRepository(new DiscardingAuthorizedClientRepository())
+                        .userInfoEndpoint(userInfo -> userInfo.userService(socialUserService))
+                        .successHandler(socialLoginHandlers)
+                        .failureHandler(socialLoginHandlers))
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")   // 로그아웃은 필터가 받으므로 버전을 적어 둔다 (ApiVersionConfig)
                         .invalidateHttpSession(true)

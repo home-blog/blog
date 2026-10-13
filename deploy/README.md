@@ -21,6 +21,16 @@
 | `SSH_KNOWN_HOSTS` | 서버 지문. 비밀번호를 보내기 전에 진짜 실습 서버인지 확인하는 데 쓴다. 아래 "서버 지문 넣기"대로 **확인한 지문만** 넣는다 | 꼭 |
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
+| `SOCIAL_GITHUB_CLIENT_ID`, `SOCIAL_GITHUB_CLIENT_SECRET` (GOOGLE, KAKAO, NAVER도 같은 모양) | 소셜 로그인 앱 열쇠 (아래 "소셜 로그인 앱 등록") | 없는 회사는 버튼이 안 보인다 |
+
+**소셜 로그인 앱 등록** (specs/010). 회사마다 개발자 사이트에 앱을 만들고, 받은 Client ID·Secret을 위 Secrets(배포)와 저장소 맨 위 `.env`(로컬)에 넣는다. 콜백(Redirect) 주소는 로컬 `http://localhost:5173/login/oauth2/code/{회사}`, 배포 `http://<내 도메인>/login/oauth2/code/{회사}` (HTTPS가 붙으면 `https://`로 바꾼다).
+
+| 회사 | 어디서 | 주의 |
+|---|---|---|
+| GitHub (`github`) | Settings → Developer settings → OAuth Apps → New OAuth App | 콜백 주소를 하나만 받는다: 로컬용·배포용 앱을 따로 만든다 |
+| Google (`google`) | Google Cloud Console → API 및 서비스 → OAuth 동의 화면, 사용자 인증 정보 → OAuth 클라이언트 ID(웹 애플리케이션) | 배포 주소는 HTTPS가 붙은 뒤에 넣을 수 있다. 로컬(localhost)은 지금도 된다 |
+| 카카오 (`kakao`) | Kakao Developers → 내 애플리케이션 → 카카오 로그인 켜기, Redirect URI, 보안 → Client Secret 켜기 | 동의 항목에 닉네임. 이메일은 비즈 앱이어야 받을 수 있고, 없으면 가입할 때 이메일 인증번호로 받는다. REST API 키가 Client ID |
+| 네이버 (`naver`) | Naver Developers → 애플리케이션 등록 → 네이버 로그인, 이메일·별명, 서비스 URL과 Callback URL | 검수 전에는 등록한 아이디만 로그인된다 |
 
 **서버 지문 넣기**: `ssh-keyscan`은 받은 지문이 진짜인지 확인해 주지 않는다. 그래서 다른 길로 확인한 지문과 맞춰 본 뒤에 넣는다.
 
@@ -43,12 +53,14 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
 
 ## 배포하기
 
-- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 릴리스를 낼 때 그 버전이 배포된다. **로컬에서 어느 정도 해 두고 → 버전을 올려 → 배포** (2026-10-12 사용자): 쓸 만한 묶음이 되면 화면을 확인하고 "배포해줘" 뒤에 낸다. 기능이 있으면 가운데 숫자(0.5.0), 버그 수정만이면 끝 숫자(0.4.1). 서비스가 멈추는 급한 버그만 따로 바로 낸다.
+- **릴리스로**: `main`에 합친다고 바로 배포되지 않는다. 릴리스를 낼 때 그 버전이 배포된다. **로컬에서 어느 정도 해 두고 → 버전을 올려 → 배포** (2026-10-12 사용자): 쓸 만한 묶음이 되면 화면을 확인하고 "배포해줘" 뒤에 낸다. 새 화면·기능·API가 생기면 가운데 숫자(0.6.0), 버그 수정·다듬기·문서·운영 개선은 끝 숫자(0.5.1) (2026-10-13 사용자). 서비스가 멈추는 급한 버그만 따로 바로 낸다.
 - **릴리스 내는 순서** (맨 위 [`CHANGELOG.md`](../CHANGELOG.md)가 기록의 원본):
   1. PR마다 `CHANGELOG.md`의 다음 번호 절(`## [0.5.0] - 준비 중`)에 화면·API·운영으로 나눠 쌓고(낼 때 날짜를 적는다), API가 바뀌었으면 주소 버전(v1 그대로인지, v2를 열었는지)도 적는다.
   2. `backend/pom.xml`의 `<version>`, `frontend/package.json`(그리고 `package-lock.json` 맨 위)의 `version`을 같은 번호로 맞춘다.
-  3. "배포해줘"를 받으면 Actions → `배포` → Run workflow(브랜치 `main`)에 번호를 넣는다. 확인 → 배포 → 성공하면 태그 `v<번호>`와 GitHub 릴리스를 `CHANGELOG.md`의 그 절로 만든다.
-  4. 번호와 `pom.xml`·`package.json`·`package-lock.json`의 버전, `CHANGELOG.md`의 절이 다르거나 같은 태그가 이미 있으면 배포 전에 멈춘다.
+  3. "배포해줘"를 받으면 Git Flow대로 `develop`에서 `release/<번호>`를 만들어 `CHANGELOG.md`의 `준비 중`을 날짜로 바꾸고 `main`으로 PR을 올려 합친다.
+  4. Actions → `배포` → Run workflow(브랜치 `main`)에 번호를 넣는다. 확인 → 배포 → 성공하면 태그 `v<번호>`와 GitHub 릴리스를 `CHANGELOG.md`의 그 절로 만든다.
+  5. 배포가 끝나면 `main`을 `develop`에 다시 합친다(PR). 급한 수정(`hotfix/<번호>`)도 `main`에 합치고 배포한 뒤 `develop`에 합친다.
+  6. 번호와 `pom.xml`·`package.json`·`package-lock.json`의 버전, `CHANGELOG.md`의 절이 다르거나 같은 태그가 이미 있으면 배포 전에 멈춘다.
   - GitHub 화면에서 직접 릴리스(태그 `v<번호>`, 대상 `main`)를 내도 같은 확인을 거쳐 배포된다. 미리보기(pre-release)는 배포하지 않는다. **지난 버전을 기록용으로 새로 낼 때는 미리보기로** 낸다(옛 커밋에는 이 확인이 없어 그대로 배포된다).
 - **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 

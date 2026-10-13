@@ -7,10 +7,10 @@ name: SonarQube
 # 문서만 바뀐 PR에서는 돌리지 않는다
 on:
   pull_request:
-    branches: [main]
+    branches: [main, develop]   # Git Flow: 기능은 develop으로, 릴리스·급한 수정은 main으로
     paths-ignore: ["docs/**", "specs/**", ".specify/**", "**/*.md"]
   push:
-    branches: [main]
+    branches: [main, develop]   # Git Flow: 기능은 develop으로, 릴리스·급한 수정은 main으로
     paths-ignore: ["docs/**", "specs/**", ".specify/**", "**/*.md"]
 
 

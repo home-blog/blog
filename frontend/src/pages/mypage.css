@@ -170,3 +170,70 @@
   accent-color: var(--error);
 }
 
+
+/* 연결된 계정 (specs/010 US4): 회사 이름 · 상태 · 버튼 한 줄 */
+.social-accounts {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.social-account {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.social-account-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+/* 회사 색 점 (색만으로 구별하지 않는다: 이름이 옆에 있다) */
+.social-account-name::before {
+  content: '';
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--grid-strong);
+}
+
+.social-dot-github::before {
+  background: #24292f;
+}
+
+.social-dot-google::before {
+  background: #4285f4;
+}
+
+.social-dot-kakao::before {
+  background: #fee500;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2);
+}
+
+.social-dot-naver::before {
+  background: #03a94d;
+}
+
+.social-account-state {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+@media (max-width: 30rem) {
+  .social-account {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .social-account-state {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}

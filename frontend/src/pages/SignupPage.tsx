@@ -1,4 +1,5 @@
 // 가입 화면 (specs/001 US1, T025): 인증번호 받기 → 확인 → 이메일 잠금 → 비밀번호 → 가입하기
+// 소셜 가입 (specs/010 US2): 같은 화면에서 비밀번호 칸을 빼고, 회사가 확인한 이메일이면 이메일 인증도 건너뛴다
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api, ApiError } from '../api/client'
@@ -9,6 +10,8 @@ import {
   isValidPassword,
   messages,
 } from '../auth/rules'
+import SocialButtons from '../auth/SocialButtons'
+import { PROVIDER_LABEL, socialSignup, type SocialPending } from '../auth/socialApi'
 import ManuscriptSheet from './ManuscriptSheet'
 import './auth-layout.css'
 
@@ -34,16 +37,20 @@ const FIELD_OF_CODE: Record<string, Field> = {
 
 interface Props {
   onSignedUp: () => void
+  /** 있으면 소셜 가입: 회사 화면을 다녀온 사람의 가입 대기 (specs/010) */
+  social?: SocialPending
 }
 
-export default function SignupPage({ onSignedUp }: Props) {
-  const [nickname, setNickname] = useState('')
-  const [email, setEmail] = useState('')
+export default function SignupPage({ onSignedUp, social }: Props) {
+  // 회사가 확인한 이메일이면 그 이메일로 바로 가입한다 (이메일 인증 없음, D-2)
+  const verifiedBySocial = Boolean(social?.emailVerified && social.email)
+  const [nickname, setNickname] = useState(social?.nickname ?? '')
+  const [email, setEmail] = useState(social?.email ?? '')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
 
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<Phase>(verifiedBySocial ? 'verified' : 'idle')
   // 인증번호를 받을 때 서버가 준 증표. 확인·이메일 변경·가입 때 다시 보낸다 (내가 시작한 인증임을 증명)
   const [verificationToken, setVerificationToken] = useState('')
   const [expiresAt, setExpiresAt] = useState<number | null>(null)
@@ -143,7 +150,7 @@ export default function SignupPage({ onSignedUp }: Props) {
       setPhase('verified')
       setExpiresAt(null)
       setNotices({ email: res.message })
-      focusField('password')
+      if (!social) focusField('password')
     } catch (err) {
       showApiError(err, 'code')
       if (err instanceof ApiError && (err.code === 'CODE_EXPIRED' || err.code === 'CODE_ATTEMPTS_EXCEEDED')) {
@@ -191,8 +198,10 @@ export default function SignupPage({ onSignedUp }: Props) {
     if (!isValidNickname(nickname)) next.nickname = messages.nickname
     if (!isValidEmail(email)) next.email = messages.email
     else if (phase !== 'verified') next.email = messages.verifyFirst
-    if (!isValidPassword(password)) next.password = messages.password
-    if (password !== passwordConfirm || passwordConfirm === '') next.passwordConfirm = messages.passwordConfirm
+    if (!social) {
+      if (!isValidPassword(password)) next.password = messages.password
+      if (password !== passwordConfirm || passwordConfirm === '') next.passwordConfirm = messages.passwordConfirm
+    }
     if (Object.values(next).some(Boolean)) {
       failValidation(next)
       return
@@ -200,13 +209,23 @@ export default function SignupPage({ onSignedUp }: Props) {
 
     setBusy('signup')
     try {
-      await api('/api/v1/auth/signup', {
-        method: 'POST',
-        body: { nickname: nickname.trim(), email: email.trim(), password, passwordConfirm, verificationToken },
-      })
+      if (social) {
+        await socialSignup(
+          nickname.trim(),
+          verifiedBySocial ? undefined : email.trim(),
+          verifiedBySocial ? undefined : verificationToken,
+        )
+      } else {
+        await api('/api/v1/auth/signup', {
+          method: 'POST',
+          body: { nickname: nickname.trim(), email: email.trim(), password, passwordConfirm, verificationToken },
+        })
+      }
       onSignedUp()
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
+      if (err instanceof ApiError && (err.code === 'SOCIAL_PENDING_NOT_FOUND' || err.code === 'SOCIAL_ACCOUNT_IN_USE')) {
+        setFormError(err.message)
+      } else if (err instanceof ApiError && err.code === 'EMAIL_NOT_VERIFIED') {
         // 인증은 했는데 서버의 인증 표시가 사라졌다면 30분이 지난 것 (VERIFICATION_EXPIRED)
         setPhase('idle')
         setNotices({})
@@ -248,8 +267,16 @@ export default function SignupPage({ onSignedUp }: Props) {
       </section>
 
       <section className="auth-form-wrap" aria-labelledby="signup-title">
-        <h1 id="signup-title" className="auth-title">회원 가입</h1>
-        <p className="auth-lead">이메일 인증을 마치면 바로 가입할 수 있습니다.</p>
+        <h1 id="signup-title" className="auth-title">
+          {social ? `${PROVIDER_LABEL[social.provider]} 계정으로 가입` : '회원 가입'}
+        </h1>
+        <p className="auth-lead">
+          {!social
+            ? '이메일 인증을 마치면 바로 가입할 수 있습니다.'
+            : verifiedBySocial
+              ? '닉네임만 정하면 가입이 끝나고 바로 로그인됩니다.'
+              : '이메일 인증을 마치면 가입이 끝나고 바로 로그인됩니다.'}
+        </p>
 
         <form className="auth-form" onSubmit={submit} noValidate aria-live="polite">
           <div className="field">
@@ -283,7 +310,7 @@ export default function SignupPage({ onSignedUp }: Props) {
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={describedBy('email')}
               />
-              {phase === 'verified' ? (
+              {verifiedBySocial ? null : phase === 'verified' ? (
                 <button type="button" className="btn btn-quiet" onClick={changeEmail} disabled={busy !== null}>
                   이메일 변경
                 </button>
@@ -293,6 +320,9 @@ export default function SignupPage({ onSignedUp }: Props) {
                 </button>
               )}
             </div>
+            {verifiedBySocial && social && (
+              <p className="hint">{PROVIDER_LABEL[social.provider]}에서 확인한 이메일입니다.</p>
+            )}
             {message('email')}
           </div>
 
@@ -335,46 +365,50 @@ export default function SignupPage({ onSignedUp }: Props) {
             </div>
           )}
 
-          <div className="field">
-            <label htmlFor="password">비밀번호</label>
-            <input
-              id="password"
-              ref={passwordRef}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              maxLength={40}
-              aria-invalid={Boolean(errors.password)}
-              aria-describedby={describedBy('password', 'password-rules')}
-            />
-            <ul id="password-rules" className="rules" aria-label="비밀번호 규칙">
-              {passwordChecks.map((rule) => (
-                <li key={rule.label} className={rule.met ? 'rule rule-met' : 'rule'}>
-                  <span aria-hidden="true" className="rule-mark">{rule.met ? '✓' : '·'}</span>
-                  {rule.label}
-                  <span className="visually-hidden">{rule.met ? ' 충족' : ' 아직'}</span>
-                </li>
-              ))}
-            </ul>
-            {message('password')}
-          </div>
+          {!social && (
+            <>
+              <div className="field">
+                <label htmlFor="password">비밀번호</label>
+                <input
+                  id="password"
+                  ref={passwordRef}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  maxLength={40}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={describedBy('password', 'password-rules')}
+                />
+                <ul id="password-rules" className="rules" aria-label="비밀번호 규칙">
+                  {passwordChecks.map((rule) => (
+                    <li key={rule.label} className={rule.met ? 'rule rule-met' : 'rule'}>
+                      <span aria-hidden="true" className="rule-mark">{rule.met ? '✓' : '·'}</span>
+                      {rule.label}
+                      <span className="visually-hidden">{rule.met ? ' 충족' : ' 아직'}</span>
+                    </li>
+                  ))}
+                </ul>
+                {message('password')}
+              </div>
 
-          <div className="field">
-            <label htmlFor="passwordConfirm">비밀번호 확인</label>
-            <input
-              id="passwordConfirm"
-              ref={passwordConfirmRef}
-              type="password"
-              value={passwordConfirm}
-              onChange={(e) => setPasswordConfirm(e.target.value)}
-              autoComplete="new-password"
-              maxLength={40}
-              aria-invalid={Boolean(errors.passwordConfirm)}
-              aria-describedby={describedBy('passwordConfirm')}
-            />
-            {message('passwordConfirm')}
-          </div>
+              <div className="field">
+                <label htmlFor="passwordConfirm">비밀번호 확인</label>
+                <input
+                  id="passwordConfirm"
+                  ref={passwordConfirmRef}
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  autoComplete="new-password"
+                  maxLength={40}
+                  aria-invalid={Boolean(errors.passwordConfirm)}
+                  aria-describedby={describedBy('passwordConfirm')}
+                />
+                {message('passwordConfirm')}
+              </div>
+            </>
+          )}
 
           {formError && <p className="msg msg-error form-error">{formError}</p>}
 
@@ -385,6 +419,7 @@ export default function SignupPage({ onSignedUp }: Props) {
             이미 회원이라면 <Link to="/login">로그인</Link>
           </p>
         </form>
+        {!social && <SocialButtons divider="또는 소셜 계정으로" />}
       </section>
     </div>
   )

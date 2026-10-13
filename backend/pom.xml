@@ -14,7 +14,7 @@
     <groupId>com.myblog</groupId>
     <artifactId>myblog-server</artifactId>
     <!-- 릴리스 버전: 배포할 때마다 올리고 CHANGELOG.md에 바뀐 것을 적는다 (frontend/package.json과 같은 번호) -->
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <name>myblog-server</name>
     <description>글결 서버 (단일 서버, 기능별 모듈)</description>
 
@@ -71,6 +71,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-session-jdbc</artifactId>
+        </dependency>
+        <!-- 소셜 로그인 (specs/010): GitHub·Google·Kakao·Naver. 회사 토큰은 보관하지 않고 우리 세션으로 바꾼다 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-oauth2-client</artifactId>
         </dependency>
 
         <!-- DB: PostgreSQL + JPA + Flyway(표 변경 이력) -->
