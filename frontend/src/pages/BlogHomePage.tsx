@@ -6,8 +6,10 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
+import BlogManuscriptHead from '../blog/BlogManuscriptHead'
 import BlogPostList from '../explore/BlogPostList'
 import CategoryFilter from '../explore/CategoryFilter'
+import ProofNotFound from '../components/ProofNotFound'
 import './auth-layout.css'
 import '../blog/blog.css'
 
@@ -15,7 +17,9 @@ import '../blog/blog.css'
  * 누가 어느 블로그를 본 결과인지 함께 둔다. 주소의 번호나 로그인 상태가 바뀌면 이전 결과를 보여 주지 않는다
  * (로그아웃한 뒤 주인에게만 보이던 비공개 분류가 화면에 남지 않게)
  */
-type Result = { key: string; blog: Blog; categories: CategorySummary[] } | { key: string; error: string }
+type Result =
+  | { key: string; blog: Blog; categories: CategorySummary[] }
+  | { key: string; error: string; notFound: boolean }
 
 export default function BlogHomePage() {
   const { blogId } = useParams()
@@ -36,16 +40,31 @@ export default function BlogHomePage() {
       .then(([blog, categories]) => setResult({ key: requestKey, blog, categories }))
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
-        setResult({ key: requestKey, error: err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요' })
+        setResult({
+          key: requestKey,
+          error: err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요',
+          notFound: err instanceof ApiError && err.status === 404,
+        })
       })
     return () => controller.abort()
   }, [id, validId, viewer])
 
   const current = result?.key === key ? result : null
-  if (!validId || (current && 'error' in current)) {
+  if (!validId || (current && 'error' in current && current.notFound)) {
+    // 없는 블로그는 교정부호로 (v0.5.1 원고지 손길)
+    return (
+      <ProofNotFound
+        struck="글"
+        inserted="블로그"
+        particle="가"
+        message={current && 'error' in current ? current.error : '※ 존재하지 않는 블로그입니다'}
+      />
+    )
+  }
+  if (current && 'error' in current) {
     return (
       <p className="blog-status msg msg-error" role="alert">
-        {current && 'error' in current ? current.error : '※ 존재하지 않는 블로그입니다'}
+        {current.error}
       </p>
     )
   }
@@ -59,7 +78,7 @@ export default function BlogHomePage() {
       {/* RSS 리더가 블로그 주소만으로 찾게 머리에 알린다 (specs/007 US5, React 19가 head로 옮긴다) */}
       <link rel="alternate" type="application/rss+xml" title={`${blog.name} RSS`} href={`/blog/${id}/rss.xml`} />
       <header className="blog-head">
-        <h1 className="blog-name">{blog.name}</h1>
+        <BlogManuscriptHead blogId={id} name={blog.name} viewer={viewer ?? 'guest'} />
         {blog.intro ? (
           <p className="blog-intro">{blog.intro}</p>
         ) : (

@@ -8,6 +8,7 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.post.config.ExploreProperties;
 import com.myblog.post.domain.Post;
+import com.myblog.post.repository.PostFeedRepository;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.service.PageNumbers.PageSlice;
 import com.myblog.post.service.PostVisibility.ListScope;
@@ -38,15 +39,17 @@ public class PostListService {
     private final PostVisibility visibility;
     private final PostPreview preview;
     private final ManuscriptMeasure manuscript;
+    private final PostFeedRepository contents;
     private final int pageSize;
 
     public PostListService(BlogDirectory blogDirectory, PostRepository posts, PostVisibility visibility,
-            PostPreview preview, ManuscriptMeasure manuscript, ExploreProperties properties) {
+            PostPreview preview, ManuscriptMeasure manuscript, PostFeedRepository contents, ExploreProperties properties) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
         this.visibility = visibility;
         this.preview = preview;
         this.manuscript = manuscript;
+        this.contents = contents;
         this.pageSize = properties.list().pageSize();
     }
 
@@ -75,6 +78,27 @@ public class PostListService {
                 .toList();
         return new PostListView(blogId, isOwner, chosenCategoryId, totalCount, slice.page(), slice.totalPages(), slice.pageSize(),
                 rows);
+    }
+
+    /**
+     * 블로그 머리에 보이는 "지금까지 쓴 원고지" (v0.5.1). 글 목록과 같은 공개 규칙으로 보이는 글만 센다:
+     * 방문자에게는 공개 분류의 공개 글, 주인에게는 비공개까지. 매수는 글마다 올림한 값(글 읽기 화면과 같은 수)을 더한다.
+     */
+    public ManuscriptTotal manuscriptTotal(Long blogId, Long viewerId) {
+        BlogInfo blog = blogDirectory.blog(blogId).orElseThrow(() -> new ApiException(ErrorCode.BLOG_NOT_FOUND));
+        ListScope scope = visibility.listScope(blog.ownerId(), blogDirectory.categoriesOf(blogId), viewerId);
+        List<Long> categoryIds = scope.categoryIds();
+        if (categoryIds.isEmpty()) {
+            return new ManuscriptTotal(blogId, 0, 0);
+        }
+        // 본문을 목록으로 쥐지 않고 나눠 받으며 센다
+        long[] postCount = {0};
+        long[] sheets = {0};
+        contents.forEachContentIn(categoryIds, scope.publicPostsOnly(), content -> {
+            postCount[0]++;
+            sheets[0] += manuscript.of(content).sheets();
+        });
+        return new ManuscriptTotal(blogId, postCount[0], sheets[0]);
     }
 
     /**
@@ -119,6 +143,10 @@ public class PostListService {
         return new PostRow(post.getId(), post.getTitle(), category.categoryId(), category.name(), post.getCreatedAt(),
                 preview.of(post.getContent()), post.getVisibility(), measure.sheets(), measure.readMinutes(),
                 PostThumbnail.of(post.getContent()).orElse(null));
+    }
+
+    /** 보이는 글 수와 그 글들의 원고지 매수 합. */
+    public record ManuscriptTotal(Long blogId, long postCount, long sheets) {
     }
 
     /** 목록 한 페이지. categoryId는 실제로 적용한 분류 (고르지 않았으면 null). */

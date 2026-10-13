@@ -12,7 +12,7 @@ class ExplorePropertiesTest {
     void 기본값은_된다() {
         assertThatCode(() -> new ExploreProperties(new ExploreProperties.ListPage(10, 100),
                 new ExploreProperties.Search(2, 50),
-                new ExploreProperties.Feed(12, 5, 7, java.time.ZoneId.of("Asia/Seoul")))).doesNotThrowAnyException();
+                new ExploreProperties.Feed(12, 5, 7, java.time.ZoneId.of("Asia/Seoul"), java.time.Duration.ofMinutes(5)))).doesNotThrowAnyException();
     }
 
     @Test
@@ -22,9 +22,11 @@ class ExplorePropertiesTest {
         assertThatThrownBy(() -> new ExploreProperties.Search(0, 50)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ExploreProperties.Search(5, 2)).isInstanceOf(IllegalStateException.class);
         java.time.ZoneId seoul = java.time.ZoneId.of("Asia/Seoul");
-        assertThatThrownBy(() -> new ExploreProperties.Feed(0, 5, 7, seoul)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 0, 7, seoul)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 0, seoul)).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 7, null)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.Feed(0, 5, 7, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 0, 7, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 0, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 7, null, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 7, seoul, java.time.Duration.ofSeconds(-1)))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

@@ -18,7 +18,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import ImageUploadButton from '../image/ImageUploadButton'
 import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
-import { createPost, getPostEdit, getPostForm, updatePost, type PostInput } from './postApi'
+import { createPost, getPostEdit, getPostForm, updatePost, type PostInput, type SavedState } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import EditorPreview from './EditorPreview'
 import CoverPicker from './CoverPicker'
@@ -140,7 +140,11 @@ export default function PostEditorPage() {
       input.tags.join('\n') !== initial.tags.join('\n'))
   useUnsavedChangesPrompt(dirty)
 
-  if (savedPostId !== null) return <Navigate to={`/posts/${savedPostId}`} replace />
+  if (savedPostId !== null) {
+    // 글 화면이 "탈고"(새 글)·"퇴고"(고친 글) 도장 알림을 한 번 띄운다 (v0.5.1)
+    const state: SavedState = { saved: editingId === null ? 'created' : 'edited', postId: savedPostId }
+    return <Navigate to={`/posts/${savedPostId}`} replace state={state} />
+  }
   if (loadError) {
     return (
       <p className="editor-status msg msg-error" role="alert">

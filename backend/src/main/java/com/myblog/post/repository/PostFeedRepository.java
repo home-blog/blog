@@ -1,6 +1,7 @@
 package com.myblog.post.repository;
 
 import com.myblog.common.Visibility;
+import com.myblog.post.config.ManuscriptProperties;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,8 +9,12 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -45,6 +50,15 @@ public class PostFeedRepository {
 
     private static final String COUNT = "select count(*) " + FROM + OPEN_POSTS;
 
+    /** 첫 화면 머리의 분량 (v0.5.1): 모든 공개 글의 블로그 번호와 본문. 매수는 글마다 올림하므로 본문을 읽어 센다. */
+    private static final String OPEN_CONTENTS = "select c.blog_id, p.content " + FROM + OPEN_POSTS;
+
+    /** 블로그 머리의 쓴 매수 (v0.5.1): 정해진 분류들의 글 본문. 자리표시자: 분류 번호 배열. */
+    private static final String CONTENTS_IN_CATEGORIES = "select p.content from post p where p.category_id = any(?)";
+
+    /** 위와 같고 공개 글만. 자리표시자: 분류 번호 배열, 글 공개. */
+    private static final String PUBLIC_CONTENTS_IN_CATEGORIES = CONTENTS_IN_CATEGORIES + " and p.visibility = ?";
+
     private static final String PAGE = COLUMNS + FROM + OPEN_POSTS + """
             order by p.created_at desc, p.post_id desc
             offset ? limit ?
@@ -60,15 +74,46 @@ public class PostFeedRepository {
             """;
 
     private final JdbcTemplate jdbc;
+    private final int readBatchSize;
 
-    public PostFeedRepository(JdbcTemplate jdbc) {
+    public PostFeedRepository(JdbcTemplate jdbc, ManuscriptProperties manuscript) {
         this.jdbc = jdbc;
+        this.readBatchSize = manuscript.readBatchSize();
     }
 
     /** 공개 글 수. topicId가 null이면 모든 주제. */
     public long count(Long topicId) {
         Long count = jdbc.query(connection -> prepare(connection, COUNT, topicId), rs -> rs.next() ? rs.getLong(1) : 0L);
         return count == null ? 0 : count;
+    }
+
+    /**
+     * 모든 공개 글을 하나씩 (블로그 번호, 본문)으로 넘긴다. 목록을 한꺼번에 쥐지 않도록 read-batch-size 줄씩 받아 온다
+     * (PostgreSQL 드라이버는 트랜잭션 안에서만 나눠 받으므로 읽기 전용 트랜잭션에서 부른다).
+     */
+    public void forEachOpenPost(BiConsumer<Long, String> consumer) {
+        jdbc.query(connection -> {
+            PreparedStatement statement = prepare(connection, OPEN_CONTENTS, null);
+            statement.setFetchSize(readBatchSize);
+            return statement;
+        }, (RowCallbackHandler) rs -> consumer.accept(rs.getLong(1), rs.getString(2)));
+    }
+
+    /**
+     * 정해진 분류들의 글 본문을 하나씩 넘긴다 (블로그 머리의 쓴 매수). publicOnly면 공개 글만.
+     * 어느 분류를 볼지는 PostVisibility.listScope가 정한다. forEachOpenPost와 같이 나눠 받는다.
+     */
+    public void forEachContentIn(Collection<Long> categoryIds, boolean publicOnly, Consumer<String> consumer) {
+        jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(
+                    publicOnly ? PUBLIC_CONTENTS_IN_CATEGORIES : CONTENTS_IN_CATEGORIES);
+            statement.setArray(1, connection.createArrayOf("bigint", categoryIds.toArray()));
+            if (publicOnly) {
+                statement.setString(2, Visibility.PUBLIC.value());
+            }
+            statement.setFetchSize(readBatchSize);
+            return statement;
+        }, (RowCallbackHandler) rs -> consumer.accept(rs.getString(1)));
     }
 
     /** 최신순으로 offset부터 limit개. */

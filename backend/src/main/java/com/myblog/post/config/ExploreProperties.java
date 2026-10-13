@@ -1,5 +1,6 @@
 package com.myblog.post.config;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -34,13 +35,17 @@ public record ExploreProperties(ListPage list, Search search, Feed feed) {
     /**
      * 첫 화면 글 모음: 한 페이지 글 수(12), 인기 글 수(5)와 기간(최근 7일, 오늘 포함), 날짜를 세는 시간대(한국).
      * 인기 글은 그 기간의 글별 일별 조회수(post_daily_stat) 합으로 고른다.
+     * summaryTtl은 첫 화면 머리 분량(블로거·글·매수)을 다시 세기까지 기다리는 시간이다 (v0.5.1). 0이면 매번 센다.
      */
-    public record Feed(int pageSize, int popularSize, int popularDays, ZoneId dayZone) {
+    public record Feed(int pageSize, int popularSize, int popularDays, ZoneId dayZone, Duration summaryTtl) {
 
         public Feed {
             if (pageSize < 1 || popularSize < 1 || popularDays < 1 || dayZone == null) {
                 throw new IllegalStateException(
                         "explore.feed의 page-size, popular-size, popular-days는 1 이상이고 day-zone이 있어야 합니다");
+            }
+            if (summaryTtl == null || summaryTtl.isNegative()) {
+                throw new IllegalStateException("explore.feed.summary-ttl은 0 이상이어야 합니다");
             }
         }
     }

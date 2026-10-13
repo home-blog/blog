@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 /** 원고지 매수·읽는 시간 (specs/007 US3): 마크다운 기호를 뺀 글자 수 ÷ 200(매), ÷ 500(분), 올림, 최소 1. */
 class ManuscriptMeasureTest {
 
-    private final ManuscriptMeasure measure = new ManuscriptMeasure(new ManuscriptProperties(200, 500));
+    private final ManuscriptMeasure measure = new ManuscriptMeasure(new ManuscriptProperties(200, 500, 200));
 
     @Test
     void 짧은_글도_한_매_일_분() {

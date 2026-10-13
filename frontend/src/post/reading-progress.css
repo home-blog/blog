@@ -1,0 +1,24 @@
+/* 화면 맨 위에 붙은 원고지 20칸. 읽은 칸은 먹(강조색)으로 찬다 */
+.reading-progress {
+  position: fixed;
+  inset: env(safe-area-inset-top, 0px) 0 auto;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  height: 6px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--grid);
+  pointer-events: none;
+}
+
+.reading-progress span + span {
+  border-left: 1px solid var(--grid);
+}
+
+.reading-progress span {
+  transition: background-color 160ms ease;
+}
+
+.reading-progress .on {
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
