@@ -68,18 +68,19 @@ export COMPOSE_IGNORE_ORPHANS=true
 # 아직 한 번도 켜지 않은 벌은 옛 이미지가 없다(처음). compose 파일을 읽으려면 값이 있어야 해서 새 태그로 채워 둔다
 first_a="${IMAGE_TAG_A:-}" first_b="${IMAGE_TAG_B:-}"
 export IMAGE_TAG_A="${IMAGE_TAG_A:-$target}" IMAGE_TAG_B="${IMAGE_TAG_B:-$target}"
-# 되돌리기용으로 남길 "바로 전 이미지": 지금 손님을 받는 이미지 (두 벌 이전이면 옛 서버 컨테이너의 이미지). 같은 태그를 다시 올리면 그대로
 # 컨테이너가 실제로 쓰는 서버 이미지 태그. .slots.env는 배포가 도중에 끊기면 옛 값으로 남을 수 있어 컨테이너를 먼저 본다
 image_tag_of() {
   local image
   image="$(docker container inspect -f '{{.Config.Image}}' "$1" 2>/dev/null || true)"
   case "$image" in "${DEPLOY_NAME}-server:"*) echo "${image#"${DEPLOY_NAME}-server:"}" ;; esac
 }
-running_tag="$(image_tag_of "${DEPLOY_NAME}-server-a-1")"
-[ -n "$running_tag" ] || running_tag="$first_a"
-[ -n "$running_tag" ] || running_tag="$(image_tag_of "$legacy_server")"
+# 되돌리기용으로 남길 "바로 전 이미지": 지금 돌고 있는 이미지 중 새 태그가 아닌 것 (a, b 컨테이너 → 기록 → 두 벌 이전 컨테이너 순).
+# 끊긴 배포를 다시 돌려 a가 이미 새 태그여도 b나 기록에서 찾는다. 모두 새 태그면(같은 태그를 다시 올림) 지난 기록을 그대로 둔다
 previous="${PREVIOUS_TAG:-}"
-if [ -n "$running_tag" ] && [ "$running_tag" != "$target" ]; then previous="$running_tag"; fi
+for candidate in "$(image_tag_of "${DEPLOY_NAME}-server-a-1")" "$(image_tag_of "${DEPLOY_NAME}-server-b-1")" \
+                 "$first_a" "$first_b" "$(image_tag_of "$legacy_server")"; do
+  if [ -n "$candidate" ] && [ "$candidate" != "$target" ]; then previous="$candidate"; break; fi
+done
 
 save_slots() {
   printf 'IMAGE_TAG_A=%s\nIMAGE_TAG_B=%s\nPREVIOUS_TAG=%s\n' "$IMAGE_TAG_A" "$IMAGE_TAG_B" "$previous" > .slots.env
