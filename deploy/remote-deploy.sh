@@ -139,7 +139,10 @@ for i in "${!order[@]}"; do
     if [ -n "$old" ] && [ "$old" != "$target" ] && docker image inspect "${DEPLOY_NAME}-server:$old" >/dev/null 2>&1; then
       echo "$slot 벌을 옛 이미지($old)로 되돌립니다" >&2
       export "$var=$old"
-      "${compose[@]}" up -d --no-build --no-deps --wait --wait-timeout 300 "server-$slot" "web-$slot" || true
+      if ! "${compose[@]}" up -d --no-build --no-deps --wait --wait-timeout 300 "server-$slot" "web-$slot" || ! check_slot "$slot"; then
+        echo "$slot 벌 되돌리기도 실패해 꺼 둡니다 (고장 난 벌로 손님이 가지 않게)" >&2
+        "${compose[@]}" stop "web-$slot" "server-$slot" || true
+      fi
     else
       echo "$slot 벌을 꺼 둡니다 (고장 난 벌로 손님이 가지 않게)" >&2
       "${compose[@]}" stop "web-$slot" "server-$slot" || true
