@@ -69,8 +69,15 @@ export COMPOSE_IGNORE_ORPHANS=true
 first_a="${IMAGE_TAG_A:-}" first_b="${IMAGE_TAG_B:-}"
 export IMAGE_TAG_A="${IMAGE_TAG_A:-$target}" IMAGE_TAG_B="${IMAGE_TAG_B:-$target}"
 # 되돌리기용으로 남길 "바로 전 이미지": 지금 손님을 받는 이미지 (두 벌 이전이면 옛 서버 컨테이너의 이미지). 같은 태그를 다시 올리면 그대로
-running_tag="$first_a"
-[ -n "$running_tag" ] || running_tag="$(docker container inspect -f '{{.Config.Image}}' "$legacy_server" 2>/dev/null | sed 's/^.*://' || true)"
+# 컨테이너가 실제로 쓰는 서버 이미지 태그. .slots.env는 배포가 도중에 끊기면 옛 값으로 남을 수 있어 컨테이너를 먼저 본다
+image_tag_of() {
+  local image
+  image="$(docker container inspect -f '{{.Config.Image}}' "$1" 2>/dev/null || true)"
+  case "$image" in "${DEPLOY_NAME}-server:"*) echo "${image#"${DEPLOY_NAME}-server:"}" ;; esac
+}
+running_tag="$(image_tag_of "${DEPLOY_NAME}-server-a-1")"
+[ -n "$running_tag" ] || running_tag="$first_a"
+[ -n "$running_tag" ] || running_tag="$(image_tag_of "$legacy_server")"
 previous="${PREVIOUS_TAG:-}"
 if [ -n "$running_tag" ] && [ "$running_tag" != "$target" ]; then previous="$running_tag"; fi
 
@@ -119,7 +126,8 @@ fi
 for i in "${!order[@]}"; do
   slot="${order[$i]}"
   var="IMAGE_TAG_${slot^^}" first="first_$slot"
-  old="${!first}"   # 이 벌이 지금 쓰는 이미지 (처음이면 비어 있다)
+  old="$(image_tag_of "${DEPLOY_NAME}-server-$slot-1")"   # 이 벌이 지금 쓰는 이미지 (처음이면 비어 있다)
+  [ -n "$old" ] || old="${!first}"
   echo "── $slot 벌: ${old:-처음} → ${target} (127.0.0.1:$(port_of "$slot"))"
 
   if [ "$slot" = a ] && { exists "$legacy_web" || exists "$legacy_server"; }; then
