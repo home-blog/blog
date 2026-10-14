@@ -1,17 +1,37 @@
-# 실습 서버 Nginx 설정 견본 (강사님께 적용을 요청하는 파일).
+# 실습 서버 Nginx 설정 견본 (강사님께 적용을 요청하는 파일. 학원 Nginx는 5분마다 다시 읽는다).
 # 공개 저장소라 도메인·학번은 적지 않았다. 서버에서 deploy/make-nginx-conf.sh로 채워 ~/nginx/<도메인>.conf를 만든다.
+# 무중단 배포 (specs/011): 앱 두 벌(a, b)을 upstream으로 묶어 번갈아 보내고, 한쪽이 꺼져 있으면 다른 쪽으로 다시 보낸다.
+# HTTPS는 강사님이 Certbot으로 이 파일에 덧붙인다(listen 443, 인증서, http → https 블록). 고칠 때는 그 줄을 지우지 않는다.
+
+upstream __NAME__ {
+    # 한 번 실패하면 10초 쉬게 한다. 배포 스크립트는 한 벌을 켠 뒤 이보다 오래(15초) 기다리고 다른 벌을 끈다
+    server 127.0.0.1:__PORT__ max_fails=1 fail_timeout=10s;     # a 벌
+    server 127.0.0.1:__PORT_B__ max_fails=1 fail_timeout=10s;   # b 벌
+}
+
+# 접속 로그에 어느 벌이 받았는지(upstream), 그 벌의 응답, 걸린 시간을 남긴다 (트래픽이 나뉘는지 보는 용도)
+log_format __NAME___up '$remote_addr [$time_local] "$request" $status '
+                       'upstream=$upstream_addr upstream_status=$upstream_status '
+                       'time=$request_time upstream_time=$upstream_response_time';
+
 server {
     listen 80;
     server_name __DOMAIN__;
 
-    access_log __HOME__/nginx/logs/__DOMAIN__.access.log;
+    access_log __HOME__/nginx/logs/__DOMAIN__.access.log __NAME___up;
     error_log  __HOME__/nginx/logs/__DOMAIN__.error.log;
 
     # 이미지 한 장 5MB + 여유
     client_max_body_size 20M;
 
     location / {
-        proxy_pass http://127.0.0.1:__PORT__;
+        proxy_pass http://__NAME__;
+
+        # 연결이 안 되거나(꺼진 벌) 502·503이면 같은 요청을 다른 벌로 다시 보낸다.
+        # 글 저장 같은 POST는 이미 보낸 뒤에는 다시 보내지 않는다(두 번 저장되지 않게, Nginx 기본)
+        proxy_next_upstream error timeout http_502 http_503;
+        # 이 요청을 어느 벌(포트)이 받았는지 응답에 표시 (확인용)
+        add_header X-Upstream $upstream_addr always;
 
         proxy_http_version 1.1;
         proxy_set_header Host              $host;

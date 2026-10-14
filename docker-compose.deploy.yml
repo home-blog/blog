@@ -1,65 +1,115 @@
 # 배포용 (실습 서버). 보통은 GitHub Actions(.github/workflows/deploy.yml)가 이미지를 만들어 서버에 올리고
 # deploy/remote-deploy.sh가 이 파일로 켠다. 값은 서버의 .env.deploy(Actions가 GitHub Secrets로 만든다)에서 읽는다.
-# - DB는 실습 DB(PostgreSQL)를 쓴다. 표는 DB_SCHEMA 스키마 안에 Flyway가 만든다
-# - 여는 포트는 화면 입구(WEB_PORT) 하나뿐이고, 그것도 이 서버 안(127.0.0.1)에서만 받는다. 밖에서는 실습 서버 Nginx를 거친다
+# - 무중단 배포 (specs/011): 앱(화면 + 서버)을 두 벌(a, b) 같이 띄운다. 학원 Nginx의 upstream이 a(WEB_PORT)·b(WEB_PORT_B)에
+#   번갈아 보내고, 한쪽이 꺼져 있으면 다른 쪽으로 다시 보낸다. 배포는 한 벌씩 차례로 바꾼다(롤링). 어느 벌이 어느 이미지인지는
+#   서버의 .slots.env(IMAGE_TAG_A, IMAGE_TAG_B)에 남는다 (remote-deploy.sh가 쓴다)
+# - DB는 실습 DB(PostgreSQL)를 쓴다. 표는 DB_SCHEMA 스키마 안에 Flyway가 만든다. 두 벌이 같은 DB·Redis·이미지 저장소를 쓴다
+# - 여는 포트는 화면 입구 두 개뿐이고, 그것도 이 서버 안(127.0.0.1)에서만 받는다. 밖에서는 실습 서버 Nginx를 거친다
 # - Redis·이미지 저장소(MinIO)는 컨테이너끼리만 통한다 (같은 서버를 여러 사람이 쓰므로)
 # - 이름(DEPLOY_NAME)은 같은 서버의 다른 사람 컨테이너·데이터와 섞이지 않게 나만 쓰는 이름
 name: ${DEPLOY_NAME:?DEPLOY_NAME이 없습니다}
 
+# 두 벌이 같이 쓰는 서버 설정. 벌마다 다른 것은 이미지 태그, 앱 이름(INSTANCE_NAME), 네트워크다
+x-server-env: &server-env
+  SPRING_PROFILES_ACTIVE: prod
+  DB_URL: jdbc:postgresql://${DB_ADDRESS:?DB_ADDRESS가 없습니다}:${DB_PORT:-5432}/${DB_NAME:?DB_NAME이 없습니다}?currentSchema=${DB_SCHEMA:?DB_SCHEMA가 없습니다}
+  DB_SCHEMA: ${DB_SCHEMA:?DB_SCHEMA가 없습니다}
+  DB_USERNAME: ${DB_USERNAME:?DB_USERNAME이 없습니다}
+  DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD가 없습니다}
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  IMAGE_S3_ENDPOINT: http://minio:9000
+  IMAGE_S3_BUCKET: ${IMAGE_S3_BUCKET:-myblog-images}
+  IMAGE_S3_ACCESS_KEY: ${IMAGE_S3_ACCESS_KEY:?IMAGE_S3_ACCESS_KEY가 없습니다}
+  IMAGE_S3_SECRET_KEY: ${IMAGE_S3_SECRET_KEY:?IMAGE_S3_SECRET_KEY가 없습니다}
+  VERIFICATION_SECRET: ${VERIFICATION_SECRET:?VERIFICATION_SECRET(32자 이상)이 없습니다}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  # 소셜 로그인 (specs/010). 비어 있는 회사는 쓰지 않는다
+  SOCIAL_GITHUB_CLIENT_ID: ${SOCIAL_GITHUB_CLIENT_ID:-}
+  SOCIAL_GITHUB_CLIENT_SECRET: ${SOCIAL_GITHUB_CLIENT_SECRET:-}
+  SOCIAL_GOOGLE_CLIENT_ID: ${SOCIAL_GOOGLE_CLIENT_ID:-}
+  SOCIAL_GOOGLE_CLIENT_SECRET: ${SOCIAL_GOOGLE_CLIENT_SECRET:-}
+  SOCIAL_KAKAO_CLIENT_ID: ${SOCIAL_KAKAO_CLIENT_ID:-}
+  SOCIAL_KAKAO_CLIENT_SECRET: ${SOCIAL_KAKAO_CLIENT_SECRET:-}
+  SOCIAL_NAVER_CLIENT_ID: ${SOCIAL_NAVER_CLIENT_ID:-}
+  SOCIAL_NAVER_CLIENT_SECRET: ${SOCIAL_NAVER_CLIENT_SECRET:-}
+  SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+
+x-server: &server
+  depends_on:
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /actuator/health HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
+    interval: 5s
+    timeout: 5s
+    retries: 60
+    start_period: 40s
+  # 두 벌이 같이 도니 한 벌의 메모리를 묶어 둔다 (여럿이 쓰는 서버). 자바 힙은 이 값의 75%(Dockerfile)
+  mem_limit: ${SERVER_MEMORY:-1g}
+  # 끌 때 Spring이 처리 중인 요청을 마치는 시간(30s, application.yml)보다 길게 기다린다. 기본 10초면 중간에 잘린다
+  stop_grace_period: 40s
+  restart: unless-stopped
+
+x-web: &web
+  # Nginx는 SIGQUIT을 받으면 새 연결을 닫고, 처리 중인 요청을 마친 뒤 꺼진다
+  stop_signal: SIGQUIT
+  stop_grace_period: 40s
+  restart: unless-stopped
+
 services:
-  web:
-    image: ${DEPLOY_NAME}-web:${IMAGE_TAG:-local}
-    build: ./frontend
+  # ── a 벌: 화면 입구 WEB_PORT(8410) ──
+  web-a:
+    <<: *web
+    image: ${DEPLOY_NAME}-web:${IMAGE_TAG_A:?IMAGE_TAG_A가 없습니다}
     ports:
       - "127.0.0.1:${WEB_PORT:?WEB_PORT가 없습니다}:80"
+    networks: [slot-a]
     depends_on:
-      server:
+      server-a:
         condition: service_healthy
-    restart: unless-stopped
+        restart: true   # 서버를 바꾸면 화면 입구도 다시 켜서 새 서버를 찾게 한다
 
-  server:
-    image: ${DEPLOY_NAME}-server:${IMAGE_TAG:-local}
-    build: ./backend
+  server-a:
+    <<: *server
+    image: ${DEPLOY_NAME}-server:${IMAGE_TAG_A:?IMAGE_TAG_A가 없습니다}
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://${DB_ADDRESS:?DB_ADDRESS가 없습니다}:${DB_PORT:-5432}/${DB_NAME:?DB_NAME이 없습니다}?currentSchema=${DB_SCHEMA:?DB_SCHEMA가 없습니다}
-      DB_SCHEMA: ${DB_SCHEMA:?DB_SCHEMA가 없습니다}
-      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME이 없습니다}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD가 없습니다}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      IMAGE_S3_ENDPOINT: http://minio:9000
-      IMAGE_S3_BUCKET: ${IMAGE_S3_BUCKET:-myblog-images}
-      IMAGE_S3_ACCESS_KEY: ${IMAGE_S3_ACCESS_KEY:?IMAGE_S3_ACCESS_KEY가 없습니다}
-      IMAGE_S3_SECRET_KEY: ${IMAGE_S3_SECRET_KEY:?IMAGE_S3_SECRET_KEY가 없습니다}
-      VERIFICATION_SECRET: ${VERIFICATION_SECRET:?VERIFICATION_SECRET(32자 이상)이 없습니다}
-      MAIL_HOST: ${MAIL_HOST:-}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      # 소셜 로그인 (specs/010). 비어 있는 회사는 쓰지 않는다
-      SOCIAL_GITHUB_CLIENT_ID: ${SOCIAL_GITHUB_CLIENT_ID:-}
-      SOCIAL_GITHUB_CLIENT_SECRET: ${SOCIAL_GITHUB_CLIENT_SECRET:-}
-      SOCIAL_GOOGLE_CLIENT_ID: ${SOCIAL_GOOGLE_CLIENT_ID:-}
-      SOCIAL_GOOGLE_CLIENT_SECRET: ${SOCIAL_GOOGLE_CLIENT_SECRET:-}
-      SOCIAL_KAKAO_CLIENT_ID: ${SOCIAL_KAKAO_CLIENT_ID:-}
-      SOCIAL_KAKAO_CLIENT_SECRET: ${SOCIAL_KAKAO_CLIENT_SECRET:-}
-      SOCIAL_NAVER_CLIENT_ID: ${SOCIAL_NAVER_CLIENT_ID:-}
-      SOCIAL_NAVER_CLIENT_SECRET: ${SOCIAL_NAVER_CLIENT_SECRET:-}
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
-    depends_on:
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /actuator/health HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q UP <&3'"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
-    restart: unless-stopped
+      <<: *server-env
+      INSTANCE_NAME: a
+    networks:
+      default: {}
+      slot-a:
+        aliases: [server]   # 화면 Nginx(frontend/nginx.conf)는 server:8080으로 넘긴다. 같은 벌의 서버만 보이게 한다
 
+  # ── b 벌: 화면 입구 WEB_PORT_B(8411) ──
+  web-b:
+    <<: *web
+    image: ${DEPLOY_NAME}-web:${IMAGE_TAG_B:?IMAGE_TAG_B가 없습니다}
+    ports:
+      - "127.0.0.1:${WEB_PORT_B:?WEB_PORT_B가 없습니다}:80"
+    networks: [slot-b]
+    depends_on:
+      server-b:
+        condition: service_healthy
+        restart: true
+
+  server-b:
+    <<: *server
+    image: ${DEPLOY_NAME}-server:${IMAGE_TAG_B:?IMAGE_TAG_B가 없습니다}
+    environment:
+      <<: *server-env
+      INSTANCE_NAME: b
+    networks:
+      default: {}
+      slot-b:
+        aliases: [server]
+
+  # ── 두 벌이 같이 쓰는 것 (배포 때 다시 켜지 않는다) ──
   redis:
     image: redis:8
     healthcheck:
@@ -81,6 +131,11 @@ services:
       interval: 5s
       retries: 20
     restart: unless-stopped
+
+networks:
+  default: {}
+  slot-a: {}
+  slot-b: {}
 
 volumes:
   minio-data:
