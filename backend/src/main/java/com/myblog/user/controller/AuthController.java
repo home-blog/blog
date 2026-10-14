@@ -44,7 +44,7 @@ public class AuthController {
         this.currentMember = currentMember;
     }
 
-    @Operation(summary = "이메일로 로그인", description = "성공하면 서버 세션(쿠키)이 생긴다. 5번 틀리면 10분 잠긴다. 로그아웃은 POST /api/v1/auth/logout (Spring Security가 처리).")
+    @Operation(summary = "이메일로 로그인", description = "성공하면 서버 세션(쿠키)이 생긴다. 정한 횟수만큼 틀리면 정한 시간 동안 잠긴다(`auth.login.*`). 로그아웃은 POST /api/v1/auth/logout (Spring Security가 처리).")
     @PostMapping("/login")
     public MemberResponse login(@Valid @RequestBody AuthRequests.Login request, HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
@@ -63,7 +63,7 @@ public class AuthController {
         return new MemberResponse(new Member(member.getId(), member.getNickname()));
     }
 
-    @Operation(summary = "이메일 인증번호 보내기", description = "6자리 번호를 메일로 보낸다(10분 유효, 1분에 한 번, 하루 5번). 받은 verificationToken을 확인·가입 요청에 다시 보낸다.")
+    @Operation(summary = "이메일 인증번호 보내기", description = "인증번호를 메일로 보낸다. 자릿수·유효 시간·다시 보내기 간격·하루 횟수는 설정 `auth.email-verification.*`을 따른다. 받은 verificationToken을 확인·가입 요청에 다시 보낸다.")
     @PostMapping("/email-verifications")
     public SendCodeResponse sendCode(@RequestBody AuthRequests.SendCode request) {
         EmailVerificationService.SentCode sent = verification.send(request.nickname(), request.email());
@@ -74,7 +74,7 @@ public class AuthController {
                 sent.verificationToken());
     }
 
-    @Operation(summary = "인증번호 확인", description = "5번 틀리면 다시 받아야 한다.")
+    @Operation(summary = "인증번호 확인", description = "정한 횟수(`auth.email-verification.max-wrong-attempts`)만큼 틀리면 다시 받아야 한다.")
     @PostMapping("/email-verifications/confirm")
     public MessageResponse confirmCode(@RequestBody AuthRequests.ConfirmCode request) {
         verification.confirm(request.email(), request.code(), request.verificationToken());

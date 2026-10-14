@@ -29,7 +29,7 @@ public class ManagePostController {
         this.queryService = queryService;
     }
 
-    @Operation(summary = "글 관리 목록", description = "공개 범위·분류로 거른다. 한 쪽에 10개.")
+    @Operation(summary = "글 관리 목록", description = "공개 범위·분류로 거른다. 한 쪽 글 수는 `manage.page-size`.")
     @GetMapping("/api/{version}/manage/posts")
     public ManagePostPage list(Authentication authentication,
             @RequestParam(defaultValue = "all") String visibility,

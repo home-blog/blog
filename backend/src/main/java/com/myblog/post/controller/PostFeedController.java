@@ -32,14 +32,14 @@ public class PostFeedController {
     }
 
     /** 첫 화면 머리의 분량 (v0.5.1). GET /api/v1/posts/summary */
-    @Operation(summary = "첫 화면 분량 (블로거·글·원고지 매수)", description = "원고지 매수는 글마다 200자에 1매로 올림해 더한다. 5분 동안 캐시.")
+    @Operation(summary = "첫 화면 분량 (블로거·글·원고지 매수)", description = "원고지 매수는 글마다 한 장 글자 수(`post.manuscript.chars-per-sheet`)로 나눠 올림해 더한다. 다시 세기까지 `explore.feed.summary-ttl` 동안 앞서 센 값을 준다.")
     @GetMapping("/api/{version}/posts/summary")
     public SiteSummary summary() {
         return feedService.summary();
     }
 
     /** 이번 주 인기 글. GET /api/v1/posts/popular?topic=여행 */
-    @Operation(summary = "이번 주 인기 글", description = "최근 7일 조회수 순.")
+    @Operation(summary = "이번 주 인기 글", description = "최근 며칠(`explore.feed.popular-days`)의 조회수 순.")
     @GetMapping("/api/{version}/posts/popular")
     public PopularView popular(@RequestParam(required = false) String topic) {
         return feedService.popular(topic);

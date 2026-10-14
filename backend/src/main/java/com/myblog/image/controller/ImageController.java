@@ -45,7 +45,7 @@ public class ImageController {
     }
 
     /** 이미지 한 장 올리기. postId는 수정 중인 글의 번호 (선택). */
-    @Operation(summary = "이미지 올리기", description = "JPG·PNG·GIF·WebP, 한 장 5MB까지. 받은 주소를 본문 마크다운에 넣는다. 글에 연결되지 않은 이미지는 24시간 뒤 지운다.")
+    @Operation(summary = "이미지 올리기", description = "받은 주소를 본문 마크다운에 넣는다. 형식·한 장 크기(`community.image.allowed-types`, `max-size`)를 확인하고, 글에 연결되지 않은 이미지는 정한 시간(`orphan-ttl`) 뒤 지운다.")
     @PostMapping(path = "/api/{version}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Uploaded upload(Authentication authentication, @RequestParam(name = "file", required = false) MultipartFile file,

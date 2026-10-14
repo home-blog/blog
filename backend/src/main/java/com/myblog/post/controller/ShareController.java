@@ -54,7 +54,7 @@ public class ShareController {
         return ok(HTML, shareService.postCard(base(), postId));
     }
 
-    @Operation(summary = "사이트 RSS", description = "최신 공개 글 20개.")
+    @Operation(summary = "사이트 RSS", description = "최신 공개 글 (개수는 `share.rss-size`).")
     @GetMapping("/rss.xml")
     public ResponseEntity<String> siteRss() {
         return ok(RSS, shareService.siteRss(base()));

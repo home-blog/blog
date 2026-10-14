@@ -32,7 +32,7 @@ public class StatsController {
         this.properties = properties.stats();
     }
 
-    @Operation(summary = "통계", description = "최근 7일 또는 30일(days)의 날짜별 방문자·조회수와 글별 조회수.")
+    @Operation(summary = "통계", description = "고를 수 있는 기간(`manage.stats.period-options`) 중 days의 날짜별 방문자·조회수와 글별 조회수.")
     @GetMapping("/api/{version}/manage/stats")
     public StatsResponse stats(Authentication authentication, @RequestParam(required = false) Integer days) {
         Long memberId = loggedInMember.requireIdOf(authentication);

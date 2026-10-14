@@ -39,7 +39,7 @@ public class OpenApiConfig {
                         - 릴리스마다 바뀐 것은 저장소의 CHANGELOG.md에 있습니다.
 
                         **로그인 (서버 세션)**
-                        - 로그인하면 세션 쿠키 `SESSION`이 생기고, 세션은 PostgreSQL에 저장됩니다 (JWT 안 씀). 7일 동안 쓰지 않으면 끝납니다.
+                        - 로그인하면 세션 쿠키 `SESSION`이 생기고, 세션은 PostgreSQL에 저장됩니다 (JWT 안 씀). 정한 시간(`auth.session.idle-timeout`) 동안 쓰지 않으면 끝납니다.
                         - 로그아웃: `POST /api/v1/auth/logout` (Spring Security가 처리)
                         - 소셜 로그인: 화면이 `/oauth2/authorization/{github|google|kakao|naver}`로 이동 → 회사 화면 → `/login/oauth2/code/{회사}`로 돌아옴
 
