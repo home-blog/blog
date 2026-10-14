@@ -145,7 +145,8 @@ for i in "${!order[@]}"; do
   export "$var=$target"
   if ! "${compose[@]}" up -d --no-build --no-deps --wait --wait-timeout 300 "server-$slot" "web-$slot" || ! check_slot "$slot"; then
     "${compose[@]}" logs --tail 80 "server-$slot" >&2 || true
-    if [ -n "$old" ] && [ "$old" != "$target" ] && docker image inspect "${DEPLOY_NAME}-server:$old" >/dev/null 2>&1; then
+    if [ -n "$old" ] && [ "$old" != "$target" ] \
+       && docker image inspect "${DEPLOY_NAME}-server:$old" "${DEPLOY_NAME}-web:$old" >/dev/null 2>&1; then
       echo "$slot 벌을 옛 이미지($old)로 되돌립니다" >&2
       export "$var=$old"
       if ! "${compose[@]}" up -d --no-build --no-deps --wait --wait-timeout 300 "server-$slot" "web-$slot" || ! check_slot "$slot"; then
