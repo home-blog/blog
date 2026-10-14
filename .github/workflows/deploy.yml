@@ -14,7 +14,8 @@
 #                 있으면 씀:  MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD (인증 메일. 없으면 가입이 안 된다)
 #                             SOCIAL_{GITHUB|GOOGLE|KAKAO|NAVER}_CLIENT_ID, ..._CLIENT_SECRET (소셜 로그인. 없는 회사는 버튼이 안 보인다)
 #           (Repository variables, 있으면 씀): SESSION_COOKIE_SECURE (HTTPS가 붙으면 true. 없으면 false)
-# 서버에는 ~/<DEPLOY_NAME> 폴더 하나만 쓴다. 화면 입구는 127.0.0.1:<WEB_PORT>, 도메인 연결은 deploy/README.md 참고
+# 서버에는 ~/<DEPLOY_NAME> 폴더 하나만 쓴다. 화면 입구는 127.0.0.1:<WEB_PORT>(a)·<WEB_PORT_B>(b), 도메인 연결은 deploy/README.md 참고
+# 앱 두 벌을 한 벌씩 바꾸므로(롤링) 배포 중에도 사이트가 끊기지 않는다 (specs/011)
 name: 배포
 
 on:
@@ -39,7 +40,8 @@ permissions:
 
 env:
   DEPLOY_NAME: geulgyeol   # 서버 폴더·컨테이너·이미지 이름
-  WEB_PORT: "8410"         # 내 포트 범위(8410~8419)의 맨 처음
+  WEB_PORT: "8410"         # 앱 a 벌의 화면 입구. 내 포트 범위(8410~8419)의 맨 처음
+  WEB_PORT_B: "8411"       # 앱 b 벌의 화면 입구 (무중단 배포, specs/011). 학원 Nginx upstream에 둘 다 있다
 
 jobs:
   check:
@@ -174,7 +176,7 @@ jobs:
           tar czf - docker-compose.deploy.yml deploy | remote "mkdir -p $dir && tar xzf - -C $dir"
 
           # 2) 접속 정보: 파일을 거치지 않고 바로 서버의 .env.deploy(나만 읽기)로 쓴다. 값은 셸 따옴표로 감싼다
-          for k in DEPLOY_NAME WEB_PORT IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
+          for k in DEPLOY_NAME WEB_PORT WEB_PORT_B IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
                    MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE \
                    SOCIAL_GITHUB_CLIENT_ID SOCIAL_GITHUB_CLIENT_SECRET SOCIAL_GOOGLE_CLIENT_ID SOCIAL_GOOGLE_CLIENT_SECRET \
                    SOCIAL_KAKAO_CLIENT_ID SOCIAL_KAKAO_CLIENT_SECRET SOCIAL_NAVER_CLIENT_ID SOCIAL_NAVER_CLIENT_SECRET; do
@@ -184,11 +186,8 @@ jobs:
           # 3) 이미지
           remote "cat > $dir/images.tar.gz" < "$RUNNER_TEMP/images.tar.gz"
 
-          # 4) 켜기 (실패하면 서버 로그 끝부분을 남긴다)
-          if ! remote "bash $dir/deploy/remote-deploy.sh"; then
-            remote "docker logs --tail 80 $DEPLOY_NAME-server-1" || true
-            exit 1
-          fi
+          # 4) 한 벌씩 바꾸기 (실패한 벌의 서버 로그는 remote-deploy.sh가 남긴다)
+          remote "bash $dir/deploy/remote-deploy.sh"
 
   release:
     name: 릴리스 만들기
