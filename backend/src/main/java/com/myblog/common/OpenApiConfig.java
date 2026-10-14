@@ -49,7 +49,7 @@ public class OpenApiConfig {
                         **오류 모양** (모든 API 공통)
                         ```json
                         { "code": "VALIDATION_FAILED", "message": "입력값을 다시 확인해 주세요",
-                          "fieldErrors": [ { "field": "title", "code": "REQUIRED", "message": "필수 입력 항목입니다" } ] }
+                          "fieldErrors": [ { "field": "title", "code": "TITLE_REQUIRED", "message": "제목을 입력해 주세요" } ] }
                         ```
                         볼 권한이 없는 글·댓글·이미지는 있는지 없는지 알 수 없도록 없는 것과 같은 404로 답합니다."""))
                 .tags(List.of(
