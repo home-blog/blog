@@ -8,6 +8,8 @@ import com.myblog.post.service.PostFormService.PostForm;
 import com.myblog.post.service.PostReadService;
 import com.myblog.post.service.PostWriteService;
 import com.myblog.user.LoggedInMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 글 (specs/003 contracts 9 ~ 14). 회원 번호는 LoggedInMember로만 얻는다 (주소·본문에서 받지 않음).
  * 글 읽기(GET /api/v1/posts/{숫자})만 로그인 없이 부를 수 있다 (SecurityConfig).
  */
+@Tag(name = "5. 글")
 @RestController
 public class PostController {
 
@@ -46,12 +49,14 @@ public class PostController {
     }
 
     /** 글쓰기 화면의 기본값 (contracts 9). */
+    @Operation(summary = "글쓰기 화면 기본값", description = "내 분류 목록, 주제 목록, 글자 수 제한.")
     @GetMapping("/api/{version}/me/blog/post-form")
     public PostForm form(Authentication authentication) {
         return formService.form(loggedInMember.requireIdOf(authentication));
     }
 
     /** 글 쓰기 (contracts 10). 새 글이면 201, 같은 requestKey로 이미 만든 글이면 200. 둘 다 { postId }. */
+    @Operation(summary = "글 쓰기", description = "마크다운 본문. 같은 requestKey로 두 번 보내도 글은 하나만 생긴다(새 글 201, 이미 만든 글 200).")
     @PostMapping("/api/{version}/posts")
     public ResponseEntity<PostIdResponse> create(Authentication authentication,
             @Valid @RequestBody PostRequests.Write request) {
@@ -67,6 +72,7 @@ public class PostController {
      * 보여 줄 수 있는 글이면 "읽혔다"고 알린다. 통계 모듈이 듣고 센다 (specs/006 T051, contracts 9).
      * 읽기 트랜잭션이 끝나 DB 연결을 돌려준 뒤에 알린다: 세는 쪽이 연결을 하나 더 잡아도 한 요청이 연결 둘을 같이 쥐지 않는다.
      */
+    @Operation(summary = "글 읽기", description = "누구나 부른다. 볼 수 없는 글(비공개)은 없는 글과 같은 404. 조회수에 센다.")
     @GetMapping("/api/{version}/posts/{postId}")
     public PostReadService.PostDetail read(@PathVariable Long postId, Authentication authentication) {
         Long viewerId = loggedInMember.idOf(authentication).orElse(null);
@@ -76,12 +82,14 @@ public class PostController {
     }
 
     /** 수정 화면용 글 (contracts 12). 남의 글이면 404. */
+    @Operation(summary = "글 수정 화면용 내용", description = "남의 글이면 404.")
     @GetMapping("/api/{version}/posts/{postId}/edit")
     public PostEditService.EditView editView(@PathVariable Long postId, Authentication authentication) {
         return editService.editView(loggedInMember.requireIdOf(authentication), postId);
     }
 
     /** 글 수정 (contracts 13). 본문은 주인 확인 뒤에 서비스가 검사한다 (@Valid 없음). */
+    @Operation(summary = "글 수정")
     @PutMapping("/api/{version}/posts/{postId}")
     public PostEditService.Updated update(@PathVariable Long postId, Authentication authentication,
             @RequestBody PostRequests.Update request) {
@@ -89,6 +97,7 @@ public class PostController {
     }
 
     /** 글 삭제 (contracts 14). */
+    @Operation(summary = "글 삭제", description = "댓글·좋아요·이미지도 함께 지운다.")
     @DeleteMapping("/api/{version}/posts/{postId}")
     public ResponseEntity<Void> delete(@PathVariable Long postId, Authentication authentication) {
         editService.delete(loggedInMember.requireIdOf(authentication), postId);

@@ -7,6 +7,8 @@ import com.myblog.blog.service.BlogQueryService.BlogView;
 import com.myblog.blog.service.BlogQueryService.CategoryView;
 import com.myblog.blog.service.BlogSettingsService;
 import com.myblog.user.LoggedInMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * /api/blogs/**는 누구나 읽는다 (SecurityConfig). /api/me/blog는 로그인해야 하고, 내 블로그는 세션의 회원으로만 정한다 (FR-006).
  * 회원 번호는 LoggedInMember로만 얻는다 (주소·본문에서 받지 않음).
  */
+@Tag(name = "4. 블로그·분류")
 @RestController
 public class BlogController {
 
@@ -39,6 +42,7 @@ public class BlogController {
     }
 
     /** 내 블로그 (contracts 3). */
+    @Operation(summary = "내 블로그")
     @GetMapping("/api/{version}/me/blog")
     public MyBlogResponse myBlog(Authentication authentication) {
         BlogView blog = queryService.myBlog(loggedInMember.requireIdOf(authentication));
@@ -46,6 +50,7 @@ public class BlogController {
     }
 
     /** 내 블로그 이름·소개 고치기 (contracts 4). 블로그 삭제 주소는 없다 (FR-007). */
+    @Operation(summary = "내 블로그 이름·소개 바꾸기")
     @PutMapping("/api/{version}/me/blog")
     public MyBlogResponse changeProfile(Authentication authentication, @Valid @RequestBody BlogRequests.UpdateProfile request) {
         BlogView blog = settingsService.changeProfile(loggedInMember.requireIdOf(authentication), request.name(), request.intro());
@@ -57,6 +62,7 @@ public class BlogController {
      * 블로그 첫 화면·분류별 목록이 열 때마다 부르므로 여기서 방문을 알린다. 방문자는 통계 모듈이 센다 (specs/006 T056, D-5 B).
      * 읽기 트랜잭션이 끝난 뒤에 알린다 (PostController.read와 같은 까닭).
      */
+    @Operation(summary = "블로그 정보", description = "누구나 부른다. 방문자 수에 센다.")
     @GetMapping("/api/{version}/blogs/{blogId}")
     public BlogView blog(@PathVariable Long blogId, Authentication authentication) {
         Long viewerId = loggedInMember.idOf(authentication).orElse(null);
@@ -66,6 +72,7 @@ public class BlogController {
     }
 
     /** 분류 목록과 글 개수 (contracts 2). 보는 사람에 따라 비공개 분류와 개수가 다르다. */
+    @Operation(summary = "블로그의 분류 목록", description = "보는 사람에 따라 다르다: 주인은 비공개 분류와 그 글 수까지 본다.")
     @GetMapping("/api/{version}/blogs/{blogId}/categories")
     public CategoriesResponse categories(@PathVariable Long blogId, Authentication authentication) {
         return new CategoriesResponse(queryService.categories(blogId, loggedInMember.idOf(authentication).orElse(null)));
