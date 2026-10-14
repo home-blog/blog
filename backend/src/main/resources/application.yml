@@ -3,6 +3,8 @@
 spring:
   application:
     name: myblog-server
+  lifecycle:
+    timeout-per-shutdown-phase: 30s   # 끌 때 처리 중인 요청을 기다리는 최대 시간 (graceful shutdown)
   profiles:
     default: dev
   datasource:
@@ -38,6 +40,9 @@ spring:
       mail.smtp.writetimeout: 5000
 
 server:
+  # 끌 때(배포) 새 요청은 받지 않고, 처리 중인 요청은 마치고 꺼진다 (specs/011). 기다림은 아래 lifecycle 시간까지.
+  # docker-compose.deploy.yml의 stop_grace_period(40s)는 이보다 길어야 중간에 잘리지 않는다
+  shutdown: graceful
   servlet:
     session:
       timeout: 7d   # 마지막 사용 후 7일 (CF-02-10)
@@ -211,3 +216,7 @@ myblog:
     from-name: 글결   # 받는 사람에게 보이는 보내는 사람 이름 (주소는 MAIL_USERNAME)
   verification:
     min-secret-length: 32   # 인증 비밀키(VERIFICATION_SECRET)의 최소 길이. 32보다 낮출 수 없다
+
+# 무중단 배포 (specs/011): 배포에서는 앱 두 벌(a, b)을 같이 띄운다. 이름이 있으면 응답에 X-Instance로 붙인다. 로컬은 비워 둔다
+instance:
+  name: ${INSTANCE_NAME:}

@@ -4,10 +4,10 @@
 
 1. Actions가 서버·화면 Docker 이미지를 만든다.
 2. SSH로 실습 서버에 접속해 이미지와 배포 파일을 `~/geulgyeol/`에 올린다. 접속 정보는 GitHub Secrets에서 읽는다.
-3. 서버에서 `deploy/remote-deploy.sh`를 실행해 컨테이너를 새로 켠다.
+3. 서버에서 `deploy/remote-deploy.sh`를 실행해 앱 두 벌을 **한 벌씩** 새 이미지로 바꾼다 (무중단 롤링 배포, 아래 "무중단 배포").
 
-구성: 인터넷 → 실습 서버 Nginx(도메인 → `127.0.0.1:8410`) → **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 서버로 넘김) → **서버 컨테이너**(Spring) → 실습 DB(PostgreSQL, 내 스키마) · Redis · MinIO 컨테이너.
-여는 포트는 화면 입구 8410 하나뿐이고, 그것도 서버 안(`127.0.0.1`)에서만 받는다. Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
+구성: 인터넷 → 실습 서버 Nginx(도메인 → `upstream`: `127.0.0.1:8410` a 벌, `127.0.0.1:8411` b 벌) → 벌마다 **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 같은 벌의 서버로 넘김) → **서버 컨테이너**(Spring) → 두 벌이 같이 쓰는 실습 DB(PostgreSQL, 내 스키마) · Redis · MinIO 컨테이너.
+여는 포트는 화면 입구 8410·8411뿐이고, 그것도 서버 안(`127.0.0.1`)에서만 받는다. Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
 
 > 이 저장소는 공개다. 서버 주소·비밀번호는 GitHub Secrets에만 둔다.
 
@@ -49,7 +49,7 @@ ssh-keyscan -p <포트> <주소>
 ```bash
 bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도메인>.conf가 생긴다
 ```
-그다음 강사님께 파일 이름을 알려 적용을 요청한다.
+그다음 강사님께 파일 이름을 알려 적용을 요청한다(학원 Nginx는 5분마다 다시 읽는다). 이미 파일이 있으면 덮어쓰지 않는다. 강사님이 HTTPS(Certbot)를 덧붙였을 수 있어서다. 그때는 아래 "학원 Nginx 고치기"대로 필요한 줄만 고친다.
 
 ## 배포하기
 
@@ -64,16 +64,75 @@ bash ~/geulgyeol/deploy/make-nginx-conf.sh <내 도메인>   # ~/nginx/<내 도�
   - GitHub 화면에서 직접 릴리스(태그 `v<번호>`, 대상 `main`)를 내도 같은 확인을 거쳐 배포된다. 미리보기(pre-release)는 배포하지 않는다. **지난 버전을 기록용으로 새로 낼 때는 미리보기로** 낸다(옛 커밋에는 이 확인이 없어 그대로 배포된다).
 - **손으로**: Actions 탭 → `배포` → `Run workflow` (main의 지금 코드를 다시 올린다. 설정·Secrets만 바꿨을 때).
 
+## 무중단 배포 (specs/011)
+
+앱(화면 + 서버)을 두 벌 같이 띄우고, 학원 Nginx가 `upstream`으로 번갈아 보낸다. 배포는 한 벌씩 바꾼다(롤링).
+
+1. 한 벌(예: a)의 화면 입구를 끈다. 포트가 닫히면 학원 Nginx가 같은 요청을 다른 벌(b)로 다시 보낸다(`proxy_next_upstream`). 처리 중인 요청은 마치고 꺼진다.
+2. a 벌의 서버를 새 이미지로 켜고 건강해질 때까지 기다린 뒤 화면 입구를 켠다.
+3. `127.0.0.1:8410`으로 직접 확인한다(API 200, `X-Instance: a`, 첫 화면 200). **실패하면 a 벌만 옛 이미지로 되돌리고 멈춘다.** b 벌은 그대로 손님을 받는다.
+4. 15초(`SLOT_SETTLE_SECONDS`) 기다린다. 학원 Nginx가 한 번 실패한 벌을 10초(`fail_timeout`) 쉬게 하므로, 그보다 오래 기다려야 a 벌을 다시 쓰기 시작한 뒤에 b 벌을 끈다.
+5. b 벌도 같은 순서로 바꾼다.
+
+**지켜야 할 것** (두 버전이 잠깐 같이 돈다)
+- **DB는 넓히고 → 좁히기**: 표·칸 추가는 바로 해도 된다. 칸 이름 바꾸기·지우기·`NOT NULL` 추가는 릴리스를 나눈다(새 칸 추가 → 코드가 새 칸을 씀 → 다음 릴리스에서 옛 칸 지우기). 새 서버가 켜질 때 Flyway가 바꾼 표 위에서 옛 서버가 돌기 때문이다.
+- **API는 v1 약속을 깨지 않는다**: 깨지는 변경이면 `/api/v2`를 연다 (CHANGELOG 맨 위 "번호 읽는 법").
+- **세션에 들어가는 클래스**(`MemberPrincipal` 등)의 `serialVersionUID`를 올리면 다른 버전이 만든 세션을 못 읽어 로그아웃된다. 꼭 바꿔야 하면 릴리스 기록에 적는다.
+- **정해진 시각에 도는 일**(`@Scheduled`)은 두 벌에서 다 돈다. 지금 있는 이미지 정리(`OrphanImageCleaner`)는 두 번 돌아도 결과가 같다. 두 번 돌면 안 되는 일을 더할 때는 한쪽만 돌게 잠근다.
+
+**한계**: 한 벌을 끄는 순간(0.1초 안팎) Docker 포트 중계(docker-proxy)가 받은 연결이 끊길 수 있다. GET은 학원 Nginx가 다른 벌로 다시 보내 성공하지만, 이미 보낸 POST는 두 번 저장되지 않도록 다시 보내지 않아 502가 될 수 있다(로컬에서 1초에 70번쯤 보낼 때 벌마다 1개).
+
+## 트래픽 보기
+
+```bash
+# 내 컴퓨터에서: 요청마다 어느 벌이 받았는지 (8410 = a, 8411 = b. "8411, 8410"은 8411이 안 돼서 8410으로 다시 보낸 것)
+for i in $(seq 10); do curl -s -o /dev/null -D - https://<내 도메인>/api/v1/auth/csrf | grep -iE 'x-upstream|x-instance'; done
+
+# 서버에서: 접속 로그로 벌마다 요청 수 (견본의 log_format을 쓸 때)
+grep -o 'upstream=[^ ]*' ~/nginx/logs/<내 도메인>.access.log | sort | uniq -c
+tail -f ~/nginx/logs/<내 도메인>.access.log
+```
+
+배포 중에 끊기지 않는지 보려면 배포하는 동안 다른 창에서 요청을 계속 보내고 실패 수를 센다.
+
+```bash
+ok=0; fail=0
+while true; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' https://<내 도메인>/api/v1/auth/csrf)
+  [ "$code" = 200 ] && ok=$((ok+1)) || { fail=$((fail+1)); echo " 실패 $code"; }
+  printf '\r성공 %d / 실패 %d' "$ok" "$fail"; sleep 0.2
+done
+```
+
+## 학원 Nginx 고치기
+
+이미 있는 `~/nginx/<내 도메인>.conf`는 통째로 덮어쓰지 않는다(강사님이 HTTPS를 덧붙여 두었다). 백업하고 필요한 줄만 고친 뒤 `diff`로 확인한다.
+
+```bash
+cd ~/nginx
+cp <내 도메인>.conf <내 도메인>.conf.bak-$(date +%Y%m%d)
+# 1) 맨 위에 upstream 묶음
+{ printf 'upstream geulgyeol {\n    server 127.0.0.1:8410 max_fails=1 fail_timeout=10s;\n    server 127.0.0.1:8411 max_fails=1 fail_timeout=10s;\n}\n\n'
+  cat <내 도메인>.conf.bak-$(date +%Y%m%d); } > <내 도메인>.conf
+# 2) proxy_pass를 묶음으로 바꾸고, 다른 벌로 다시 보내기·확인용 머리글을 더한다
+sed -i 's|^\(\s*\)proxy_pass http://127.0.0.1:8410;|\1proxy_pass http://geulgyeol;\n\1proxy_next_upstream error timeout http_502 http_503;\n\1add_header X-Upstream $upstream_addr always;|' <내 도메인>.conf
+diff <내 도메인>.conf.bak-$(date +%Y%m%d) <내 도메인>.conf   # upstream 묶음과 proxy_pass 부분만 나와야 한다
+```
+
+되돌릴 때는 백업 파일을 다시 복사한다. 5분 안에 반영된다.
+
 ## 서버에서 볼 때 (SSH 접속 후)
 
 ```bash
-docker ps --filter name=geulgyeol         # 상태
-docker logs -f geulgyeol-server-1         # 서버 로그 (나올 때 Ctrl+C)
-bash ~/geulgyeol/deploy/remote-deploy.sh  # 지금 이미지로 다시 켜기
+docker ps --filter name=geulgyeol           # 상태 (web-a, server-a, web-b, server-b, redis, minio)
+docker logs -f geulgyeol-server-a-1         # a 벌 서버 로그 (나올 때 Ctrl+C). b 벌은 server-b-1
+cat ~/geulgyeol/.slots.env                  # 벌마다 지금 이미지와 바로 전 이미지(PREVIOUS_TAG)
+bash ~/geulgyeol/deploy/remote-deploy.sh    # 지금 이미지로 한 벌씩 다시 켜기
+bash ~/geulgyeol/deploy/remote-deploy.sh <태그>   # 서버에 남은 다른 이미지로 되돌리기 (예: .slots.env의 PREVIOUS_TAG)
 ```
 
 ## 알아 둘 것
 
-- **HTTPS**: 지금은 http라서 로그인 쿠키를 http에서도 보낸다(`SESSION_COOKIE_SECURE=false`). 도메인에 HTTPS(자물쇠)가 붙으면 저장소 Settings → Variables에 `SESSION_COOKIE_SECURE`=`true`를 만들고 다시 배포한다.
+- **HTTPS**: 강사님이 Certbot으로 붙여 주셨다(http는 https로 넘어간다, 2026-10-14 확인). 로그인 쿠키를 https에서만 보내려면 저장소 Settings → Variables에 `SESSION_COOKIE_SECURE`=`true`를 만들고 다시 배포한다(없으면 false).
 - **DB 스키마**: 서버는 `DB_SCHEMA` 안에만 표를 만든다(Flyway). 그 스키마에 다른 표가 이미 있으면 서버가 켜지지 않는다.
 - 같은 Docker를 여럿이 쓰므로 컨테이너·이미지 이름은 모두 `geulgyeol-`로 시작한다. 옛 이미지는 배포 때 내 것만 지운다.
