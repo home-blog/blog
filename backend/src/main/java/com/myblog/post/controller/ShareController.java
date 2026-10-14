@@ -1,6 +1,8 @@
 package com.myblog.post.controller;
 
 import com.myblog.post.service.ShareService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Duration;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  *   <li>/rss.xml, /blog/{id}/rss.xml, /sitemap.xml, /robots.txt</li>
  * </ul>
  */
+@Tag(name = "10. 공유·검색엔진")
 @RestController
 public class ShareController {
 
@@ -33,26 +36,31 @@ public class ShareController {
         this.shareService = shareService;
     }
 
+    @Operation(summary = "첫 화면 링크 미리보기 카드 (HTML)", description = "카카오톡·디스코드 같은 링크 미리보기 로봇에게 화면 Nginx가 넘긴다.")
     @GetMapping({"/og", "/og/"})
     public ResponseEntity<String> homeCard() {
         return ok(HTML, shareService.homeCard(base()));
     }
 
+    @Operation(summary = "블로그 링크 미리보기 카드 (HTML)")
     @GetMapping("/og/blog/{blogId:\\d+}")
     public ResponseEntity<String> blogCard(@PathVariable long blogId) {
         return ok(HTML, shareService.blogCard(base(), blogId));
     }
 
+    @Operation(summary = "글 링크 미리보기 카드 (HTML)")
     @GetMapping("/og/posts/{postId:\\d+}")
     public ResponseEntity<String> postCard(@PathVariable long postId) {
         return ok(HTML, shareService.postCard(base(), postId));
     }
 
+    @Operation(summary = "사이트 RSS", description = "최신 공개 글 20개.")
     @GetMapping("/rss.xml")
     public ResponseEntity<String> siteRss() {
         return ok(RSS, shareService.siteRss(base()));
     }
 
+    @Operation(summary = "블로그 RSS")
     @GetMapping("/blog/{blogId:\\d+}/rss.xml")
     public ResponseEntity<String> blogRss(@PathVariable long blogId) {
         return shareService.blogRss(base(), blogId)
@@ -60,11 +68,13 @@ public class ShareController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "사이트 지도", description = "검색엔진용 공개 글 주소 목록.")
     @GetMapping("/sitemap.xml")
     public ResponseEntity<String> sitemap() {
         return ok(XML, shareService.sitemap(base()));
     }
 
+    @Operation(summary = "검색엔진 안내")
     @GetMapping("/robots.txt")
     public ResponseEntity<String> robots() {
         return ok(TEXT, shareService.robots(base()));
