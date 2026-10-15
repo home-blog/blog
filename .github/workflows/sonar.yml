@@ -73,6 +73,12 @@ jobs:
         if: env.SONAR_TOKEN != ''
         working-directory: frontend
         run: npm ci && npm run test:coverage   # coverage/lcov.info를 만든다. 스캐너보다 먼저 돌아야 커버리지가 잡힌다
+      - name: 릴리스 번호 읽기
+        if: env.SONAR_TOKEN != ''
+        # SonarQube의 "새 코드"를 "이전 버전 이후"로 볼 수 있게 분석마다 릴리스 번호를 붙인다
+        run: echo "RELEASE_VERSION=$(node -p "require('./frontend/package.json').version")" >> "$GITHUB_ENV"
       - name: SonarQube 분석
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@v8
+        with:
+          args: -Dsonar.projectVersion=${{ env.RELEASE_VERSION }}
