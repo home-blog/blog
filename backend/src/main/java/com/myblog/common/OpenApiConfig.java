@@ -62,7 +62,8 @@ public class OpenApiConfig {
                         tag("7. 댓글·좋아요·신고", "글에 남기는 반응"),
                         tag("8. 이미지", "글에 넣는 사진 올리기·보기 (MinIO에 저장)"),
                         tag("9. 블로그 관리", "내 블로그의 대시보드, 통계, 글·댓글 관리"),
-                        tag("10. 공유·검색엔진", "링크 미리보기 카드, RSS, 사이트 지도 (화면이 아니라 로봇이 읽는 주소)")))
+                        tag("10. 공유·검색엔진", "링크 미리보기 카드, RSS, 사이트 지도 (화면이 아니라 로봇이 읽는 주소)"),
+                        tag("11. 공지사항", "업데이트 소식과 공지. 읽기는 누구나, 쓰기는 관리자만")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")
@@ -119,8 +120,8 @@ public class OpenApiConfig {
     private static final List<String> PUBLIC_ANY_METHOD = List.of("/api/*/auth/**");
     private static final List<String> PUBLIC_GET = List.of("/api/*/blogs/**", "/api/*/posts", "/api/*/posts/popular",
             "/api/*/posts/summary", "/api/*/posts/{postId}", "/api/*/search/**", "/api/*/posts/{postId}/comments",
-            "/api/*/tags/**", "/api/images/**", "/og", "/og/", "/og/**", "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml",
-            "/robots.txt");
+            "/api/*/tags/**", "/api/*/notices", "/api/*/notices/**", "/api/images/**", "/og", "/og/", "/og/**",
+            "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml", "/robots.txt");
 
     /** 보안 설정으로는 열려 있지만 로그인하지 않았으면 처리기가 401로 답하는 주소 (지금 로그인했는지 묻는 주소). */
     private static final List<String> ANSWERS_401_WITHOUT_LOGIN = List.of("/api/*/auth/me");

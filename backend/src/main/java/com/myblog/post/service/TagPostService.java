@@ -1,8 +1,9 @@
 package com.myblog.post.service;
 
+import com.myblog.common.paging.PageNumbers;
+import com.myblog.common.paging.PageNumbers.PageSlice;
 import com.myblog.post.config.TagProperties;
 import com.myblog.post.repository.TagPostRepository;
-import com.myblog.post.service.PageNumbers.PageSlice;
 import com.myblog.post.service.PostSearchService.SearchRow;
 import com.myblog.post.tag.TagNormalizer;
 import java.util.List;

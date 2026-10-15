@@ -2,12 +2,13 @@ package com.myblog.post.service;
 
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
+import com.myblog.common.paging.PageNumbers;
+import com.myblog.common.paging.PageNumbers.PageSlice;
 import com.myblog.post.config.ExploreProperties;
 import com.myblog.post.domain.Topic;
 import com.myblog.post.repository.PostFeedRepository;
 import com.myblog.post.repository.PostFeedRepository.FeedItem;
 import com.myblog.post.repository.TopicRepository;
-import com.myblog.post.service.PageNumbers.PageSlice;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;

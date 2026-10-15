@@ -49,18 +49,17 @@ public class AuthController {
     public MemberResponse login(@Valid @RequestBody AuthRequests.Login request, HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
         MemberPrincipal member = loginService.login(request.email(), request.password(), httpRequest, httpResponse);
-        return MemberResponse.of(member);
+        return MemberResponse.of(currentMember.get(member));
     }
 
     /**
      * 지금 로그인했는지 (contracts 8). 화면이 처음 열릴 때와 닉네임을 바꾼 뒤 부른다.
      * 세션에 남은 값이 아니라 DB의 닉네임을 돌려주고, 탈퇴한 회원이면 401이다 (specs/002 T005).
      */
-    @Operation(summary = "지금 로그인한 회원", description = "로그인하지 않았거나 탈퇴한 회원이면 401.")
+    @Operation(summary = "지금 로그인한 회원", description = "로그인하지 않았거나 탈퇴한 회원이면 401. admin은 관리자인지(공지사항 쓰기).")
     @GetMapping("/me")
     public MemberResponse me(@AuthenticationPrincipal MemberPrincipal principal) {
-        User member = currentMember.get(principal);
-        return new MemberResponse(new Member(member.getId(), member.getNickname()));
+        return MemberResponse.of(currentMember.get(principal));
     }
 
     @Operation(summary = "이메일 인증번호 보내기", description = "인증번호를 메일로 보낸다. 자릿수·유효 시간·다시 보내기 간격·하루 횟수는 설정 `auth.email-verification.*`을 따른다. 받은 verificationToken을 확인·가입 요청에 다시 보낸다.")
@@ -103,11 +102,12 @@ public class AuthController {
     }
 
     public record MemberResponse(Member member) {
-        static MemberResponse of(MemberPrincipal principal) {
-            return new MemberResponse(new Member(principal.getId(), principal.getNickname()));
+        static MemberResponse of(User user) {
+            return new MemberResponse(new Member(user.getId(), user.getNickname(), user.isAdmin()));
         }
     }
 
-    public record Member(Long id, String nickname) {
+    /** admin: 관리자인지. 화면이 공지사항 쓰기 버튼을 보일지 정한다 (specs/012 D-12, 칸 더하기라 v1 그대로). */
+    public record Member(Long id, String nickname, boolean admin) {
     }
 }

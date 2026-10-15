@@ -179,6 +179,15 @@ community:
     disk:
       directory: ${IMAGE_DISK_DIRECTORY:./data/images}
 
+# 공지사항 (specs/012 research D-5, D-10). 글자는 코드 포인트로 센다. 릴리스 링크는 번호만 저장하고 이 틀로 만든다
+notice:
+  title:
+    max-length: 100
+  content:
+    max-length: 10000
+  page-size: 10
+  release-url: https://github.com/home-blog/blog/releases/tag/v{version}
+
 # 블로그 관리·통계 (specs/006 plan.md 설정값 목록). 값은 docs의 상세/06 기본값 표와 같다
 manage:
   page-size: 10            # 글 관리·댓글 관리 한 쪽 (FR-012, FR-023)

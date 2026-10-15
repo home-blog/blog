@@ -1,4 +1,4 @@
-package com.myblog.post.service;
+package com.myblog.common.paging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

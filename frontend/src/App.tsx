@@ -3,6 +3,7 @@
 // /manage 블로그 관리(로그인 필요, specs/006): 대시보드, /manage/posts 글, /manage/categories 분류(003 화면), /manage/comments 댓글, /manage/stats 통계, /manage/blog 설정(003 화면)
 // 004: /blog/:blogId의 ?category= 분류·?page= 페이지, /search?q= 글 검색 결과(누구나)
 // 005: /tags/:tagName 같은 태그의 공개 글(누구나)
+// 012: /notices 공지사항(누구나, ?kind= 탭), /notices/:noticeId 읽기, /notices/new·/notices/:noticeId/edit 쓰기·고치기(관리자)
 // createBrowserRouter를 쓴다: "저장하지 않은 내용" 확인(useBlocker, specs/002 FR-011)이 이 방식에서만 동작한다
 import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Outlet, RouterProvider, useNavigate, useParams } from 'react-router'
@@ -18,6 +19,10 @@ import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
 import ManagePostsPage from './manage/ManagePostsPage'
 import NewCommentCountProvider from './manage/NewCommentCountProvider'
+import NoticeAlertProvider from './notice/NoticeAlertProvider'
+import NoticeDetailPage from './notice/NoticeDetailPage'
+import NoticeEditorPage from './notice/NoticeEditorPage'
+import NoticeListPage from './notice/NoticeListPage'
 import SiteFooter from './components/SiteFooter'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
@@ -51,23 +56,35 @@ function PostEditRoute() {
   return <PostEditorPage key={postId} />
 }
 
+function NoticeDetailRoute() {
+  const { noticeId } = useParams()
+  return <NoticeDetailPage key={noticeId} />
+}
+
+function NoticeEditRoute() {
+  const { noticeId } = useParams()
+  return <NoticeEditorPage key={noticeId} />
+}
+
 function SignupRoute() {
   const navigate = useNavigate()
   // 가입 뒤 자동 로그인은 하지 않고 로그인 화면으로 보낸다 (CF-01-9)
   return <SignupPage onSignedUp={() => navigate('/login', { replace: true, state: { signedUp: true } })} />
 }
 
-/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 새 댓글 수(006), 머리글, 바닥글(릴리스 번호) */
+/** 모든 화면의 바깥: 로그인 상태, 로그인 창, 새 댓글 수(006), 새 공지 점(012), 머리글, 바닥글(릴리스 번호) */
 function Layout() {
   return (
     <AuthProvider>
       <LoginModalProvider>
         <NewCommentCountProvider>
-          <SiteHeader />
-          <main>
-            <Outlet />
-          </main>
-          <SiteFooter />
+          <NoticeAlertProvider>
+            <SiteHeader />
+            <main>
+              <Outlet />
+            </main>
+            <SiteFooter />
+          </NoticeAlertProvider>
         </NewCommentCountProvider>
       </LoginModalProvider>
     </AuthProvider>
@@ -164,6 +181,24 @@ const router = createBrowserRouter([
           },
           { path: 'blog', element: <BlogSettingsPage /> },
         ],
+      },
+      { path: '/notices', element: <NoticeListPage /> },
+      { path: '/notices/:noticeId', element: <NoticeDetailRoute /> },
+      {
+        path: '/notices/new',
+        element: (
+          <RequireLogin>
+            <NoticeEditorPage />
+          </RequireLogin>
+        ),
+      },
+      {
+        path: '/notices/:noticeId/edit',
+        element: (
+          <RequireLogin>
+            <NoticeEditRoute />
+          </RequireLogin>
+        ),
       },
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -118,7 +118,14 @@ public enum ErrorCode {
     SOCIAL_ACCOUNT_IN_USE(HttpStatus.CONFLICT, "※ 이미 다른 회원과 연결된 계정입니다"),
     SOCIAL_ALREADY_LINKED(HttpStatus.CONFLICT, "※ 이미 이 회사의 다른 계정과 연결되어 있습니다. 연결을 해제한 뒤 다시 시도해 주세요"),
     SOCIAL_NOT_LINKED(HttpStatus.NOT_FOUND, "※ 연결되지 않은 계정입니다"),
-    LAST_LOGIN_METHOD(HttpStatus.CONFLICT, "※ 로그인할 방법이 하나는 있어야 합니다. 비밀번호를 먼저 만들어 주세요");
+    LAST_LOGIN_METHOD(HttpStatus.CONFLICT, "※ 로그인할 방법이 하나는 있어야 합니다. 비밀번호를 먼저 만들어 주세요"),
+
+    // 공지사항 (specs/012 contracts)
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 공지사항입니다"),
+    NOTICE_KIND_INVALID(HttpStatus.BAD_REQUEST, "※ 종류를 골라 주세요"),
+    RELEASE_VERSION_REQUIRED(HttpStatus.BAD_REQUEST, "※ 업데이트에는 릴리스 번호를 적어 주세요 (예: 0.6.0)"),
+    RELEASE_VERSION_INVALID(HttpStatus.BAD_REQUEST, "※ 릴리스 번호는 0.6.0 모양으로 적어 주세요"),
+    RELEASE_VERSION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "※ 공지에는 릴리스 번호를 적지 않습니다");
 
     private final HttpStatus status;
     private final String message;

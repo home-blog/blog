@@ -4,6 +4,8 @@ import { createContext, useContext } from 'react'
 export interface Member {
   id: number
   nickname: string
+  /** 관리자인지 (공지사항 쓰기, specs/012). 서버가 요청마다 DB로 다시 확인한다 */
+  admin?: boolean
 }
 
 export interface AuthState {
