@@ -1,5 +1,5 @@
 // 로그인 입력 (specs/001 US4, T033): 사용자가 보는 화면 기준으로 확인한다
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -37,7 +37,7 @@ describe('로그인 입력', () => {
     )
     const { onLoggedIn, user } = renderForm()
     await fillAndSubmit(user, '  writer@example.com ', 'abc123!@')
-    expect(onLoggedIn).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(onLoggedIn).toHaveBeenCalledTimes(1)) // 클릭이 끝나도 로그인 응답은 늦게 올 수 있다
     expect(sent).toEqual({ email: 'writer@example.com', password: 'abc123!@' }) // 이메일 앞뒤 공백은 지운다
   })
 

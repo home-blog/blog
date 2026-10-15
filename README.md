@@ -51,9 +51,14 @@
 ## 빠르게 실행하기
 
 ```bash
+# 저장소 맨 위에서
 cp .env.example .env                 # 처음 한 번. 접속 정보 견본 (git에 올라가지 않는다)
 docker compose up -d --wait          # PostgreSQL, Redis, MinIO
-cd backend && mvn spring-boot:run    # 서버 http://localhost:8080
+cd backend && mvn spring-boot:run    # 서버 http://localhost:8080 (켜진 채로 둔다)
+```
+
+```bash
+# 두 번째 터미널에서, 저장소 맨 위부터
 cd frontend && npm install && npm run dev   # 화면 http://localhost:5173
 ```
 
@@ -71,9 +76,10 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 ## 테스트
 
 ```bash
-cd backend && mvn verify                    # 서버 테스트 450여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
-cd frontend && npm test                     # 화면 테스트 (Vitest)
-cd frontend && npm run test:coverage        # 화면 커버리지 (coverage/lcov.info)
+# 저장소 맨 위에서. 괄호는 그 폴더에 들어갔다가 돌아온다
+(cd backend && mvn verify)                  # 서버 테스트 450여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
+(cd frontend && npm test)                   # 화면 테스트 (Vitest)
+(cd frontend && npm run test:coverage)      # 화면 커버리지 (coverage/lcov.info)
 ```
 
 기능마다 정상값·경계값·예외값을 함께 테스트하고, 테스트가 실패하면 테스트가 아니라 구현을 고칩니다. 기준은 문서 저장소의 [테스트 전략](https://github.com/home-blog/docs/blob/main/docs/3-설계/테스트-전략.md)에 있습니다.
