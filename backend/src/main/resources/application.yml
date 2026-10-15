@@ -210,6 +210,7 @@ notice:
     max-length: 10000
   page-size: 10
   release-url: https://github.com/home-blog/blog/releases/tag/v{version}
+  release-url-from: 0.4.0   # GitHub 릴리스는 0.4.0부터 있다. 그 전 업데이트 글에는 링크를 붙이지 않는다
 
 # 블로그 관리·통계 (specs/006 plan.md 설정값 목록). 값은 docs의 상세/06 기본값 표와 같다
 manage:

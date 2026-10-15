@@ -33,7 +33,8 @@ public class Notice {
     @Column(name = "pinned", nullable = false)
     private boolean pinned;
 
-    @Column(name = "users_id", nullable = false, updatable = false)
+    /** 쓴 관리자. 운영팀이 처음 넣은 글(V13)은 비어 있다. */
+    @Column(name = "users_id", updatable = false)
     private Long writerId;
 
     @Column(name = "created_at", nullable = false, updatable = false)

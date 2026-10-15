@@ -22,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -332,6 +333,18 @@ class NoticeApiTest {
             mvc.perform(get(NOTICES + "/" + id))
                     .andExpect(jsonPath("$.releaseVersion").value("0.6.0"))
                     .andExpect(jsonPath("$.releaseUrl").value("https://github.com/home-blog/blog/releases/tag/v0.6.0"));
+        }
+
+        @ParameterizedTest
+        @CsvSource({ "0.3.0, false", "0.3.99, false", "0.4.0, true", "0.10.0, true", "1.0.0, true" })
+        void S2_3_GitHub_릴리스가_없는_0_4_0_전_번호는_링크가_없다(String version, boolean linked) throws Exception {
+            // GitHub 릴리스는 0.4.0부터 만들었다 (notice.release-url-from). 번호는 글자가 아니라 숫자로 견준다
+            Long id = insert("update", "예전 소식", version, false, Instant.now());
+            mvc.perform(get(NOTICES + "/" + id))
+                    .andExpect(jsonPath("$.releaseVersion").value(version))
+                    .andExpect(linked
+                            ? jsonPath("$.releaseUrl").value("https://github.com/home-blog/blog/releases/tag/v" + version)
+                            : jsonPath("$.releaseUrl").value(nullValue()));
         }
 
         @Test

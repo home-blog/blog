@@ -23,15 +23,19 @@
 - 연재: 블로그 관리에 "연재 관리"(만들기·이름·소개 고치기·지우기·글 순서·빼기). 글쓰기·수정에서 연재 고르기. 글 읽기 위에 "연재 이름 N화 / 전체", 아래에 이전 화·다음 화와 접힌 전체 목록. 블로그 화면에 연재 목록, 연재 화면 `/series/{번호}`
 - 임시 저장: 새 글을 쓰는 동안 바뀐 것이 있으면 30초마다 저절로, "임시 저장" 버튼으로도 저장한다. 아래 막대에 "임시 저장됨 14:32". 글 관리 위에 "임시 저장" 칸(이어 쓰기, 삭제). 새 글의 저장 버튼 이름을 "발행"으로
 - 예약 발행: 글쓰기에서 "예약"으로 올릴 시각(지금부터 1분 뒤 ~ 30일 안)을 고른다. 예약한 글은 그 시각까지 나만 보고, 글 관리에 "예약 10월 20일 09:00"으로 보인다. 예약 바꾸기·취소
+- 공지사항 첫 글 13개: 지금까지의 릴리스 소식(0.3.0 ~ 0.7.0 업데이트 글 7개)과 공지 6개(문을 연 날, 이용 안내(고정), 함께 쓰는 약속, 예시 블로그, 탈퇴와 개인정보, HTTPS). 0.7.0 소식도 고정
 
 ### API (v1 그대로, 깨지지 않는 변경)
 - 새 주소(누구나): `GET /api/v1/blogs/{blogId}/activity`(잔디), `GET /api/v1/blogs/{blogId}/series`, `GET /api/v1/series/{seriesId}`, `GET /api/v1/posts/{postId}/series`(이전·다음 화)
 - 새 주소(주인): `POST·PUT·DELETE /api/v1/me/blog/series[/{seriesId}]`, `PUT·DELETE /api/v1/me/blog/series/{seriesId}/posts/{postId}`, `PUT /api/v1/me/blog/series/{seriesId}/order`
 - 새 주소(주인): `GET·POST /api/v1/me/drafts`, `GET·PUT·DELETE /api/v1/me/drafts/{draftId}`, `POST /api/v1/me/drafts/{draftId}/publish`, `PUT·DELETE /api/v1/me/drafts/{draftId}/schedule`
 - `GET /api/v1/me/blog/post-form`에 `series`(내 연재 목록)와 `writing`(자동 저장 간격, 임시 저장 한도, 예약 최대 일수) 칸을 더했다
+- `GET /api/v1/notices/{noticeId}`: 0.4.0 전 업데이트 글은 `releaseUrl`이 `null` (그 번호의 GitHub 릴리스가 없다)
 - 분류 삭제 거절(`CATEGORY_HAS_POSTS`)에 예약된 글도 센다: 예약된 글이 쓰는 분류는 지울 수 없다. 화면에 보이는 분류의 글 수는 그대로(예약 글은 넣지 않음)
 
 ### 운영
+- Flyway V13: 공지사항 첫 글을 넣는다. 운영팀이 넣는 글이라 `notice.users_id`를 비울 수 있게 바꿨다
+- 업데이트 글의 GitHub 릴리스 링크는 릴리스를 만든 0.4.0부터 붙인다(`notice.release-url-from`). 번호는 자리마다 숫자로 견준다(0.10.0은 0.4.0보다 뒤)
 - Flyway V12: 새 표 `series`, `series_post`(글 하나는 연재 하나에), `post_draft`(임시 저장·예약), `post_image.post_draft_id`. 글 표(`post`)는 바꾸지 않았다: 임시 저장 글이 공개 글 쿼리로 새지 않게 따로 둔다
 - 예약은 1분마다(`writing.schedule.check-interval`) 시각이 지난 것을 올린다. 줄을 `FOR UPDATE SKIP LOCKED`로 잡아 앱 두 벌(a·b) 중 한 벌만 올리고, 임시 저장 글의 요청 번호를 글의 `request_key`로 써서 두 번 생기지 않는다. 올리다 실패하면 예약을 풀고 임시 저장 글로 남긴다
 - 임시 저장 글에 든 이미지는 하루 정리 작업이 지우지 않는다. 임시 저장 글을 지우거나 본문에서 빼면 다시 정리 대상
