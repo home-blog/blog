@@ -1,9 +1,10 @@
-// 모든 화면 위의 머리글: 마크와 서비스 이름, 글 검색, 로그인 상태, 로그인·가입·로그아웃
+// 모든 화면 위의 머리글: 마크와 서비스 이름, 글 검색, 공지사항(새 글 점), 로그인 상태, 로그인·가입·로그아웃
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
 import { useNewCommentCount } from '../manage/newCommentCount'
+import { useNoticeAlert } from '../notice/noticeAlert'
 import ThemeToggle from '../theme/ThemeToggle'
 import BrandMark from './BrandMark'
 import UserMenu from './UserMenu'
@@ -15,6 +16,7 @@ const MEMBER_ONLY_PREFIXES = ['/manage', '/write', '/mypage', '/me/']
 export default function SiteHeader() {
   const { member, logout } = useAuth()
   const { count: newCommentCount } = useNewCommentCount()
+  const { hasNew: hasNewNotice } = useNoticeAlert()
   const location = useLocation()
   const navigate = useNavigate()
   const [logoutError, setLogoutError] = useState(false)
@@ -39,6 +41,15 @@ export default function SiteHeader() {
       {/* 글 검색은 누구나 (specs/004 US5) */}
       <SearchBox />
       <nav className="site-nav" aria-label="계정">
+        <Link to="/notices" className="header-notice">
+          공지
+          {hasNewNotice && (
+            <>
+              <span className="header-notice-dot" aria-hidden="true" />
+              <span className="visually-hidden">새 글 있음</span>
+            </>
+          )}
+        </Link>
         <ThemeToggle />
         {member === undefined ? null : member ? (
           <>

@@ -103,7 +103,7 @@ class ApiDocumentationTest {
                         requestHeaders(csrfHeader()),
                         requestFields(
                                 fieldWithPath("email").description("가입한 이메일"),
-                                fieldWithPath("password").description("비밀번호. 5번 틀리면 10분 동안 잠긴다")),
+                                fieldWithPath("password").description("비밀번호. 정한 횟수만큼 틀리면 정한 시간 동안 잠긴다 (`auth.login.*`)")),
                         responseFields(memberFields())));
     }
 
@@ -398,7 +398,95 @@ class ApiDocumentationTest {
                         fieldWithPath("recentPosts[].visibility").description("공개 범위"))));
     }
 
-    // ── 7. 오류 ──
+    // ── 7. 공지사항 ──
+
+    private Long insertNotice(Member writer, String kind, String title, String version, boolean pinned) {
+        return jdbc.queryForObject("insert into notice (kind, title, content, release_version, pinned, users_id, created_at)"
+                + " values (?, ?, ?, ?, ?, ?, now()) returning notice_id", Long.class,
+                kind, title, "## 무엇이 바뀌었나\n\n- 공지사항 게시판이 생겼어요", version, pinned, writer.id());
+    }
+
+    @Test
+    void 공지사항_쓰기() throws Exception {
+        Member admin = members.register("docs");
+        jdbc.update("update users set role = 'admin' where users_id = ?", admin.id());
+        MockHttpSession session = login(admin);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/notices"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"kind":"update","title":"공지사항 게시판이 생겼어요","content":"## 무엇이 바뀌었나\\n\\n- 업데이트와 공지를 한곳에서",                                "releaseVersion":"0.6.0","pinned":true}"""))
+                .andExpect(status().isCreated())
+                .andDo(document("notice-create",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("kind").description("`update`(업데이트) 또는 `notice`(공지)"),
+                                fieldWithPath("title").description("제목 (1~100자)"),
+                                fieldWithPath("content").description("본문 마크다운 (1~10,000자)"),
+                                fieldWithPath("releaseVersion").description("릴리스 번호 `0.6.0` 모양. 업데이트에만 넣는다")
+                                        .optional().type(JsonFieldType.STRING),
+                                fieldWithPath("pinned").description("목록 맨 위에 고정할지")),
+                        responseFields(fieldWithPath("noticeId").description("만든 공지사항 번호"))));
+    }
+
+    @Test
+    void 공지사항_목록() throws Exception {
+        Member admin = members.register("docs");
+        jdbc.update("delete from notice");
+        insertNotice(admin, "notice", "서버 점검 안내", null, false);
+        insertNotice(admin, "update", "공지사항 게시판이 생겼어요", "0.6.0", true);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices").param("kind", "").param("page", "1"))
+                .andExpect(status().isOk())
+                .andDo(document("notice-list",
+                        queryParameters(
+                                parameterWithName("kind").description("탭: `update`, `notice`, 비우면 전체").optional(),
+                                parameterWithName("page").description("쪽 번호 (1부터, 한 쪽 10개)").optional()),
+                        responseFields(
+                                fieldWithPath("items[].noticeId").description("번호"),
+                                fieldWithPath("items[].kind").description("`update` 또는 `notice`"),
+                                fieldWithPath("items[].title").description("제목"),
+                                fieldWithPath("items[].releaseVersion").description("릴리스 번호 (업데이트만, 공지는 null)")
+                                        .optional().type(JsonFieldType.STRING),
+                                fieldWithPath("items[].pinned").description("고정 글인지 (고정 먼저, 그 안에서 새 글 먼저)"),
+                                fieldWithPath("items[].createdAt").description("쓴 시각"),
+                                fieldWithPath("page").description("지금 쪽"),
+                                fieldWithPath("totalPages").description("마지막 쪽"),
+                                fieldWithPath("totalCount").description("글 수"))));
+    }
+
+    @Test
+    void 공지사항_읽기() throws Exception {
+        Member admin = members.register("docs");
+        Long noticeId = insertNotice(admin, "update", "공지사항 게시판이 생겼어요", "0.6.0", true);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices/{noticeId}", noticeId))
+                .andExpect(status().isOk())
+                .andDo(document("notice-read",
+                        pathParameters(parameterWithName("noticeId").description("공지사항 번호")),
+                        responseFields(
+                                fieldWithPath("noticeId").description("번호"),
+                                fieldWithPath("kind").description("`update` 또는 `notice`"),
+                                fieldWithPath("title").description("제목"),
+                                fieldWithPath("content").description("본문 마크다운"),
+                                fieldWithPath("releaseVersion").description("릴리스 번호 (업데이트만)").optional()
+                                        .type(JsonFieldType.STRING),
+                                fieldWithPath("releaseUrl").description("그 번호의 GitHub 릴리스 주소 (업데이트만)").optional()
+                                        .type(JsonFieldType.STRING),
+                                fieldWithPath("pinned").description("고정 글인지"),
+                                fieldWithPath("createdAt").description("쓴 시각"),
+                                fieldWithPath("updatedAt").description("고친 시각. 고친 적이 없으면 null").optional()
+                                        .type(JsonFieldType.STRING))));
+    }
+
+    @Test
+    void 공지사항_최신_시각() throws Exception {
+        insertNotice(members.register("docs"), "notice", "서버 점검 안내", null, false);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices/latest"))
+                .andExpect(status().isOk())
+                .andDo(document("notice-latest", responseFields(
+                        fieldWithPath("latestAt").description("가장 새 공지사항을 쓴 시각. 글이 없으면 null")
+                                .optional().type(JsonFieldType.STRING))));
+    }
+
+    // ── 8. 오류 ──
 
     @Test
     void 오류_입력값() throws Exception {
@@ -436,7 +524,8 @@ class ApiDocumentationTest {
     private static FieldDescriptor[] memberFields() {
         return new FieldDescriptor[] {
             fieldWithPath("member.id").description("회원 번호"),
-            fieldWithPath("member.nickname").description("닉네임 (2~10자, 한글·영문·숫자)")};
+            fieldWithPath("member.nickname").description("닉네임 (2~10자, 한글·영문·숫자)"),
+            fieldWithPath("member.admin").description("관리자인지. 관리자만 공지사항을 쓴다")};
     }
 
     private static FieldDescriptor[] categoryFields() {

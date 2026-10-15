@@ -15,4 +15,10 @@ public interface LoggedInMember {
 
     /** 로그인해야 하는 주소용: 로그인하지 않았거나 탈퇴한 회원이면 401 UNAUTHENTICATED. */
     Long requireIdOf(Authentication authentication);
+
+    /**
+     * 관리자만 하는 일용 (specs/012 D-2): 로그인하지 않았거나 탈퇴했으면 401 UNAUTHENTICATED, 관리자가 아니면 403 FORBIDDEN.
+     * 역할은 요청마다 DB에서 읽어, 관리자에서 빼면 다시 로그인하지 않아도 바로 막힌다.
+     */
+    Long requireAdminIdOf(Authentication authentication);
 }

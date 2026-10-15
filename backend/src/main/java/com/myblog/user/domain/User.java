@@ -52,6 +52,13 @@ public class User {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /** 역할: member(기본) 또는 admin. 관리자는 운영자가 DB에서 정한다 (specs/012 D-1, D-3). */
+    @Column(name = "role", nullable = false, length = 10)
+    private String role = ROLE_MEMBER;
+
+    static final String ROLE_MEMBER = "member";
+    static final String ROLE_ADMIN = "admin";
+
     /** 탈퇴한 회원의 값 틀 (data-model 3의 12번, D-2). 이메일 .invalid는 메일이 갈 수 없는 이름이다. */
     static final String WITHDRAWN_EMAIL = "deleted-%d@deleted.invalid";
     /** BCrypt 모양이 아니라 어떤 비밀번호와도 맞지 않는다. */
@@ -114,6 +121,11 @@ public class User {
     /** 잠금 시각이 아직 지나지 않았으면 잠긴 상태다 (FR-027 ~ 029). */
     public boolean isLocked(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    /** 관리자인지 (specs/012). 요청마다 DB에서 읽은 값으로 본다 (D-2). */
+    public boolean isAdmin() {
+        return ROLE_ADMIN.equals(role);
     }
 
     public Long getId() {

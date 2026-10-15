@@ -84,7 +84,7 @@ public class SocialAuthController {
         request.getSession().removeAttribute(SocialSessionState.PENDING);
         memberLogin.logIn(member, request, response);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthController.MemberResponse(new AuthController.Member(member.getId(), member.getNickname())));
+                .body(AuthController.MemberResponse.of(member));
     }
 
     private SocialSessionState.Pending requirePending(HttpServletRequest request) {
