@@ -2,6 +2,8 @@ package com.myblog.post.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.myblog.common.error.ApiException;
+import com.myblog.common.error.ErrorCode;
 import com.myblog.post.service.SeriesService;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
@@ -87,6 +89,11 @@ class SeriesConcurrencyTest {
         }
     }
 
+    private static void assertLimit(Throwable failure, ErrorCode expected) {
+        assertThat(failure).isInstanceOf(ApiException.class);
+        assertThat(((ApiException) failure).errorCode()).isEqualTo(expected);
+    }
+
     @Test
     void 한도_바로_앞에서_동시에_넣어도_한도를_넘지_않는다() throws Exception {
         Long seriesId = seriesService.create(owner.id(), "긴 연재", "").seriesId();
@@ -102,7 +109,9 @@ class SeriesConcurrencyTest {
                 return null;
             });
         }
-        runTogether(tasks);
+        List<Throwable> failures = runTogether(tasks);
+        assertThat(failures).as("한 요청만 들어가고 나머지는 한도 오류다").hasSize(THREADS - 1)
+                .allSatisfy(failure -> assertLimit(failure, ErrorCode.SERIES_POSTS_LIMIT_EXCEEDED));
         assertThat(jdbc.queryForObject("select count(*) from series_post where series_id = ?", Long.class, seriesId))
                 .isEqualTo(200);
         assertThat(jdbc.queryForObject("select count(distinct sort_order) from series_post where series_id = ?", Long.class,
@@ -134,7 +143,9 @@ class SeriesConcurrencyTest {
         for (int i = 0; i < THREADS; i++) {
             tasks.add(() -> seriesService.create(owner.id(), "마지막", ""));
         }
-        runTogether(tasks);
+        List<Throwable> failures = runTogether(tasks);
+        assertThat(failures).as("한 요청만 만들고 나머지는 한도 오류다").hasSize(THREADS - 1)
+                .allSatisfy(failure -> assertLimit(failure, ErrorCode.SERIES_LIMIT_EXCEEDED));
         assertThat(jdbc.queryForObject("select count(*) from series where blog_id = ?", Long.class, owner.blogId())).isEqualTo(50);
     }
 }
