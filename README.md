@@ -18,6 +18,7 @@
 | 소통 | 댓글, 좋아요, 신고 |
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
+| 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
 
 ## 기술
 
@@ -68,8 +69,8 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 | 문서 | 보는 법 |
 |---|---|
-| Swagger (API 61개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 10개 묶음, 로그인·CSRF가 필요한 API에 표시 |
-| Spring REST Docs (주요 흐름 22개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
+| Swagger (API 67개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 11개 묶음, 로그인·CSRF가 필요한 API에 표시 |
+| Spring REST Docs (주요 흐름 26개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
 
 모든 주소는 `/api/v1/…`입니다. 로그인은 서버 세션(쿠키 `SESSION`)이고, GET이 아닌 요청은 쿠키 `XSRF-TOKEN`의 값을 머리글 `X-XSRF-TOKEN`에 실어 보냅니다.
 
