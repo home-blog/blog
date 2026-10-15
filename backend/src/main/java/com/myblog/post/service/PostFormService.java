@@ -7,8 +7,10 @@ import com.myblog.common.Visibility;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.post.config.PostProperties;
+import com.myblog.post.config.WritingProperties;
 import com.myblog.post.domain.Post;
 import com.myblog.post.repository.PostRepository;
+import com.myblog.post.repository.SeriesRepository;
 import com.myblog.post.repository.TopicRepository;
 import java.util.List;
 import java.util.Optional;
@@ -27,13 +29,17 @@ public class PostFormService {
     private final PostRepository posts;
     private final TopicRepository topics;
     private final PostProperties properties;
+    private final SeriesRepository seriesRepository;
+    private final WritingProperties writing;
 
     public PostFormService(BlogDirectory blogDirectory, PostRepository posts, TopicRepository topics,
-            PostProperties properties) {
+            PostProperties properties, SeriesRepository seriesRepository, WritingProperties writing) {
         this.blogDirectory = blogDirectory;
         this.posts = posts;
         this.topics = topics;
         this.properties = properties;
+        this.seriesRepository = seriesRepository;
+        this.writing = writing;
     }
 
     public PostForm form(Long memberId) {
@@ -50,7 +56,9 @@ public class PostFormService {
                 defaultCategoryId,
                 defaultTopicId,
                 Visibility.PUBLIC.value(),
-                new Limits(properties.title().maxLength(), properties.content().maxLength()));
+                new Limits(properties.title().maxLength(), properties.content().maxLength()),
+                seriesOptions(blog.blogId()),
+                new Writing(writing.draft().autosaveSeconds(), writing.draft().maxCount(), writing.schedule().maxDays()));
     }
 
     /** 주제 목록 (sort_order 순서). 글 수정 화면도 쓴다. */
@@ -58,12 +66,26 @@ public class PostFormService {
         return topics.findAllByOrderBySortOrderAscIdAsc().stream().map(t -> new TopicOption(t.getId(), t.getName())).toList();
     }
 
+    /** 내 블로그의 연재 (013 US2). 글쓰기·수정 화면의 연재 고르기. 만든 순서. */
+    public List<SeriesOption> seriesOptions(Long blogId) {
+        return seriesRepository.findByBlogIdOrderByCreatedAtAscIdAsc(blogId).stream()
+                .map(series -> new SeriesOption(series.getId(), series.getName())).toList();
+    }
+
     public List<CategoryOption> categoryOptions(Long blogId) {
         return blogDirectory.categoriesOf(blogId).stream().map(c -> new CategoryOption(c.categoryId(), c.name())).toList();
     }
 
+    /** series·writing은 013에서 더한 칸 (깨지지 않는 변경). */
     public record PostForm(List<CategoryOption> categories, List<TopicOption> topics, Long defaultCategoryId,
-            Long defaultTopicId, String defaultVisibility, Limits limits) {
+            Long defaultTopicId, String defaultVisibility, Limits limits, List<SeriesOption> series, Writing writing) {
+    }
+
+    public record SeriesOption(Long seriesId, String name) {
+    }
+
+    /** 화면이 읽는 글쓰기 도구 설정 (013 contracts 5). */
+    public record Writing(int draftAutosaveSeconds, int draftMaxCount, int scheduleMaxDays) {
     }
 
     public record CategoryOption(Long categoryId, String name) {

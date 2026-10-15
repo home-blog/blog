@@ -14,6 +14,7 @@
 |---|---|
 | 회원 | 이메일 인증 가입, 로그인(5번 틀리면 잠금), 소셜 로그인(GitHub·카카오·네이버·Google), 마이페이지, 비밀번호 변경, 탈퇴 |
 | 블로그와 글 | 블로그 하나씩, 분류(비공개 가능), 마크다운 글쓰기와 나란히 미리보기, 공개 범위, 태그, 이미지 |
+| 글쓰기 도구 | 임시 저장(30초마다 저절로), 예약 발행, 연재(1화·2화, 이전·다음 화), 글쓰기 잔디(지난 1년) |
 | 둘러보기 | 첫 화면 주제별 글 모음, 이번 주 인기 글, 검색, 원고지 매수·읽는 시간 |
 | 소통 | 댓글, 좋아요, 신고 |
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
@@ -69,8 +70,8 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 | 문서 | 보는 법 |
 |---|---|
-| Swagger (API 67개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 11개 묶음, 로그인·CSRF가 필요한 API에 표시 |
-| Spring REST Docs (주요 흐름 26개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
+| Swagger (API 85개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 12개 묶음, 로그인·CSRF가 필요한 API에 표시 |
+| Spring REST Docs (주요 흐름 30개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
 
 모든 주소는 `/api/v1/…`입니다. 로그인은 서버 세션(쿠키 `SESSION`)이고, GET이 아닌 요청은 쿠키 `XSRF-TOKEN`의 값을 머리글 `X-XSRF-TOKEN`에 실어 보냅니다.
 

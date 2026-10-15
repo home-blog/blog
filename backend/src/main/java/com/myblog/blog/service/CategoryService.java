@@ -123,7 +123,7 @@ public class CategoryService {
                 if (category.isDefaultCategory()) {
                     throw new ApiException(ErrorCode.DEFAULT_CATEGORY_NOT_DELETABLE);
                 }
-                long count = postCounter.countAll(category.getId());
+                long count = postCounter.countBlockingDelete(category.getId());
                 if (count > 0) {
                     throw hasPosts(count);
                 }
@@ -132,7 +132,7 @@ public class CategoryService {
             });
         } catch (DataIntegrityViolationException e) {
             // 센 뒤에 글이 들어와 외래 키가 막았다 (R-3)
-            Long count = transaction.execute(status -> postCounter.countAll(categoryId));
+            Long count = transaction.execute(status -> postCounter.countBlockingDelete(categoryId));
             throw hasPosts(count == null ? 0 : count);
         }
     }

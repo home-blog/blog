@@ -17,8 +17,8 @@ public interface PostImageRepository extends JpaRepository<PostImage, Long> {
 
     long countByPostId(Long postId);
 
-    /** 이 회원이 올렸는데 아직 글에 연결되지 않은 이미지 수 (새 글의 10장 세기, D-3). */
-    @Query("select count(i) from PostImage i where i.memberId = :memberId and i.postId is null")
+    /** 이 회원이 올렸는데 아직 글에도 임시 저장 글에도 붙지 않은 이미지 수 (새 글의 10장 세기, D-3). */
+    @Query("select count(i) from PostImage i where i.memberId = :memberId and i.postId is null and i.postDraftId is null")
     long countUnlinked(@Param("memberId") Long memberId);
 
     /** 본문에 든 이미지 중 이 글에 연결할 수 있는 것: 이미 이 글의 것, 또는 이 회원이 올린 연결 전 이미지. */
@@ -34,12 +34,29 @@ public interface PostImageRepository extends JpaRepository<PostImage, Long> {
     int link(@Param("ids") Collection<Long> ids, @Param("postId") Long postId);
 
     /**
-     * 정리 시간보다 오래된 연결 전 이미지의 기록을 지우고, 실제로 지운 것의 파일 이름을 돌려준다 (D-3).
+     * 정리 시간보다 오래된 연결 전 이미지(글에도 임시 저장 글에도 붙지 않은 것, 013 D-8)의 기록을 지우고,
+     * 실제로 지운 것의 파일 이름을 돌려준다 (D-3).
      * 고르기와 지우기가 한 문장이라, 그사이 글 저장이 연결한 이미지(post_id가 채워진 것)는 지우지 않는다.
      */
-    @Query(value = "delete from post_image where post_id is null and created_at < :before returning storage_key",
+    @Query(value = "delete from post_image where post_id is null and post_draft_id is null and created_at < :before"
+            + " returning storage_key",
             nativeQuery = true)
     List<String> deleteUnlinkedBefore(@Param("before") Instant before);
+
+    /** 임시 저장 글 본문에 든 이 회원의 연결 전 이미지를 그 임시 저장 글에 붙인다 (013 D-8). */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PostImage i set i.postDraftId = :draftId where i.storageKey in :keys and i.postId is null"
+            + " and i.memberId = :memberId")
+    int attachToDraft(@Param("keys") Collection<String> keys, @Param("draftId") Long draftId, @Param("memberId") Long memberId);
+
+    /** 이 임시 저장 글에 붙었지만 본문에서 빠진 이미지를 뗀다 (정리 대상으로 돌아간다). keys가 비면 모두 뗀다. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PostImage i set i.postDraftId = null where i.postDraftId = :draftId and i.storageKey not in :keys")
+    int detachFromDraftExcept(@Param("draftId") Long draftId, @Param("keys") Collection<String> keys);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PostImage i set i.postDraftId = null where i.postDraftId = :draftId")
+    int detachAllFromDraft(@Param("draftId") Long draftId);
 
     /** 받은 이름 중 기록이 있는 것 (저장소에만 남은 파일 찾기, D-5). */
     @Query("select i.storageKey from PostImage i where i.storageKey in :keys")

@@ -300,6 +300,40 @@
   backdrop-filter: blur(6px);
 }
 
+/* 임시 저장·예약 (specs/013 US3, US4): 왼쪽에 저장 시각과 예약 표시, 오른쪽에 버튼들. 좁으면 줄을 바꾼다 */
+.editor-bar {
+  flex-wrap: wrap;
+}
+
+.editor-draft-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--step--1);
+}
+
+.editor-draft-scheduled {
+  padding: 0 0.375rem;
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+.editor-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.editor-schedule input {
+  width: auto;
+  max-width: 100%;
+}
+
 .editor-mode-tabs {
   display: none;
 }

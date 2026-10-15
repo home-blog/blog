@@ -130,6 +130,29 @@ post:
     chars-per-minute: 500   # 1분에 읽는 글자 수
     read-batch-size: 200    # 매수 합계(첫 화면 분량·블로그 머리)를 셀 때 본문을 한 번에 받아 오는 줄 수
 
+# 글쓰기 도구 (specs/013 research, 가안)
+writing:
+  draft:
+    max-count: 50            # 회원마다 둘 수 있는 임시 저장 글 (D-6)
+    autosave-seconds: 30     # 화면의 자동 저장 간격, 바뀐 것이 있을 때만 (D-5)
+    tags-max-length: 200     # 임시 저장 태그 칸(post_draft.tags, VARCHAR 200)
+  schedule:
+    max-days: 30             # 예약은 지금부터 이 날수 안 (N-09)
+    min-lead: 1m             # 예약은 지금부터 이만큼 뒤부터
+    check-interval: 1m       # 시각이 지난 예약을 올리는 작업 간격 (D-2)
+    batch-size: 50           # 한 번에 올리는 예약 수
+  activity:
+    days: 365                # 잔디 기간: 오늘 포함 (D-12)
+    zone: Asia/Seoul         # 잔디 날짜를 세는 시간대
+series:
+  name:
+    min-length: 1
+    max-length: 30
+  description:
+    max-length: 200
+  max-per-blog: 50
+  max-posts: 200
+
 # 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
 share:
   rss-size: 20              # RSS 한 번에 주는 최신 공개 글 수
@@ -187,6 +210,7 @@ notice:
     max-length: 10000
   page-size: 10
   release-url: https://github.com/home-blog/blog/releases/tag/v{version}
+  release-url-from: 0.4.0   # GitHub 릴리스는 0.4.0부터 있다. 그 전 업데이트 글에는 링크를 붙이지 않는다
 
 # 블로그 관리·통계 (specs/006 plan.md 설정값 목록). 값은 docs의 상세/06 기본값 표와 같다
 manage:

@@ -486,6 +486,114 @@ class ApiDocumentationTest {
                                 .optional().type(JsonFieldType.STRING))));
     }
 
+    // ── 7-2. 글쓰기 도구 (013) ──
+
+    @Test
+    void 글쓰기_잔디() throws Exception {
+        Member member = members.register("docs");
+        writePost(member, "오늘 쓴 글");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}/activity", member.blogId()))
+                .andExpect(status().isOk())
+                .andDo(document("writing-activity",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호")),
+                        responseFields(
+                                fieldWithPath("blogId").description("블로그 번호"),
+                                fieldWithPath("from").description("첫날 (한국 날짜, 오늘 포함 365일)"),
+                                fieldWithPath("to").description("오늘 (한국 날짜)"),
+                                fieldWithPath("days[]").description("공개 글을 쓴 날만, 날짜 순"),
+                                fieldWithPath("days[].date").description("날짜"),
+                                fieldWithPath("days[].postCount").description("그날 쓴 공개 글 수"),
+                                fieldWithPath("days[].sheets").description("그날 쓴 원고지 매수"),
+                                fieldWithPath("totalPosts").description("기간의 공개 글 수"),
+                                fieldWithPath("totalSheets").description("기간의 원고지 매수"))));
+    }
+
+    @Test
+    void 연재_만들기() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/blog/series"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("name", "제주 한 달 살기", "description", "한 달 동안 걸은 길")))
+                .andExpect(status().isCreated())
+                .andDo(document("series-create",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("name").description("연재 이름, 1~30자"),
+                                fieldWithPath("description").description("소개, 0~200자")),
+                        responseFields(seriesFields())));
+    }
+
+    @Test
+    void 글의_연재_정보() throws Exception {
+        Member member = members.register("docs");
+        Long seriesId = jdbc.queryForObject("insert into series (blog_id, name, created_at) values (?, '제주 한 달 살기', now())"
+                + " returning series_id", Long.class, member.blogId());
+        Long first = writePost(member, "첫날");
+        Long second = writePost(member, "둘째 날");
+        jdbc.update("insert into series_post (series_id, post_id, sort_order) values (?, ?, 1), (?, ?, 2)",
+                seriesId, first, seriesId, second);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/{postId}/series", second))
+                .andExpect(status().isOk())
+                .andDo(document("post-series",
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        responseFields(
+                                fieldWithPath("series").description("연재. 연재에 없으면 null"),
+                                fieldWithPath("series.seriesId").description("연재 번호"),
+                                fieldWithPath("series.name").description("연재 이름"),
+                                fieldWithPath("series.episode").description("이 글이 몇 화인지 (보는 사람에게 보이는 글로 센다)"),
+                                fieldWithPath("series.total").description("보이는 글 수"),
+                                fieldWithPath("series.previous").description("이전 화. 첫 화면 null").optional().type(JsonFieldType.OBJECT),
+                                fieldWithPath("series.previous.postId").description("이전 화 글 번호").optional(),
+                                fieldWithPath("series.previous.title").description("이전 화 제목").optional(),
+                                fieldWithPath("series.next").description("다음 화. 끝 화면 null").optional().type(JsonFieldType.OBJECT),
+                                fieldWithPath("series.posts[]").description("연재 전체 (화 순서)"),
+                                fieldWithPath("series.posts[].postId").description("글 번호"),
+                                fieldWithPath("series.posts[].title").description("제목"),
+                                fieldWithPath("series.posts[].episode").description("화 번호"))));
+    }
+
+    @Test
+    void 임시_저장_예약() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/drafts"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("title", "쓰는 중", "content", "")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long draftId = ((Number) JsonPath.read(created, "$.draftId")).longValue();
+        String publishAt = Instant.now().plusSeconds(86_400).truncatedTo(java.time.temporal.ChronoUnit.MINUTES).toString();
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.put("/api/v1/me/drafts/{draftId}/schedule", draftId), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson(member, "내일 아침 9시에 올릴 글", "## 미리 써 둔 글", "\"publishAt\":\"" + publishAt + "\"")))
+                .andExpect(status().isOk())
+                .andDo(document("draft-schedule",
+                        pathParameters(parameterWithName("draftId").description("임시 저장 글 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("title").description("제목 (보통 글쓰기와 같은 검사)"),
+                                fieldWithPath("content").description("본문 (마크다운)"),
+                                fieldWithPath("categoryId").description("분류 번호 (내 블로그의 것)"),
+                                fieldWithPath("topicId").description("주제 번호"),
+                                fieldWithPath("visibility").description("`public` 또는 `private`"),
+                                fieldWithPath("publishAt").description("올릴 시각. 초 아래는 버린다. 지금부터 1분 뒤 ~ 30일 안")),
+                        responseFields(
+                                fieldWithPath("draftId").description("임시 저장 글 번호"),
+                                fieldWithPath("updatedAt").description("마지막 저장 시각"),
+                                fieldWithPath("publishAt").description("예약 시각. 비어 있으면 임시 저장"))));
+    }
+
+    private static FieldDescriptor[] seriesFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("seriesId").description("연재 번호"),
+            fieldWithPath("blogId").description("블로그 번호"),
+            fieldWithPath("name").description("연재 이름"),
+            fieldWithPath("description").description("소개"),
+            fieldWithPath("posts[]").description("보이는 글을 화 순서로 (새 연재는 비어 있다)")
+        };
+    }
+
     // ── 8. 오류 ──
 
     @Test
