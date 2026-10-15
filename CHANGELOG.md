@@ -31,6 +31,8 @@ API 문서: 지금까지 만든 API 61개를 Swagger 화면에서 읽을 수 있
 ### 운영
 - Spring REST Docs: `ApiDocumentationTest`가 주요 흐름 22개(로그인, 블로그·분류, 글, 둘러보기·검색, 댓글·좋아요, 대시보드, 오류)를 실제로 부르며 요청·응답 예시를 만든다. 응답 칸이 문서와 어긋나면 테스트가 실패한다
 - `cd backend && mvn -Pdocs verify`로 `backend/target/generated-docs/index.html`(원고지 모양 한 장짜리 문서)을 만든다. 평소 `mvn verify`에서는 예시만 만들고 HTML은 만들지 않는다
+- 화면 테스트를 시작했다: Vitest + Testing Library + MSW(가짜 서버). 입력 규칙(닉네임·이메일·비밀번호·검색어·태그·원고지 매수)의 정상값·경계값·예외값, 요청 도구(CSRF 토큰, 오류 모양, 401 신호), 로그인 입력(잠금 분 올림) 70개. `cd frontend && npm test`
+- CI 화면 작업에 테스트 단계를 더하고, SonarQube가 화면 커버리지(lcov)도 읽는다. Quality Gate를 통과하지 못하면 품질 분석 체크가 실패한다(`sonar.qualitygate.wait`)
 
 ## [0.5.2] - 2026-10-14
 

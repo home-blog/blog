@@ -1,5 +1,5 @@
 # PR과 main에 올라온 코드를 자동으로 검사한다.
-# 서버: Maven 빌드 + 테스트 (PostgreSQL, Redis를 함께 띄움) / 화면: 린트 + 타입 검사 + 빌드
+# 서버: Maven 빌드 + 테스트 (PostgreSQL, Redis를 함께 띄움) / 화면: 린트 + 테스트(Vitest) + 타입 검사 + 빌드
 name: CI
 
 # 문서만 바뀐 PR에서는 돌리지 않는다
@@ -90,5 +90,7 @@ jobs:
       - run: npm ci
       - name: 린트
         run: npm run lint
+      - name: 테스트
+        run: npm test
       - name: 타입 검사와 빌드
         run: npm run build
