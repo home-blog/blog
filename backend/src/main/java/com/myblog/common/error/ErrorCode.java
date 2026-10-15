@@ -125,7 +125,22 @@ public enum ErrorCode {
     NOTICE_KIND_INVALID(HttpStatus.BAD_REQUEST, "※ 종류를 골라 주세요"),
     RELEASE_VERSION_REQUIRED(HttpStatus.BAD_REQUEST, "※ 업데이트에는 릴리스 번호를 적어 주세요 (예: 0.6.0)"),
     RELEASE_VERSION_INVALID(HttpStatus.BAD_REQUEST, "※ 릴리스 번호는 0.6.0 모양으로 적어 주세요"),
-    RELEASE_VERSION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "※ 공지에는 릴리스 번호를 적지 않습니다");
+    RELEASE_VERSION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "※ 공지에는 릴리스 번호를 적지 않습니다"),
+
+    // 글쓰기 도구: 연재, 임시 저장, 예약 (specs/013 contracts)
+    SERIES_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 연재입니다"),
+    SERIES_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "연재 이름을 입력해 주세요"),
+    SERIES_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "연재 이름은 %d자까지 쓸 수 있습니다"),
+    SERIES_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "연재 소개는 %d자까지 쓸 수 있습니다"),
+    SERIES_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 연재는 블로그마다 %d개까지 만들 수 있습니다"),
+    SERIES_POSTS_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 연재 하나에는 글을 %d개까지 넣을 수 있습니다"),
+    SERIES_ORDER_MISMATCH(HttpStatus.BAD_REQUEST, "※ 연재의 글을 모두 한 번씩 보내 주세요"),
+    DRAFT_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 임시 저장 글입니다"),
+    DRAFT_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 임시 저장 글은 %d개까지 둘 수 있습니다. 쓰지 않는 글을 지워 주세요"),
+    DRAFT_TAGS_TOO_LONG(HttpStatus.BAD_REQUEST, "태그가 너무 깁니다"),
+    PUBLISH_AT_REQUIRED(HttpStatus.BAD_REQUEST, "예약 시각을 골라 주세요"),
+    PUBLISH_AT_TOO_SOON(HttpStatus.BAD_REQUEST, "예약 시각은 지금부터 1분 뒤부터 고를 수 있습니다"),
+    PUBLISH_AT_TOO_LATE(HttpStatus.BAD_REQUEST, "예약 시각은 지금부터 %d일 안으로 골라 주세요");
 
     private final HttpStatus status;
     private final String message;

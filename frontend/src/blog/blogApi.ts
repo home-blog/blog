@@ -1,5 +1,6 @@
 // 블로그·분류 요청 (specs/003 contracts/blog-post-api.md 1 ~ 8). 내 블로그는 번호를 보내지 않는다: 서버가 세션으로 정한다
 import { api } from '../api/client'
+import type { ActivityDay } from './activity'
 
 export type Visibility = 'public' | 'private'
 
@@ -42,6 +43,20 @@ export interface BlogManuscript {
 
 export function getBlogManuscript(blogId: number, signal?: AbortSignal): Promise<BlogManuscript> {
   return api<BlogManuscript>(`/api/v1/blogs/${blogId}/manuscript`, { signal })
+}
+
+/** 글쓰기 잔디 (specs/013 US1). 공개 분류의 공개 글을 쓴 날만 담는다 */
+export interface BlogActivity {
+  blogId: number
+  from: string
+  to: string
+  days: ActivityDay[]
+  totalPosts: number
+  totalSheets: number
+}
+
+export function getBlogActivity(blogId: number, signal?: AbortSignal): Promise<BlogActivity> {
+  return api<BlogActivity>(`/api/v1/blogs/${blogId}/activity`, { signal })
 }
 
 export async function getCategories(blogId: number, signal?: AbortSignal): Promise<CategorySummary[]> {

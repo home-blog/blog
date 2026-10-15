@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,6 +59,10 @@ public class PostFeedRepository {
 
     /** 위와 같고 공개 글만. 자리표시자: 분류 번호 배열, 글 공개. */
     private static final String PUBLIC_CONTENTS_IN_CATEGORIES = CONTENTS_IN_CATEGORIES + " and p.visibility = ?";
+
+    /** 글쓰기 잔디 (013 US1): 정해진 분류들의 공개 글 가운데 since 이후의 작성 시각과 본문. 자리표시자: 분류 번호 배열, 글 공개, 시각. */
+    private static final String PUBLIC_ACTIVITY_IN_CATEGORIES =
+            "select p.created_at, p.content from post p where p.category_id = any(?) and p.visibility = ? and p.created_at >= ?";
 
     private static final String PAGE = COLUMNS + FROM + OPEN_POSTS + """
             order by p.created_at desc, p.post_id desc
@@ -114,6 +119,18 @@ public class PostFeedRepository {
             statement.setFetchSize(readBatchSize);
             return statement;
         }, (RowCallbackHandler) rs -> consumer.accept(rs.getString(1)));
+    }
+
+    /** 정해진 분류들의 공개 글 가운데 since 이후의 것을 하나씩 (작성 시각, 본문)으로 넘긴다 (013 US1 잔디). forEachContentIn과 같이 나눠 받는다. */
+    public void forEachPublicPostSince(Collection<Long> categoryIds, Instant since, BiConsumer<Instant, String> consumer) {
+        jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(PUBLIC_ACTIVITY_IN_CATEGORIES);
+            statement.setArray(1, connection.createArrayOf("bigint", categoryIds.toArray()));
+            statement.setString(2, Visibility.PUBLIC.value());
+            statement.setTimestamp(3, Timestamp.from(since));
+            statement.setFetchSize(readBatchSize);
+            return statement;
+        }, (RowCallbackHandler) rs -> consumer.accept(rs.getTimestamp(1).toInstant(), rs.getString(2)));
     }
 
     /** 최신순으로 offset부터 limit개. */
