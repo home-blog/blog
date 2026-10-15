@@ -1,6 +1,6 @@
 // 연재 관리 /manage/series (specs/013 US2): 만들기, 이름·소개 고치기, 지우기, 글 순서 바꾸기·빼기
 // 글을 연재에 넣는 것은 글쓰기·글 수정 화면에서 한다. 거절 문구는 서버 것 그대로 보여 준다
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { getMyBlog, type MyBlog } from '../blog/blogApi'
@@ -34,6 +34,8 @@ export default function SeriesManagePage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
   const [openId, setOpenId] = useState<number | null>(null)
+  // 늦게 온 응답이 지금 펼친 연재의 것인지 보려고 렌더를 기다리지 않고 바로 읽는다
+  const openIdRef = useRef<number | null>(null)
   const [detail, setDetail] = useState<SeriesDetail | null>(null)
   const [editing, setEditing] = useState<{ seriesId: number; name: string; description: string } | null>(null)
   const [deleting, setDeleting] = useState<SeriesSummary | null>(null)
@@ -99,18 +101,22 @@ export default function SeriesManagePage() {
     }, '고쳤습니다')
   }
 
+  function open(seriesId: number | null) {
+    openIdRef.current = seriesId
+    setOpenId(seriesId)
+  }
+
   function toggle(seriesId: number) {
+    setDetail(null)
     if (openId === seriesId) {
-      setOpenId(null)
-      setDetail(null)
+      open(null)
       return
     }
-    setOpenId(seriesId)
-    setDetail(null)
+    open(seriesId)
     void run(async () => {
       const loaded = await getSeries(seriesId)
-      // 그사이 다른 연재를 펼쳤으면 늦게 온 응답은 버린다
-      setDetail((current) => (current === null ? loaded : current))
+      // 그사이 접었거나 다른 연재를 펼쳤으면 늦게 온 응답은 버린다
+      if (openIdRef.current === seriesId) setDetail(loaded)
     })
   }
 
@@ -137,7 +143,7 @@ export default function SeriesManagePage() {
     void run(async () => {
       await deleteSeries(series.seriesId)
       setList((items) => items?.filter((item) => item.seriesId !== series.seriesId) ?? null)
-      if (openId === series.seriesId) setOpenId(null)
+      if (openId === series.seriesId) open(null)
     }, '연재를 지웠습니다. 글은 그대로 있습니다')
   }
 

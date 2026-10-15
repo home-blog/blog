@@ -129,17 +129,23 @@ public class DraftService {
         transaction.executeWithoutResult(status -> drafts.deleteDraft(myDraft(memberId, draftId).getId()));
     }
 
-    /** 발행 (contracts 3-1): 보통 글쓰기 검사 → 글 만들기(임시 저장 글의 요청 번호) → 연재 → 임시 저장 글 지우기. */
+    /**
+     * 발행 (contracts 3-1): 보통 글쓰기 검사 → 글 만들기(임시 저장 글의 요청 번호) → 연재 → 임시 저장 글 지우기를
+     * 한 트랜잭션으로 한다. 뒤 단계가 실패하면 글도 남지 않는다. 임시 저장 글 줄을 먼저 잠가, 같은 글을 함께 발행한
+     * 둘째 요청은 첫째가 끝난 뒤 글이 없어 404를 받는다(예약 발행 작업은 잠긴 줄을 건너뛴다).
+     */
     public PostWriteService.Created publish(Long memberId, Long draftId, DraftRequests.Publish request) {
-        PostDraft draft = transaction.execute(status -> myDraft(memberId, draftId));
-        validate(request);
-        PostWriteService.Created created = writeService.create(memberId, request.categoryId(), request.topicId(),
-                request.title(), request.content(), request.visibility(), draft.getRequestKey(), request.tags());
-        transaction.executeWithoutResult(status -> {
+        BlogInfo blog = myBlog(memberId);
+        return transaction.execute(status -> {
+            drafts.lockMine(draftId, blog.blogId()).orElseThrow(() -> new ApiException(ErrorCode.DRAFT_NOT_FOUND));
+            PostDraft draft = myDraft(memberId, draftId);
+            validate(request);
+            PostWriteService.Created created = writeService.create(memberId, request.categoryId(), request.topicId(),
+                    request.title(), request.content(), request.visibility(), draft.getRequestKey(), request.tags());
             seriesService.attachIfPossible(draft.getBlogId(), request.seriesId(), created.postId());
             drafts.deleteDraft(draft.getId());
+            return created;
         });
-        return created;
     }
 
     // ── 예약 (US4) ─────────────────────────────────────────────

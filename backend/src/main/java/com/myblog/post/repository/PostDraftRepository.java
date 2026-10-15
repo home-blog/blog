@@ -34,6 +34,11 @@ public interface PostDraftRepository extends JpaRepository<PostDraft, Long> {
     long countByCategoryIdAndPublishAtIsNotNull(Long categoryId);
 
 
+    /** 내 임시 저장 글 줄을 잠근다. 같은 글을 함께 발행하는 다른 요청은 앞 요청이 끝날 때까지 기다린다. */
+    @Query(value = "select post_draft_id from post_draft where post_draft_id = :id and blog_id = :blogId for update",
+            nativeQuery = true)
+    Optional<Long> lockMine(@Param("id") Long id, @Param("blogId") Long blogId);
+
     /** 지운 줄 수. 두 요청이 같은 임시 저장 글을 함께 발행해도 둘째는 0이다. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from PostDraft d where d.id = :id")
