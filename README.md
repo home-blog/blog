@@ -1,38 +1,82 @@
-# MyBlog 코드
+# 글결 코드
 
-> 티스토리 같은 멀티 블로그 서비스(이름은 임시로 MyBlog)의 **코드 저장소**입니다.
-> **요구사항·설계·명세 문서는 [home-blog/docs](https://github.com/home-blog/docs)** 에 있습니다 (2026-10-08에 나눔).
+> 여러 사람이 각자 블로그를 쓰고, 방문자는 한곳에서 둘러보는 멀티 블로그 서비스 **글결**의 코드 저장소입니다.
+> 화면은 "원고지" 콘셉트입니다. 글마다 원고지 매수가 보이고, 글 끝에 도장이 찍힙니다.
+> **요구사항·설계·명세 문서는 [home-blog/docs](https://github.com/home-blog/docs)** 에 있습니다.
+
+- 서비스: https://geulgyeol.java21.net
+- 바뀐 것(릴리스마다): [CHANGELOG.md](CHANGELOG.md)
+- 처음 개발 환경을 꾸린다면: [docs/개발-환경.md](docs/개발-환경.md)
+
+## 할 수 있는 것
+
+| 묶음 | 기능 |
+|---|---|
+| 회원 | 이메일 인증 가입, 로그인(5번 틀리면 잠금), 소셜 로그인(GitHub·카카오·네이버·Google), 마이페이지, 비밀번호 변경, 탈퇴 |
+| 블로그와 글 | 블로그 하나씩, 분류(비공개 가능), 마크다운 글쓰기와 나란히 미리보기, 공개 범위, 태그, 이미지 |
+| 둘러보기 | 첫 화면 주제별 글 모음, 이번 주 인기 글, 검색, 원고지 매수·읽는 시간 |
+| 소통 | 댓글, 좋아요, 신고 |
+| 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
+| 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
+
+## 기술
+
+| 어디 | 무엇 |
+|---|---|
+| 서버 | Java 21, Spring Boot 4.1, Maven, Spring Security(세션 + CSRF), Spring Session JDBC, Spring Modulith, Flyway |
+| 화면 | React 19, Vite 8, TypeScript, React Router, react-markdown, uPlot |
+| 저장소 | PostgreSQL 18(pgvector 이미지), Redis 8(짧게 쓰고 버리는 값), MinIO(이미지, S3 방식) |
+| 배포 | Docker 이미지 → GitHub Actions → 실습 서버. 앱 두 벌(a, b)을 Nginx `upstream`으로 번갈아 쓰고 한 벌씩 바꾸는 롤링 배포 |
+| 품질 | JUnit 5 · MockMvc · Spring REST Docs, Vitest · Testing Library · MSW, JaCoCo, SonarQube, CodeRabbit |
+
+```text
+브라우저 ──▶ Nginx(학원, HTTPS) ──upstream──▶ 앱 a (화면 Nginx → 서버)   ┐
+                                       └──▶ 앱 b (화면 Nginx → 서버)   ┴─▶ PostgreSQL · Redis · MinIO
+```
+
+## 폴더
 
 | 폴더 | 내용 |
 |---|---|
-| `backend/` | 서버 (Java 21, Spring Boot 4.1, Maven). 패키지 `com.myblog` 아래 기능별 모듈 |
-| `frontend/` | 화면 (React 19, Vite 8, TypeScript) |
-| `docker-compose.yml` | 개발용 PostgreSQL(pgvector 이미지), Redis, MinIO(이미지 저장소) |
-| `.env.example` | 로컬 접속 정보 견본(DB, Redis, MinIO, 메일). `.env`로 복사해서 쓴다 |
-| `.github/`, `.coderabbit.yaml`, `sonar-project.properties` | CI, 자동 코드 리뷰(CodeRabbit), 품질 분석(SonarQube) |
+| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그)·`image`, `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
+| `backend/src/main/resources/db/migration` | 표는 Flyway로만 만든다 |
+| `backend/src/docs/asciidoc` | Spring REST Docs 원고 |
+| `frontend/` | 화면. 기능별 폴더(`auth`, `post`, `explore` …), 디자인 토큰은 `src/index.css` 한곳 |
+| `deploy/` | 배포 스크립트와 Nginx 견본. 방법은 [deploy/README.md](deploy/README.md) |
+| `docker-compose.yml` | 개발용 PostgreSQL, Redis, MinIO |
+| `docker-compose.deploy.yml` | 배포용 (앱 두 벌) |
+| `.github/` | CI, 품질 분석, 배포, 예시 데이터 작업, Dependabot |
+| `.run/` | IntelliJ 실행 설정 |
 
-## 코드 실행하기
-
-IntelliJ에서는 오른쪽 위 실행 목록(`.run/` 폴더)에서 고르면 됩니다: `1. DB·Redis·MinIO 켜기` → `MyBlog 전체 (서버+화면)` → http://localhost:5173 (`1.`은 `.env`가 없으면 견본에서 만들어 줍니다)
+## 빠르게 실행하기
 
 ```bash
-# 0. 접속 정보 파일 만들기 (처음 한 번). DB, Redis, MinIO, 메일 값이 모두 여기 있다. git에 올라가지 않는다
-cp .env.example .env
-
-# 1. 개발용 DB, Redis, 이미지 저장소(MinIO) 띄우기 (.env를 읽는다)
-docker compose up -d --wait
-
-# 2. 서버 (http://localhost:8080). 같은 .env를 읽는다
-cd backend && mvn spring-boot:run
-
-# 3. 화면 (http://localhost:5173) — /api 요청은 서버로 넘어갑니다
-cd frontend && npm install && npm run dev
+cp .env.example .env                 # 처음 한 번. 접속 정보 견본 (git에 올라가지 않는다)
+docker compose up -d --wait          # PostgreSQL, Redis, MinIO
+cd backend && mvn spring-boot:run    # 서버 http://localhost:8080
+cd frontend && npm install && npm run dev   # 화면 http://localhost:5173
 ```
 
-- 서버 상태 확인: http://localhost:8080/actuator/health
-- 테스트 전체: `cd backend && mvn verify` (`.env`가 있고 DB와 Redis가 떠 있어야 합니다)
-- 개발 설정에서는 인증 메일을 보내지 않고 서버 로그의 `[개발용 메일]` 줄에 인증번호를 찍습니다.
-- 내 메일함(Gmail, 네이버)으로 실제 인증 메일을 받아 보려면 `.env`의 `MAIL_SENDER=smtp`로 바꾸고 `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`를 채운 뒤 서버를 다시 켭니다. 적는 법은 `.env.example`에 있습니다.
+IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기` → `MyBlog 전체 (서버+화면)`을 고르면 됩니다. 예시 블로거 12명과 글 108개가 처음 켤 때 저절로 들어갑니다. 자세한 것과 문제 해결은 [docs/개발-환경.md](docs/개발-환경.md)에 있습니다.
+
+## API 문서
+
+| 문서 | 보는 법 |
+|---|---|
+| Swagger (API 61개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 10개 묶음, 로그인·CSRF가 필요한 API에 표시 |
+| Spring REST Docs (주요 흐름 22개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
+
+모든 주소는 `/api/v1/…`입니다. 로그인은 서버 세션(쿠키 `SESSION`)이고, GET이 아닌 요청은 쿠키 `XSRF-TOKEN`의 값을 머리글 `X-XSRF-TOKEN`에 실어 보냅니다.
+
+## 테스트
+
+```bash
+cd backend && mvn verify                    # 서버 테스트 450여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
+cd frontend && npm test                     # 화면 테스트 (Vitest)
+cd frontend && npm run test:coverage        # 화면 커버리지 (coverage/lcov.info)
+```
+
+기능마다 정상값·경계값·예외값을 함께 테스트하고, 테스트가 실패하면 테스트가 아니라 구현을 고칩니다. 기준은 문서 저장소의 [테스트 전략](https://github.com/home-blog/docs/blob/main/docs/3-설계/테스트-전략.md)에 있습니다.
 
 ## 작업 방식
 
@@ -40,19 +84,19 @@ cd frontend && npm install && npm run dev
 
   | 브랜치 | 어디서 만들어 | 어디로 합치나 | 하는 일 |
   |---|---|---|---|
-  | `main` | — | — | 배포된 코드. 릴리스마다 태그 `v<번호>` (예: `v0.5.0`, 급한 수정 `v0.5.1`) |
+  | `main` | — | — | 배포된 코드. 릴리스마다 태그 `v<번호>` |
   | `develop` | `main` | — | 다음 릴리스를 모으는 곳 (기본 브랜치) |
-  | `feature/<내용>` | `develop` | `develop` | 기능 하나 (예: `feature/v0.5-social-login`) |
+  | `feature/<내용>` | `develop` | `develop` | 기능 하나 |
   | `release/<번호>` | `develop` | `main`, 그다음 `develop` | 릴리스 준비: CHANGELOG 날짜, 마지막 확인. 합치면 배포 |
-  | `hotfix/<번호>` | `main` | `main`, 그다음 `develop` | 서비스가 멈추는 급한 버그만 (예: `hotfix/0.4.1`) |
+  | `hotfix/<번호>` | `main` | `main`, 그다음 `develop` | 서비스가 멈추는 급한 버그만 |
 
   ```text
   feature/* ──PR──▶ develop ──release/0.5.0──PR──▶ main ──▶ Actions 배포(0.5.0) → 태그 v0.5.0
                        ▲                                 │
                        └─────────── main을 다시 합침 ◀────┘   (hotfix/*도 main → develop 순서)
   ```
-- PR마다 자동 검사가 돕니다: **CI**(서버 빌드·테스트, 화면 린트·빌드), **CodeRabbit**(1차 코드 리뷰, 한국어), **SonarQube**(품질·커버리지, 아카데미 서버).
-- CI가 통과해야 merge합니다. `develop`과 `main`으로 가는 PR 모두 같은 검사를 거칩니다. 단, 문서(`*.md`, `docs/`, `specs/`)만 바꾼 PR은 CI가 돌지 않으므로(`paths-ignore`) CodeRabbit 리뷰만 보고 합칩니다.
+- PR마다 자동 검사가 돕니다: **CI**(서버 빌드·테스트, 화면 린트·테스트·빌드), **SonarQube**(품질·커버리지, Quality Gate를 통과해야 초록), **CodeRabbit**(1차 코드 리뷰, 한국어). 모두 통과해야 merge합니다. 문서(`*.md`, `docs/`, `specs/`)만 바꾼 PR은 CI가 돌지 않으므로 CodeRabbit 리뷰만 보고 합칩니다.
+- **번호**: 새로 할 수 있는 게 생기면 가운데 숫자(0.6.0), 고치기·다듬기·운영 개선은 끝 숫자(0.5.3). 다음 릴리스의 변경은 PR마다 CHANGELOG의 `준비 중` 절에 쌓습니다. API 주소 버전(`/api/v1`)은 릴리스 번호와 따로 가고, 깨지는 변경일 때만 `v2`를 엽니다.
+- **배포**는 릴리스를 낼 때만 합니다. Actions `배포`를 `main`으로 손 실행하며 번호를 넣으면, 확인 → 롤링 배포 → 태그와 GitHub 릴리스까지 만듭니다.
 - 무엇을 만들지는 문서 저장소의 `specs/<기능>/tasks.md`, 어떻게는 같은 폴더의 `plan.md`, `contracts/`를 따릅니다.
-- 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않습니다. 로컬은 `.env`(git 제외), 배포는 환경 변수나 GitHub Secrets로 넣습니다. (`.env.example`의 값은 개발 전용입니다)
-- 실습 서버 배포는 GitHub Actions(`.github/workflows/deploy.yml`)가 합니다. 방법은 [`deploy/README.md`](deploy/README.md)에 있습니다.
+- 비밀번호, 키 같은 비밀 값은 코드와 설정 파일에 넣지 않습니다. 로컬은 `.env`(git 제외), 배포는 GitHub Secrets로 넣습니다. `.env.example`의 값은 개발 전용입니다.

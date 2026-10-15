@@ -16,7 +16,7 @@
 
 ## [0.5.3] - 준비 중
 
-API 문서: 지금까지 만든 API 61개를 Swagger 화면에서 읽을 수 있게 설명을 붙이고, 실제 요청·응답 예시가 담긴 Spring REST Docs 문서를 만든다.
+API 문서와 개발 문서: 지금까지 만든 API 61개를 Swagger 화면에서 읽을 수 있게 설명을 붙이고, 실제 요청·응답 예시가 담긴 Spring REST Docs 문서를 만든다. 화면 테스트를 시작하고, README와 개발 환경 문서를 새로 쓴다.
 
 ### 화면
 - 바뀐 것 없음
@@ -33,6 +33,7 @@ API 문서: 지금까지 만든 API 61개를 Swagger 화면에서 읽을 수 있
 - `cd backend && mvn -Pdocs verify`로 `backend/target/generated-docs/index.html`(원고지 모양 한 장짜리 문서)을 만든다. 평소 `mvn verify`에서는 예시만 만들고 HTML은 만들지 않는다
 - 화면 테스트를 시작했다: Vitest + Testing Library + MSW(가짜 서버). 입력 규칙(닉네임·이메일·비밀번호·검색어·태그·원고지 매수)의 정상값·경계값·예외값, 요청 도구(CSRF 토큰, 오류 모양, 401 신호), 로그인 입력(잠금 분 올림) 70개. `cd frontend && npm test`
 - CI 화면 작업에 테스트 단계를 더하고, SonarQube가 화면 커버리지(lcov)도 읽는다. Quality Gate를 통과하지 못하면 품질 분석 체크가 실패한다(`sonar.qualitygate.wait`)
+- README를 새로 썼다(서비스 소개, 기능, 기술, 폴더, API 문서, 테스트, 작업 방식). 개발 환경 한 장 `docs/개발-환경.md`(준비물, 켜기, 개발과 배포의 차이, 확인 명령, 자주 막히는 것)
 
 ## [0.5.2] - 2026-10-14
 
