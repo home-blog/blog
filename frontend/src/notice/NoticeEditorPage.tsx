@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import ProofNotFound from '../components/ProofNotFound'
 import { createNotice, getNotice, updateNotice, type NoticeInput, type NoticeKind } from './noticeApi'
 import { checkNotice, KIND_LABEL, NOTICE_CONTENT_MAX, NOTICE_TITLE_MAX, noticeMessages, type NoticeErrors } from './rules'
 import { countChars } from '../auth/rules'
@@ -15,6 +16,9 @@ const FIELDS = ['kind', 'title', 'content', 'releaseVersion'] as const
 export default function NoticeEditorPage() {
   const { noticeId } = useParams()
   const editing = noticeId !== undefined
+  const id = Number(noticeId)
+  /** 고치기 주소의 번호가 숫자가 아니면(/notices/abc/edit) 서버에 묻지 않고 "없는 공지"로 본다 (읽기 화면과 같다) */
+  const validId = !editing || (/^\d+$/.test(noticeId) && Number.isSafeInteger(id) && id > 0)
   const { member } = useAuth()
   const navigate = useNavigate()
   const [input, setInput] = useState<NoticeInput>(EMPTY)
@@ -24,9 +28,9 @@ export default function NoticeEditorPage() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!editing) return
+    if (!editing || !validId) return
     const controller = new AbortController()
-    getNotice(Number(noticeId), controller.signal)
+    getNotice(id, controller.signal)
       .then((notice) => {
         setInput({
           kind: notice.kind,
@@ -42,7 +46,11 @@ export default function NoticeEditorPage() {
         setFormError(err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요')
       })
     return () => controller.abort()
-  }, [editing, noticeId])
+  }, [editing, id, validId])
+
+  if (!validId) {
+    return <ProofNotFound struck="쪽" inserted="공지" particle="가" message="※ 존재하지 않는 공지사항입니다" />
+  }
 
   if (member && !member.admin) {
     return (
@@ -65,7 +73,7 @@ export default function NoticeEditorPage() {
     if (Object.keys(found).length > 0) return
     setBusy(true)
     try {
-      const saved = editing ? await updateNotice(Number(noticeId), value) : await createNotice(value)
+      const saved = editing ? await updateNotice(id, value) : await createNotice(value)
       navigate(`/notices/${saved.noticeId}`, { replace: editing })
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
