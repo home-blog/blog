@@ -10,8 +10,11 @@
 // - 나란히 미리보기 (specs/007 US7): 넓은 화면은 왼쪽에 쓰고 오른쪽 원고지 종이에 바로 보인다(스크롤도 같이). 좁으면 쓰기/미리보기 탭
 // - 서식 도구 막대(MarkdownToolbar)와 원고지 매수 실시간 표시
 // - 본문에 이미지가 있으면 대표 이미지(카드 썸네일) 고르기 (specs/008, CoverPicker)
+// - 새 글은 임시 저장(specs/013 US3): 바뀐 것이 있으면 writing.draftAutosaveSeconds(30초)마다 저절로, "임시 저장" 버튼으로도.
+//   /write?draft=번호로 이어 쓴다. 임시 저장 글을 발행하면 보통 글이 되고 임시 저장 글은 사라진다
+// - 새 글은 예약 발행(US4): 시각을 고르면 그 시각에 올라간다. 예약을 취소하면 임시 저장 글로 남는다
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
-import { Navigate, useParams } from 'react-router'
+import { Navigate, useParams, useSearchParams } from 'react-router'
 import { useUnsavedChangesPrompt } from '../account/useUnsavedChangesPrompt'
 import { ApiError } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -19,12 +22,24 @@ import ImageUploadButton from '../image/ImageUploadButton'
 import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
 import { addPostToSeries, getPostSeries, removePostFromSeries } from '../series/seriesApi'
-import { createPost, getPostEdit, getPostForm, updatePost, type PostInput, type SavedState } from './postApi'
+import {
+  createDraft,
+  getDraft,
+  publishDraft,
+  scheduleDraft,
+  unscheduleDraft,
+  updateDraft,
+  type DraftInput,
+  type DraftSaved,
+} from './draftApi'
+import { isoToLocalInput, localInputToIso, publishAtLabel, savedAtLabel, scheduleError } from './draftRules'
+import { createPost, getPostEdit, getPostForm, updatePost, type PostForm, type PostInput, type SavedState } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import EditorPreview from './EditorPreview'
 import CoverPicker from './CoverPicker'
 import MarkdownToolbar from './MarkdownToolbar'
 import TagInput from './TagInput'
+import { useAutosave } from './useAutosave'
 import './post-detail.css'
 import './post-editor.css'
 
@@ -62,6 +77,12 @@ interface EditorOptions {
   series: { seriesId: number; name: string }[]
 }
 
+const DEFAULT_WRITING: PostForm['writing'] = { draftAutosaveSeconds: 30, draftMaxCount: 50, scheduleMaxDays: 30 }
+
+function snapshotOf(input: PostInput, seriesId: number | null): string {
+  return JSON.stringify([input, seriesId])
+}
+
 export default function PostEditorPage() {
   const { postId: postIdParam } = useParams()
   const editingId = postIdParam === undefined ? null : Number(postIdParam)
@@ -72,6 +93,22 @@ export default function PostEditorPage() {
   // 연재 (specs/013 US2): 글과 따로 저장한다. 저장한 뒤 바뀌었으면 연재에 넣거나 뺀다
   const [initialSeriesId, setInitialSeriesId] = useState<number | null>(null)
   const [seriesId, setSeriesId] = useState<number | null>(null)
+  // 임시 저장·예약 (specs/013 US3, US4). 새 글만. 처음 연 주소의 ?draft=번호를 이어 쓴다
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [loadDraftId] = useState(() => {
+    const value = editingId === null ? Number(searchParams.get('draft')) : Number.NaN
+    return Number.isInteger(value) && value > 0 ? value : null
+  })
+  const draftRef = useRef<number | null>(loadDraftId)
+  const draftChain = useRef<Promise<unknown>>(Promise.resolve())
+  const [writing, setWriting] = useState(DEFAULT_WRITING)
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<string | null>(null)
+  const [publishAt, setPublishAt] = useState<string | null>(null)
+  const [draftMessage, setDraftMessage] = useState<{ text: string; error: boolean } | null>(null)
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleValue, setScheduleValue] = useState('')
+  const [scheduleProblem, setScheduleProblem] = useState<string | null>(null)
   const [requestKey] = useState(() => crypto.randomUUID())
   const [errors, setErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -100,16 +137,33 @@ export default function PostEditorPage() {
     const controller = new AbortController()
     const load =
       editingId === null
-        ? getPostForm(controller.signal).then((loaded) => ({
-            options: loaded as EditorOptions,
-            seriesId: null as number | null,
-            start: {
-              ...EMPTY,
-              categoryId: loaded.defaultCategoryId,
-              topicId: loaded.defaultTopicId,
-              visibility: loaded.defaultVisibility,
-            },
-          }))
+        ? Promise.all([
+            getPostForm(controller.signal),
+            loadDraftId === null ? Promise.resolve(null) : getDraft(loadDraftId, controller.signal),
+          ]).then(([loaded, draft]) => {
+            setWriting(loaded.writing ?? DEFAULT_WRITING)
+            setSavedAt(draft?.updatedAt ?? null)
+            setPublishAt(draft?.publishAt ?? null)
+            return {
+              options: loaded as EditorOptions,
+              seriesId: draft?.seriesId ?? null,
+              start: draft
+                ? {
+                    title: draft.title,
+                    content: draft.content,
+                    categoryId: draft.categoryId ?? loaded.defaultCategoryId,
+                    topicId: draft.topicId ?? loaded.defaultTopicId,
+                    visibility: draft.visibility,
+                    tags: draft.tags,
+                  }
+                : {
+                    ...EMPTY,
+                    categoryId: loaded.defaultCategoryId,
+                    topicId: loaded.defaultTopicId,
+                    visibility: loaded.defaultVisibility,
+                  },
+            }
+          })
         : Promise.all([
             getPostEdit(editingId, controller.signal),
             getPostForm(controller.signal),
@@ -135,13 +189,14 @@ export default function PostEditorPage() {
         setInput(start)
         setInitialSeriesId(startSeriesId)
         setSeriesId(startSeriesId)
+        setSavedSnapshot(snapshotOf(start, startSeriesId))
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
         setLoadError(err instanceof ApiError ? err.message : postMessages.failed)
       })
     return () => controller.abort()
-  }, [editingId])
+  }, [editingId, loadDraftId])
 
   const dirty =
     savedPostId === null &&
@@ -152,7 +207,44 @@ export default function PostEditorPage() {
       input.visibility !== initial.visibility ||
       input.tags.join('\n') !== initial.tags.join('\n') ||
       seriesId !== initialSeriesId)
-  useUnsavedChangesPrompt(dirty)
+  const snapshot = snapshotOf(input, seriesId)
+  // 새 글은 마지막 임시 저장과 비교한다 (임시 저장한 뒤에는 나가도 묻지 않는다)
+  const unsaved = editingId === null ? savedPostId === null && savedSnapshot !== null && snapshot !== savedSnapshot : dirty
+  useUnsavedChangesPrompt(unsaved)
+
+  /** 임시 저장. 저장이 겹치지 않게 차례로 보낸다(처음 저장이 끝나야 번호가 생긴다). 임시 저장 글 번호를 돌려준다 */
+  function saveDraft(): Promise<DraftSaved> {
+    const body: DraftInput = { ...input, seriesId }
+    const snap = snapshot
+    const next = draftChain.current.then(async () => {
+      const id = draftRef.current
+      const res = id === null ? await createDraft(body) : await updateDraft(id, body)
+      if (id === null) {
+        draftRef.current = res.draftId
+        setSearchParams({ draft: String(res.draftId) }, { replace: true })
+      }
+      setSavedSnapshot(snap)
+      setSavedAt(res.updatedAt)
+      setPublishAt(res.publishAt)
+      return res
+    })
+    draftChain.current = next.catch(() => undefined)
+    return next
+  }
+
+  useAutosave({
+    snapshot,
+    savedSnapshot: savedSnapshot ?? snapshot,
+    enabled: editingId === null && form !== null && !busy && savedPostId === null,
+    intervalSeconds: writing.draftAutosaveSeconds,
+    save: () =>
+      saveDraft().then(
+        () => setDraftMessage(null),
+        (err: unknown) => {
+          setDraftMessage({ text: err instanceof ApiError ? err.message : '※ 임시 저장하지 못했습니다', error: true })
+        },
+      ),
+  })
 
   if (savedPostId !== null) {
     // 글 화면이 "탈고"(새 글)·"퇴고"(고친 글) 도장 알림을 한 번 띄운다 (v0.5.1)
@@ -203,6 +295,13 @@ export default function PostEditorPage() {
     sending.current = true
     setBusy(true)
     try {
+      if (editingId === null && draftRef.current !== null) {
+        // 임시 저장 글을 발행한다: 연재도 서버가 함께 넣는다. 저장 중이던 임시 저장이 끝난 뒤에 보낸다
+        await draftChain.current
+        const res = await publishDraft(draftRef.current, { ...input, seriesId })
+        setSavedPostId(res.postId)
+        return
+      }
       const res = editingId === null ? await createPost(input, requestKey) : await updatePost(editingId, input)
       await saveSeries(res.postId)
       setSavedPostId(res.postId)
@@ -235,6 +334,98 @@ export default function PostEditorPage() {
       else if (initialSeriesId !== null) await removePostFromSeries(initialSeriesId, postId)
     } catch {
       // 위 주석대로 넘어간다
+    }
+  }
+
+  /** 서버의 칸 오류를 칸마다 보여 준다. 칸 오류가 없으면 false */
+  function showFieldErrors(err: unknown): boolean {
+    if (!(err instanceof ApiError) || err.fieldErrors.length === 0) return false
+    setErrors({
+      title: err.messageFor('title'),
+      content: err.messageFor('content'),
+      categoryId: err.messageFor('categoryId'),
+      topicId: err.messageFor('topicId'),
+      visibility: err.messageFor('visibility'),
+      tags: err.messageFor('tags'),
+      tagItems: tagItemErrors(err),
+    })
+    return true
+  }
+
+  async function saveDraftNow() {
+    if (sending.current) return
+    sending.current = true
+    setBusy(true)
+    setDraftMessage(null)
+    try {
+      await saveDraft()
+    } catch (err) {
+      if (!showFieldErrors(err)) {
+        setDraftMessage({ text: err instanceof ApiError ? err.message : '※ 임시 저장하지 못했습니다', error: true })
+      }
+    } finally {
+      sending.current = false
+      setBusy(false)
+    }
+  }
+
+  function openSchedule() {
+    setScheduleProblem(null)
+    setScheduleValue(publishAt ? isoToLocalInput(publishAt) : '')
+    setScheduling(true)
+  }
+
+  /** 예약: 보통 발행과 같은 검사 + 시각 검사. 아직 임시 저장 글이 없으면 먼저 만든다 */
+  async function confirmSchedule() {
+    if (sending.current) return
+    const found = check()
+    setErrors(found)
+    if (Object.keys(found).length > 0) {
+      setScheduling(false)
+      return
+    }
+    const iso = localInputToIso(scheduleValue)
+    const problem = scheduleError(iso, new Date(), writing.scheduleMaxDays)
+    if (problem || !iso) {
+      setScheduleProblem(problem)
+      return
+    }
+    sending.current = true
+    setBusy(true)
+    try {
+      const saved = await saveDraft()
+      const res = await scheduleDraft(saved.draftId, { ...input, seriesId }, iso)
+      setPublishAt(res.publishAt)
+      setSavedAt(res.updatedAt)
+      setScheduling(false)
+      setDraftMessage({ text: '예약했습니다. 그 시각이 되면 글이 올라갑니다', error: false })
+    } catch (err) {
+      if (err instanceof ApiError && err.messageFor('publishAt')) {
+        setScheduleProblem(err.messageFor('publishAt') ?? null)
+      } else {
+        setScheduling(false)
+        if (!showFieldErrors(err)) setFormError(err instanceof ApiError ? err.message : postMessages.failed)
+      }
+    } finally {
+      sending.current = false
+      setBusy(false)
+    }
+  }
+
+  async function cancelSchedule() {
+    const id = draftRef.current
+    if (id === null || sending.current) return
+    sending.current = true
+    setBusy(true)
+    try {
+      const res = await unscheduleDraft(id)
+      setPublishAt(res.publishAt)
+      setDraftMessage({ text: '예약을 취소했습니다. 임시 저장 글로 남습니다', error: false })
+    } catch (err) {
+      setDraftMessage({ text: err instanceof ApiError ? err.message : postMessages.failed, error: true })
+    } finally {
+      sending.current = false
+      setBusy(false)
     }
   }
 
@@ -498,19 +689,65 @@ export default function PostEditorPage() {
         )}
       </div>
 
-      {/* 맨 아래 막대: 오류와 저장 */}
+      {/* 맨 아래 막대: 오류·임시 저장 상태와 저장 */}
       <div className="editor-bar">
         {formError ? (
           <p className="msg msg-error form-error" role="alert">
             {formError}
           </p>
         ) : (
-          <span />
+          <p className={`editor-draft-status ${draftMessage?.error ? 'msg msg-error' : 'hint'}`} role="status" aria-live="polite">
+            {draftMessage?.text ?? (savedAt ? savedAtLabel(savedAt) : '')}
+            {publishAt && <span className="editor-draft-scheduled">{publishAtLabel(publishAt)}</span>}
+          </p>
         )}
-        <button type="submit" className="btn btn-primary" disabled={busy || (editingId !== null && !dirty)}>
-          {busy ? '저장하는 중' : '저장'}
-        </button>
+        <div className="editor-bar-actions">
+          {editingId === null && (
+            <>
+              <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void saveDraftNow()}>
+                임시 저장
+              </button>
+              {publishAt && (
+                <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void cancelSchedule()}>
+                  예약 취소
+                </button>
+              )}
+              <button type="button" className="btn btn-outline" disabled={busy} onClick={openSchedule}>
+                {publishAt ? '예약 바꾸기' : '예약'}
+              </button>
+            </>
+          )}
+          <button type="submit" className="btn btn-primary" disabled={busy || (editingId !== null && !dirty)}>
+            {busy ? '저장하는 중' : editingId === null ? '발행' : '저장'}
+          </button>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={scheduling}
+        title="예약 발행"
+        confirmLabel="예약"
+        onCancel={() => setScheduling(false)}
+        onConfirm={() => void confirmSchedule()}
+      >
+        <div className="field editor-schedule">
+          <label htmlFor="post-publish-at">올릴 시각 (한국 시간)</label>
+          <input
+            id="post-publish-at"
+            type="datetime-local"
+            value={scheduleValue}
+            aria-invalid={scheduleProblem ? true : undefined}
+            aria-describedby="post-publish-at-help"
+            onChange={(e) => {
+              setScheduleValue(e.target.value)
+              setScheduleProblem(null)
+            }}
+          />
+          <p id="post-publish-at-help" className={scheduleProblem ? 'msg msg-error' : 'hint'}>
+            {scheduleProblem ?? `지금부터 1분 뒤 ~ ${writing.scheduleMaxDays}일 안. 그 시각이 될 때까지는 나만 봅니다`}
+          </p>
+        </div>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmPublic}

@@ -1,6 +1,6 @@
 // 글쓰기 잔디 (specs/013 US1): 지난 1년 동안 공개 글을 쓴 날을 원고지 칸에 채운다. 많이 쓴 날일수록 진하다
 // 칸 하나하나는 탭으로 오가지 않는다(365칸). 전체 요약은 aria-label로, 칸 설명은 마우스를 올리거나 누르면 아래에 보인다
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { activityLevel, activityWeeks, dayLabel, type ActivityDay } from './activity'
 import { getBlogActivity, type BlogActivity as Activity } from './blogApi'
 
@@ -11,6 +11,13 @@ interface Props {
 export default function BlogActivity({ blogId }: Props) {
   const [activity, setActivity] = useState<Activity | null>(null)
   const [picked, setPicked] = useState<ActivityDay | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // 좁은 화면에서는 칸 줄이 옆으로 밀린다: 오늘(맨 오른쪽)이 먼저 보이게 끝으로 옮겨 둔다
+  useLayoutEffect(() => {
+    const box = scrollRef.current
+    if (box) box.scrollLeft = box.scrollWidth
+  }, [activity])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -30,7 +37,7 @@ export default function BlogActivity({ blogId }: Props) {
       <h2 id="blog-activity-title" className="blog-activity-title">
         글쓰기 잔디
       </h2>
-      <div className="blog-activity-scroll">
+      <div className="blog-activity-scroll" ref={scrollRef}>
         <div className="blog-activity-grid" role="img" aria-label={summary}>
           {weeks.map((week) => (
             <div className="blog-activity-week" key={week.find((day) => day)?.date}>

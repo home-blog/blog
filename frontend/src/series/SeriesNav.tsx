@@ -22,20 +22,22 @@ export function SeriesFooter({ series, currentPostId }: { series: PostSeries; cu
   const [open, setOpen] = useState(false)
   return (
     <nav className="series-footer" aria-label={`${series.name} 연재`}>
-      <div className="series-footer-links">
-        {series.previous ? (
-          <Link to={`/posts/${series.previous.postId}`} className="series-footer-link is-previous">
-            <span className="hint">이전 화</span> {series.previous.title}
-          </Link>
-        ) : (
-          <span />
-        )}
-        {series.next && (
-          <Link to={`/posts/${series.next.postId}`} className="series-footer-link is-next">
-            <span className="hint">다음 화</span> {series.next.title}
-          </Link>
-        )}
-      </div>
+      {(series.previous || series.next) && (
+        <div className="series-footer-links">
+          {series.previous ? (
+            <Link to={`/posts/${series.previous.postId}`} className="series-footer-link is-previous">
+              <span className="hint">이전 화</span> {series.previous.title}
+            </Link>
+          ) : (
+            <span />
+          )}
+          {series.next && (
+            <Link to={`/posts/${series.next.postId}`} className="series-footer-link is-next">
+              <span className="hint">다음 화</span> {series.next.title}
+            </Link>
+          )}
+        </div>
+      )}
       <button type="button" className="btn btn-quiet btn-small" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         연재 전체 보기 ({series.total}화)
       </button>

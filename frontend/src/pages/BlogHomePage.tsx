@@ -87,6 +87,7 @@ export default function BlogHomePage() {
           <p className="blog-intro hint">아직 소개가 없습니다</p>
         )}
         <BlogActivity blogId={id} />
+        <BlogSeriesList blogId={id} viewer={viewer ?? 'guest'} />
         <p className="blog-feed-links">
           <a href={`/blog/${id}/rss.xml`} className="blog-rss" target="_blank" rel="noopener">
             RSS
@@ -105,7 +106,6 @@ export default function BlogHomePage() {
       </header>
 
       <div className="blog-body">
-        <BlogSeriesList blogId={id} viewer={viewer ?? 'guest'} />
         <CategoryFilter categories={categories} selected={searchParams.get('category')} />
 
         <BlogPostList blogId={id} viewer={viewer ?? 'guest'} />

@@ -184,8 +184,8 @@ public class SeriesService {
      * (글 발행을 실패로 만들지 않는다). 한도를 넘으면 넣지 않는다.
      */
     public void attachIfPossible(Long blogId, Long seriesId, Long postId) {
-        if (seriesId == null) {
-            return;
+        if (seriesId == null || seriesPosts.seriesOf(postId).isPresent()) {
+            return; // 같은 요청이 두 번 와 이미 넣은 글이면 끝 화로 다시 옮기지 않는다
         }
         seriesRepository.findById(seriesId)
                 .filter(series -> series.getBlogId().equals(blogId))
