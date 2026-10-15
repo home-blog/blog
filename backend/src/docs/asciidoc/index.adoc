@@ -19,7 +19,7 @@
 
 이 문서의 요청과 응답은 *테스트가 실제로 보내고 받은 것* 입니다 (Spring REST Docs, `ApiDocumentationTest`).
 응답에 문서에 없는 칸이 생기거나 적은 칸이 사라지면 테스트가 실패하므로, 문서가 코드와 어긋나지 않습니다.
-전체 API 목록(61개)은 개발 서버의 Swagger 화면(`/swagger-ui.html`)에 있고, 이 문서는 주요 흐름을 예시와 함께 설명합니다.
+전체 API 목록(67개)은 개발 서버의 Swagger 화면(`/swagger-ui.html`)에 있고, 이 문서는 주요 흐름을 예시와 함께 설명합니다.
 
 [[overview]]
 == 공통 약속
