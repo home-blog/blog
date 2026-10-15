@@ -12,6 +12,7 @@ import com.myblog.post.PostDeletingEvent;
 import com.myblog.post.config.SeriesProperties;
 import com.myblog.post.domain.Post;
 import com.myblog.post.domain.Series;
+import com.myblog.post.repository.BlogWriteLock;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.repository.SeriesPostRepository;
 import com.myblog.post.repository.SeriesPostRepository.Entry;
@@ -48,16 +49,19 @@ public class SeriesService {
     private final BlogDirectory blogDirectory;
     private final PostVisibility visibility;
     private final SeriesProperties properties;
+    private final BlogWriteLock writeLock;
     private final Clock clock;
 
     public SeriesService(SeriesRepository seriesRepository, SeriesPostRepository seriesPosts, PostRepository posts,
-            BlogDirectory blogDirectory, PostVisibility visibility, SeriesProperties properties, Clock clock) {
+            BlogDirectory blogDirectory, PostVisibility visibility, SeriesProperties properties, BlogWriteLock writeLock,
+            Clock clock) {
         this.seriesRepository = seriesRepository;
         this.seriesPosts = seriesPosts;
         this.posts = posts;
         this.blogDirectory = blogDirectory;
         this.visibility = visibility;
         this.properties = properties;
+        this.writeLock = writeLock;
         this.clock = clock;
     }
 
@@ -127,6 +131,7 @@ public class SeriesService {
     public SeriesDetail create(Long memberId, String name, String description) {
         BlogInfo blog = myBlog(memberId);
         Input input = validate(name, description);
+        writeLock.series(blog.blogId()); // 세기와 만들기 사이에 다른 요청이 끼지 않게
         if (seriesRepository.countByBlogId(blog.blogId()) >= properties.maxPerBlog()) {
             throw new ApiException(ErrorCode.SERIES_LIMIT_EXCEEDED,
                     ErrorCode.SERIES_LIMIT_EXCEEDED.message().formatted(properties.maxPerBlog()));
@@ -149,6 +154,7 @@ public class SeriesService {
     /** 글을 연재의 끝 화로 넣는다(다른 연재에서는 빠진다). 이미 이 연재에 있으면 그대로 (contracts 2-5). */
     public void addPost(Long memberId, Long seriesId, Long postId) {
         Series series = mySeries(memberId, seriesId);
+        writeLock.series(series.getBlogId()); // 한도 세기·화 순서·다른 연재에서 옮기기가 겹치지 않게
         myPost(series.getBlogId(), postId);
         if (seriesPosts.seriesOf(postId).filter(seriesId::equals).isPresent()) {
             return;
@@ -161,7 +167,7 @@ public class SeriesService {
     }
 
     public void removePost(Long memberId, Long seriesId, Long postId) {
-        mySeries(memberId, seriesId);
+        writeLock.series(mySeries(memberId, seriesId).getBlogId());
         if (seriesPosts.remove(seriesId, postId) == 0) {
             throw PostReadService.notFound();
         }
@@ -169,7 +175,7 @@ public class SeriesService {
 
     /** 순서 바꾸기 (S2-7): 그 연재의 글 번호를 모두, 한 번씩. */
     public SeriesDetail reorder(Long memberId, Long seriesId, List<Long> postIds) {
-        mySeries(memberId, seriesId);
+        writeLock.series(mySeries(memberId, seriesId).getBlogId());
         Set<Long> current = new HashSet<>(seriesPosts.postIds(seriesId));
         if (postIds == null || postIds.isEmpty() || postIds.size() != current.size()
                 || !current.equals(new HashSet<>(postIds))) {
@@ -184,7 +190,11 @@ public class SeriesService {
      * (글 발행을 실패로 만들지 않는다). 한도를 넘으면 넣지 않는다.
      */
     public void attachIfPossible(Long blogId, Long seriesId, Long postId) {
-        if (seriesId == null || seriesPosts.seriesOf(postId).isPresent()) {
+        if (seriesId == null) {
+            return;
+        }
+        writeLock.series(blogId);
+        if (seriesPosts.seriesOf(postId).isPresent()) {
             return; // 같은 요청이 두 번 와 이미 넣은 글이면 끝 화로 다시 옮기지 않는다
         }
         seriesRepository.findById(seriesId)

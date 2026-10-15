@@ -295,9 +295,10 @@ export default function PostEditorPage() {
     sending.current = true
     setBusy(true)
     try {
+      // 저장 중이던 임시 저장(첫 저장이면 임시 저장 글 번호가 생긴다)이 끝난 뒤에 어느 길로 보낼지 정한다
+      if (editingId === null) await draftChain.current
       if (editingId === null && draftRef.current !== null) {
-        // 임시 저장 글을 발행한다: 연재도 서버가 함께 넣는다. 저장 중이던 임시 저장이 끝난 뒤에 보낸다
-        await draftChain.current
+        // 임시 저장 글을 발행한다: 연재도 서버가 함께 넣는다
         const res = await publishDraft(draftRef.current, { ...input, seriesId })
         setSavedPostId(res.postId)
         return

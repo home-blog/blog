@@ -89,6 +89,16 @@
   background: var(--paper-raised);
 }
 
+.blog-activity-grid:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.blog-activity-cell.is-picked {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
 .blog-activity-cell.is-empty {
   border-color: transparent;
   background: transparent;

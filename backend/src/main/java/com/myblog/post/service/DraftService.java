@@ -13,6 +13,7 @@ import com.myblog.post.config.WritingProperties;
 import com.myblog.post.controller.dto.DraftRequests;
 import com.myblog.post.domain.Post;
 import com.myblog.post.domain.PostDraft;
+import com.myblog.post.repository.BlogWriteLock;
 import com.myblog.post.repository.PostDraftRepository;
 import com.myblog.post.repository.TopicRepository;
 import com.myblog.post.tag.TagNormalizer;
@@ -59,12 +60,13 @@ public class DraftService {
     private final PostProperties postProperties;
     private final WritingProperties writing;
     private final TransactionTemplate transaction;
+    private final BlogWriteLock writeLock;
     private final Clock clock;
 
     public DraftService(PostDraftRepository drafts, BlogDirectory blogDirectory, PostInputChecks checks, TopicRepository topics,
             TagNormalizer tagNormalizer, PostWriteService writeService, SeriesService seriesService, Validator validator,
             ApplicationEventPublisher events, PostProperties postProperties, WritingProperties writing,
-            PlatformTransactionManager transactionManager, Clock clock) {
+            PlatformTransactionManager transactionManager, BlogWriteLock writeLock, Clock clock) {
         this.drafts = drafts;
         this.blogDirectory = blogDirectory;
         this.checks = checks;
@@ -77,6 +79,7 @@ public class DraftService {
         this.postProperties = postProperties;
         this.writing = writing;
         this.transaction = new TransactionTemplate(transactionManager);
+        this.writeLock = writeLock;
         this.clock = clock;
     }
 
@@ -98,6 +101,7 @@ public class DraftService {
         BlogInfo blog = myBlog(memberId);
         checkSave(request, blog.blogId());
         return transaction.execute(status -> {
+            writeLock.drafts(blog.blogId()); // 세기와 만들기 사이에 다른 저장이 끼지 않게
             if (drafts.countByBlogId(blog.blogId()) >= writing.draft().maxCount()) {
                 throw new ApiException(ErrorCode.DRAFT_LIMIT_EXCEEDED,
                         ErrorCode.DRAFT_LIMIT_EXCEEDED.message().formatted(writing.draft().maxCount()));

@@ -107,7 +107,11 @@ export default function SeriesManagePage() {
     }
     setOpenId(seriesId)
     setDetail(null)
-    void run(async () => setDetail(await getSeries(seriesId)))
+    void run(async () => {
+      const loaded = await getSeries(seriesId)
+      // 그사이 다른 연재를 펼쳤으면 늦게 온 응답은 버린다
+      setDetail((current) => (current === null ? loaded : current))
+    })
   }
 
   function move(index: number, delta: number) {
@@ -183,7 +187,7 @@ export default function SeriesManagePage() {
                     {series.description && <p className="series-manage-description hint">{series.description}</p>}
                   </div>
                   <div className="category-actions">
-                    <button type="button" className="btn btn-quiet btn-small" aria-expanded={openId === series.seriesId}
+                    <button type="button" className="btn btn-quiet btn-small" disabled={busy} aria-expanded={openId === series.seriesId}
                       onClick={() => toggle(series.seriesId)}>
                       글 순서
                     </button>

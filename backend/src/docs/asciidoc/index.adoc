@@ -228,7 +228,8 @@ operation::post-series[snippets='path-parameters,http-request,http-response,resp
 
 [[draft-schedule]]
 === 예약 발행
-임시 저장 글(`POST /api/v1/me/drafts`)을 만든 뒤 시각을 정합니다. 보통 글쓰기와 같은 검사를 하고, 시각이 되면 1분 안에 글로 올라갑니다. 취소는 `DELETE …/schedule` 입니다.
+임시 저장 글(`POST /api/v1/me/drafts`)을 만든 뒤 시각을 정합니다. 보통 글쓰기와 같은 검사를 하고, 시각이 되면 1분 안에 글로 올라갑니다.
+올릴 때 다시 검사해 걸리면(예약한 뒤 제목을 지웠거나 분류가 지워진 경우) 글을 만들지 않고 예약을 풀어 임시 저장 글로 남깁니다. 취소는 `DELETE …/schedule` 입니다.
 
 operation::draft-schedule[snippets='path-parameters,request-headers,request-fields,http-request,http-response,response-fields']
 
