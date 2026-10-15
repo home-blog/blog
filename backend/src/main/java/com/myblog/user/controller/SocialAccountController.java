@@ -10,6 +10,8 @@ import com.myblog.user.service.SocialAccountService;
 import com.myblog.user.social.SocialClientRegistrations;
 import com.myblog.user.social.SocialProvider;
 import com.myblog.user.social.SocialSessionState;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import java.time.Clock;
 import java.time.Instant;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 마이페이지 "연결된 계정" (specs/010 contracts 6 ~ 8). 로그인해야 부른다. */
+@Tag(name = "3. 마이페이지")
 @RestController
 @RequestMapping("/api/{version}/account/social")
 public class SocialAccountController {
@@ -43,6 +46,7 @@ public class SocialAccountController {
         this.clock = clock;
     }
 
+    @Operation(summary = "연결된 소셜 계정")
     @GetMapping
     public SocialAccountsResponse view(@AuthenticationPrincipal MemberPrincipal principal) {
         User member = currentMember.get(principal);
@@ -54,6 +58,7 @@ public class SocialAccountController {
     }
 
     /** 연결하기 시작: 세션에 "이 회원에 연결"을 적는다. 화면은 이어서 /oauth2/authorization/{provider}로 간다. */
+    @Operation(summary = "소셜 계정 연결 시작", description = "이어서 화면이 /oauth2/authorization/{provider}로 이동한다.")
     @PostMapping("/{provider}/link")
     public ResponseEntity<Void> startLink(@AuthenticationPrincipal MemberPrincipal principal,
             @PathVariable("provider") String provider, HttpSession session) {
@@ -64,6 +69,7 @@ public class SocialAccountController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "소셜 계정 연결 끊기", description = "비밀번호가 없고 연결이 하나뿐이면 끊을 수 없다(들어올 방법이 없어지므로).")
     @DeleteMapping("/{provider}")
     public ResponseEntity<Void> unlink(@AuthenticationPrincipal MemberPrincipal principal,
             @PathVariable("provider") String provider) {

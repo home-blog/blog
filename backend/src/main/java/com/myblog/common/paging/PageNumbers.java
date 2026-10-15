@@ -1,4 +1,4 @@
-package com.myblog.post.service;
+package com.myblog.common.paging;
 
 /**
  * 페이지 번호 계산 한곳 (specs/004 T007, research B-2, FR-002, FR-004, FR-014, SC-005).

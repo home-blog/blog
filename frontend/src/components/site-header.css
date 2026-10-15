@@ -306,3 +306,24 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* 공지사항 링크와 새 글 점 (specs/012 US3) */
+.header-notice {
+  position: relative;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.header-notice:hover {
+  color: var(--ink);
+}
+
+.header-notice-dot {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--seal);
+}

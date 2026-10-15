@@ -6,6 +6,8 @@ import com.myblog.comment.NewCommentCounter;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.user.LoggedInMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 블로그는 주소로 받지 않는다: 세션의 회원으로 그 회원의 블로그를 찾는다 (research B-1). 그래서 남의 관리 화면 주소가 없다.
  * 이름은 요청마다 표에서 읽는다 (설정을 바꾸면 다음 요청부터 새 이름, FR-040).
  */
+@Tag(name = "9. 블로그 관리")
 @RestController
 public class ManageHeaderController {
 
@@ -29,6 +32,7 @@ public class ManageHeaderController {
         this.newCommentCounter = newCommentCounter;
     }
 
+    @Operation(summary = "관리 화면 머리 (블로그 이름·새 댓글 수)")
     @GetMapping("/api/{version}/manage/blog")
     public ManageHeader header(Authentication authentication) {
         Long memberId = loggedInMember.requireIdOf(authentication);

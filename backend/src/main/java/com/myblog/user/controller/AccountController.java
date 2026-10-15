@@ -8,6 +8,8 @@ import com.myblog.user.service.PasswordChangeService;
 import com.myblog.user.config.SessionConfig;
 import com.myblog.user.service.ProfileService;
 import com.myblog.user.service.WithdrawalService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 마이페이지 (specs/002 contracts). 모든 주소는 로그인해야 부를 수 있다 (SecurityConfig의 anyRequest().authenticated()).
  * 회원은 세션(@AuthenticationPrincipal) → CurrentMemberService로만 정한다. 주소·본문에서 회원 번호를 받지 않는다 (FR-002, FR-029).
  */
+@Tag(name = "3. 마이페이지")
 @RestController
 @RequestMapping("/api/{version}/account")
 public class AccountController {
@@ -48,6 +51,7 @@ public class AccountController {
     }
 
     /** 내 정보 보기 (contracts 1). 비밀번호(해시)는 넣지 않는다. */
+    @Operation(summary = "내 정보")
     @GetMapping
     public AccountResponse view(@AuthenticationPrincipal MemberPrincipal principal) {
         ProfileService.Profile profile = profileService.view(currentMember.get(principal));
@@ -56,6 +60,7 @@ public class AccountController {
     }
 
     /** 내 정보 저장 (contracts 2). */
+    @Operation(summary = "닉네임·소개 바꾸기")
     @PatchMapping("/profile")
     public ProfileUpdatedResponse updateProfile(@AuthenticationPrincipal MemberPrincipal principal,
             @Valid @RequestBody AccountRequests.UpdateProfile request) {
@@ -68,6 +73,7 @@ public class AccountController {
      * 비밀번호 변경 (contracts 3). 지금 기기(이 세션)는 로그인이 유지되고 다른 기기는 모두 끊긴다 (FR-020).
      * 세션은 Spring Session이 감싼 것이라 getId()가 세션 표의 ID다. 비밀번호는 응답·로그에 넣지 않는다 (NF-01).
      */
+    @Operation(summary = "비밀번호 바꾸기", description = "지금 기기는 로그인이 유지되고 다른 기기는 모두 로그아웃된다.")
     @PostMapping("/password")
     public MessageResponse changePassword(@AuthenticationPrincipal MemberPrincipal principal,
             @Valid @RequestBody AccountRequests.ChangePassword request, HttpSession session) {
@@ -80,6 +86,7 @@ public class AccountController {
      * 회원 탈퇴 (contracts 4). 성공하면 이 기기도 로그아웃시킨다: 로그인 정보를 지우고 세션을 끝내고 쿠키를 만료시킨다 (FR-027).
      * 다른 기기의 세션은 서비스가 이미 모두 끝냈다.
      */
+    @Operation(summary = "회원 탈퇴", description = "회원 줄은 남기고 이메일·닉네임 등은 알아볼 수 없게 바꾼다. 모든 기기에서 로그아웃된다.")
     @PostMapping("/withdrawal")
     public MessageResponse withdraw(@AuthenticationPrincipal MemberPrincipal principal,
             @Valid @RequestBody AccountRequests.Withdraw request, Authentication authentication,

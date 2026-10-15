@@ -3,6 +3,8 @@ package com.myblog.post.controller;
 import com.myblog.post.service.ManagePostQueryService;
 import com.myblog.post.service.ManagePostQueryService.ManagePostPage;
 import com.myblog.user.LoggedInMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 쪽 번호는 1부터. 1보다 작거나 숫자가 아니면 400 VALIDATION_FAILED (FR-014, NF-07).
  * 아주 큰 쪽 번호는 건너뛸 줄 수가 int를 넘지 않게 막는다 (그런 쪽은 어차피 비어 있다).
  */
+@Tag(name = "9. 블로그 관리")
 @RestController
 public class ManagePostController {
 
@@ -26,6 +29,7 @@ public class ManagePostController {
         this.queryService = queryService;
     }
 
+    @Operation(summary = "글 관리 목록", description = "공개 범위·분류로 거른다. 한 쪽 글 수는 `manage.page-size`.")
     @GetMapping("/api/{version}/manage/posts")
     public ManagePostPage list(Authentication authentication,
             @RequestParam(defaultValue = "all") String visibility,

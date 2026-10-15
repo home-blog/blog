@@ -8,6 +8,8 @@ import com.myblog.user.service.SocialAccountService;
 import com.myblog.user.social.SocialClientRegistrations;
 import com.myblog.user.social.SocialProvider;
 import com.myblog.user.social.SocialSessionState;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 소셜 로그인 버튼과 소셜 가입 (specs/010 contracts 1, 3 ~ 5). 로그인 없이 부른다 (SecurityConfig의 /api/*\/auth/**).
  * 회사 화면 오가기는 Spring Security가 /oauth2/authorization/{회사}, /login/oauth2/code/{회사}에서 한다 (SocialLoginHandlers).
  */
+@Tag(name = "2. 소셜 로그인")
 @RestController
 @RequestMapping("/api/{version}/auth/social")
 public class SocialAuthController {
@@ -46,11 +49,13 @@ public class SocialAuthController {
     }
 
     /** 열쇠가 들어 있는 회사만 (D-9). */
+    @Operation(summary = "쓸 수 있는 소셜 로그인 회사", description = "GitHub·Google·카카오·네이버 중 서버에 열쇠가 들어 있는 회사만. 로그인 시작은 화면이 /oauth2/authorization/{회사}로 이동한다.")
     @GetMapping("/providers")
     public ProvidersResponse providers() {
         return new ProvidersResponse(registrations.enabled().stream().map(SocialProvider::id).toList());
     }
 
+    @Operation(summary = "소셜 가입 대기 정보", description = "회사 화면을 다녀왔는데 연결된 회원이 없을 때. 회사가 알려 준 이메일·이름 제안.")
     @GetMapping("/pending")
     public PendingResponse pending(HttpServletRequest request) {
         SocialSessionState.Pending pending = requirePending(request);
@@ -59,6 +64,7 @@ public class SocialAuthController {
                 seconds);
     }
 
+    @Operation(summary = "소셜 가입 그만두기")
     @DeleteMapping("/pending")
     public ResponseEntity<Void> cancel(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
@@ -69,6 +75,7 @@ public class SocialAuthController {
     }
 
     /** 소셜 가입. 끝나면 바로 로그인된다 (D-3). */
+    @Operation(summary = "소셜 가입", description = "닉네임만 정하면 끝나고 바로 로그인된다. 회사가 인증한 이메일이 없으면 이메일 인증번호를 거친다.")
     @PostMapping("/signup")
     public ResponseEntity<AuthController.MemberResponse> signup(@RequestBody SignupRequest body, HttpServletRequest request,
             HttpServletResponse response) {
@@ -77,7 +84,7 @@ public class SocialAuthController {
         request.getSession().removeAttribute(SocialSessionState.PENDING);
         memberLogin.logIn(member, request, response);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthController.MemberResponse(new AuthController.Member(member.getId(), member.getNickname())));
+                .body(AuthController.MemberResponse.of(member));
     }
 
     private SocialSessionState.Pending requirePending(HttpServletRequest request) {

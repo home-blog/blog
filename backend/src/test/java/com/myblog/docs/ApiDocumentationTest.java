@@ -1,0 +1,653 @@
+package com.myblog.docs;
+
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.modifyHeaders;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.jayway.jsonpath.JsonPath;
+import com.myblog.support.TestMembers;
+import com.myblog.support.TestMembers.Member;
+import jakarta.servlet.http.Cookie;
+import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.restdocs.RestDocumentationContextProvider;
+import org.springframework.restdocs.RestDocumentationExtension;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
+import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.payload.JsonFieldType;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
+
+/**
+ * API 문서 (Spring REST Docs). 실제로 요청을 보내고 받은 응답으로 문서 조각을 만든다 (target/generated-snippets).
+ * 문서에 적지 않은 칸이 응답에 생기거나 적은 칸이 사라지면 이 테스트가 실패해 문서가 코드와 어긋나지 않는다.
+ * HTML은 mvn -Pdocs verify → target/generated-docs/index.html (src/docs/asciidoc/index.adoc).
+ *
+ * 실제 화면과 같은 CSRF 흐름(쿠키 XSRF-TOKEN → 머리글 X-XSRF-TOKEN)을 쓰려고 진짜 CSRF 저장소로 띄운다 (SecurityAndCsrfTest와 같은 설정).
+ */
+@SpringBootTest
+@Transactional
+@Import(TestMembers.class)
+@TestPropertySource(properties = "myblog.test.context=real-csrf")
+@ExtendWith(RestDocumentationExtension.class)
+class ApiDocumentationTest {
+
+    private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+
+    @Autowired
+    private TestMembers members;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    private MockMvc mvc;
+
+    @BeforeEach
+    void setUp(WebApplicationContext context, RestDocumentationContextProvider restDocumentation) {
+        mvc = MockMvcBuilders.webAppContextSetup(context)
+                .apply(springSecurity())
+                .apply(documentationConfiguration(restDocumentation)
+                        .uris().withScheme("https").withHost("geulgyeol.java21.net").withPort(443)
+                        .and().operationPreprocessors()
+                        .withRequestDefaults(prettyPrint())
+                        .withResponseDefaults(prettyPrint(), modifyHeaders().remove("Vary").remove("X-Content-Type-Options")
+                                .remove("X-XSS-Protection").remove("Cache-Control").remove("Pragma").remove("Expires")
+                                .remove("X-Frame-Options").remove("X-Instance")))
+                .build();
+    }
+
+    // ── 1. 로그인 ──
+
+    @Test
+    void CSRF_토큰_받기() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/auth/csrf"))
+                .andExpect(status().isOk())
+                .andDo(document("auth-csrf", responseFields(
+                        fieldWithPath("headerName").description("토큰을 실을 머리글 이름 (`X-XSRF-TOKEN`)"),
+                        fieldWithPath("token").description("머리글에 실을 값. 같은 값이 쿠키 `XSRF-TOKEN`에도 들어온다"))));
+    }
+
+    @Test
+    void 로그인() throws Exception {
+        Member member = members.register("docs");
+        Csrf csrf = csrf(null);
+        mvc.perform(RestDocumentationRequestBuilders.post("/api/v1/auth/login")
+                        .cookie(csrf.cookie()).header(CSRF_HEADER, csrf.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("email", member.user().getEmail(), "password", TestMembers.PASSWORD)))
+                .andExpect(status().isOk())
+                .andDo(document("auth-login",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("email").description("가입한 이메일"),
+                                fieldWithPath("password").description("비밀번호. 정한 횟수만큼 틀리면 정한 시간 동안 잠긴다 (`auth.login.*`)")),
+                        responseFields(memberFields())));
+    }
+
+    @Test
+    void 지금_로그인한_회원() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/auth/me").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("auth-me", responseFields(memberFields())));
+    }
+
+    @Test
+    void 로그아웃() throws Exception {
+        MockHttpSession session = login(members.register("docs"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/auth/logout"), session))
+                .andExpect(status().isNoContent())
+                .andDo(document("auth-logout", requestHeaders(csrfHeader())));
+    }
+
+    // ── 2. 블로그·분류 ──
+
+    @Test
+    void 블로그_정보() throws Exception {
+        Member member = members.register("docs");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}", member.blogId()))
+                .andExpect(status().isOk())
+                .andDo(document("blog-read",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호")),
+                        responseFields(
+                                fieldWithPath("blogId").description("블로그 번호"),
+                                fieldWithPath("name").description("블로그 이름 (1~30자)"),
+                                fieldWithPath("intro").description("블로그 소개 (0~200자)").optional().type(JsonFieldType.STRING),
+                                fieldWithPath("isOwner").description("보는 사람이 이 블로그의 주인인지"))));
+    }
+
+    @Test
+    void 분류_목록() throws Exception {
+        Member member = members.register("docs");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}/categories", member.blogId()))
+                .andExpect(status().isOk())
+                .andDo(document("category-list",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호")),
+                        responseFields(fieldWithPath("categories[]").description("분류 목록 (주인이 정한 순서). 방문자에게는 비공개 분류가 빠진다"))
+                                .andWithPrefix("categories[].", categoryFields())));
+    }
+
+    @Test
+    void 분류_추가() throws Exception {
+        MockHttpSession session = login(members.register("docs"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/blog/categories"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("name", "여행 기록", "visibility", "public")))
+                .andExpect(status().isCreated())
+                .andDo(document("category-create",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("name").description("분류 이름 (1~20자, 내 블로그 안에서 겹치지 않게)"),
+                                fieldWithPath("visibility").description("`public` 또는 `private`. 비공개 분류의 글은 주인만 본다")),
+                        responseFields(categoryFields())));
+    }
+
+    // ── 3. 글 ──
+
+    @Test
+    void 글_쓰기() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson(member, "제주 올레 7코스 걷기", "## 걷기 좋은 날\n\n바다를 보며 **3시간** 걸었다.",
+                                "\"requestKey\":\"9f1c2e7a-4b3d-4c8e-9a51-2d6f0b7e1c33\",\"tags\":[\"제주\",\"걷기\"]")))
+                .andExpect(status().isCreated())
+                .andDo(document("post-create",
+                        requestHeaders(csrfHeader()),
+                        requestFields(postFields()).and(
+                                fieldWithPath("requestKey").description("글쓰기 화면을 열 때 만든 1회용 번호 (36자까지). 같은 번호로 다시 보내면 새 글을 만들지 않고 200으로 같은 글 번호를 돌려준다").optional()),
+                        responseFields(fieldWithPath("postId").description("글 번호"))));
+    }
+
+    @Test
+    void 글_읽기() throws Exception {
+        Member member = members.register("docs");
+        Long postId = writePost(member, "제주 올레 7코스 걷기");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/{postId}", postId))
+                .andExpect(status().isOk())
+                .andDo(document("post-read",
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        responseFields(
+                                fieldWithPath("postId").description("글 번호"),
+                                fieldWithPath("blogId").description("블로그 번호"),
+                                fieldWithPath("blogName").description("블로그 이름"),
+                                fieldWithPath("category.categoryId").description("분류 번호"),
+                                fieldWithPath("category.name").description("분류 이름"),
+                                fieldWithPath("category.visibility").description("분류 공개 범위"),
+                                fieldWithPath("topic.topicId").description("주제 번호"),
+                                fieldWithPath("topic.name").description("주제 (여행·음식·취미·운동·개발)"),
+                                fieldWithPath("title").description("제목"),
+                                fieldWithPath("content").description("본문 (마크다운. HTML은 글자 그대로 보인다)"),
+                                fieldWithPath("visibility").description("`public` 또는 `private`"),
+                                fieldWithPath("createdAt").description("쓴 시각 (UTC, ISO 8601)"),
+                                fieldWithPath("updatedAt").description("고친 시각. 고친 적 없으면 null").optional().type(JsonFieldType.STRING),
+                                fieldWithPath("prevPostId").description("같은 블로그의 이전 글 번호 (보는 사람이 볼 수 있는 글 중)").optional().type(JsonFieldType.NUMBER),
+                                fieldWithPath("nextPostId").description("다음 글 번호").optional().type(JsonFieldType.NUMBER),
+                                fieldWithPath("isOwner").description("보는 사람이 글쓴이인지 (수정·삭제 버튼)"),
+                                fieldWithPath("commentCount").description("댓글 수"),
+                                fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("likedByMe").description("보는 사람이 좋아요를 눌렀는지"),
+                                fieldWithPath("tags[]").description("태그 (0~5개)"),
+                                fieldWithPath("sheets").description("200자 원고지로 몇 매인지 (올림)"),
+                                fieldWithPath("readMinutes").description("읽는 데 걸리는 분 (1분에 500자, 올림)"))));
+    }
+
+    @Test
+    void 글_수정() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        Long postId = writePost(member, "제주 올레 7코스 걷기");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.put("/api/v1/posts/{postId}", postId), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson(member, "제주 올레 7코스 걷기 (사진 추가)", "## 걷기 좋은 날\n\n바다를 보며 **3시간** 걸었다.\n\n사진을 더했다.",
+                                "\"tags\":[\"제주\",\"걷기\",\"바다\"]")))
+                .andExpect(status().isOk())
+                .andDo(document("post-update",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("postId").description("글 번호 (내 글만)")),
+                        requestFields(postFields()),
+                        responseFields(
+                                fieldWithPath("postId").description("글 번호"),
+                                fieldWithPath("changed").description("실제로 바뀐 것이 있는지. 같은 내용이면 false이고 고친 시각도 그대로"),
+                                fieldWithPath("updatedAt").description("고친 시각").optional().type(JsonFieldType.STRING))));
+    }
+
+    @Test
+    void 글_삭제() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        Long postId = writePost(member, "지울 글");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.delete("/api/v1/posts/{postId}", postId), session))
+                .andExpect(status().isNoContent())
+                .andDo(document("post-delete",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("postId").description("글 번호 (내 글만). 댓글·좋아요·이미지·태그도 함께 지운다"))));
+    }
+
+    // ── 4. 둘러보기·검색 ──
+
+    @Test
+    void 한_블로그의_글_목록() throws Exception {
+        Member member = members.register("docs");
+        writePost(member, "제주 올레 7코스 걷기");
+        writePost(member, "성산일출봉 새벽 산책");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}/posts", member.blogId()).param("page", "1"))
+                .andExpect(status().isOk())
+                .andDo(document("blog-posts",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호")),
+                        queryParameters(
+                                parameterWithName("page").description("쪽 번호 (1부터, 숫자가 아니면 1쪽)").optional(),
+                                parameterWithName("categoryId").description("이 분류의 글만").optional()),
+                        responseFields(pageFields(
+                                fieldWithPath("blogId").description("블로그 번호"),
+                                fieldWithPath("isOwner").description("보는 사람이 주인인지 (주인은 비공개 글까지 본다)"),
+                                fieldWithPath("categoryId").description("고른 분류 번호. 없으면 null").optional().type(JsonFieldType.NUMBER)))
+                                .and(fieldWithPath("posts[]").description("글 목록 (최신순)"))
+                                .andWithPrefix("posts[].", listPostFields())
+                                .and(fieldWithPath("posts[].visibility").description("`public` 또는 `private`"),
+                                        fieldWithPath("posts[].sheets").description("원고지 매수"),
+                                        fieldWithPath("posts[].readMinutes").description("읽는 시간(분)"))));
+    }
+
+    @Test
+    void 글_검색() throws Exception {
+        Member member = members.register("docs");
+        writePost(member, "글결문서 예시: 제주 올레 7코스");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/posts").param("q", "글결문서").param("page", "1"))
+                .andExpect(status().isOk())
+                .andDo(document("post-search",
+                        queryParameters(
+                                parameterWithName("q").description("검색어 (2자 이상). 공개 글의 제목·본문에서 찾는다"),
+                                parameterWithName("page").description("쪽 번호 (1부터)").optional()),
+                        responseFields(pageFields(fieldWithPath("keyword").description("다듬은 검색어")))
+                                .and(fieldWithPath("results[]").description("찾은 글 (최신순)"))
+                                .andWithPrefix("results[].", listPostFields())
+                                .and(fieldWithPath("results[].blogId").description("블로그 번호"),
+                                        fieldWithPath("results[].blogName").description("블로그 이름"))));
+    }
+
+    @Test
+    void 첫_화면_분량() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/summary"))
+                .andExpect(status().isOk())
+                .andDo(document("post-summary", responseFields(
+                        fieldWithPath("bloggerCount").description("공개 글이 있는 블로그 수"),
+                        fieldWithPath("postCount").description("공개 글 수"),
+                        fieldWithPath("sheets").description("공개 글 전체의 원고지 매수 (글마다 200자에 1매로 올림해 더함, 5분 동안 캐시)"))));
+    }
+
+    // ── 5. 댓글·좋아요 ──
+
+    @Test
+    void 댓글_쓰기() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession reader = login(members.register("read"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), reader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("body", "저도 지난달에 걸었는데 바다 색이 정말 좋았어요.")))
+                .andExpect(status().isCreated())
+                .andDo(document("comment-create",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        requestFields(fieldWithPath("body").description("댓글 (1~500자). 같은 회원은 5초에 한 번. 수정은 없다")),
+                        responseFields(commentFields())));
+    }
+
+    @Test
+    void 댓글_목록() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession reader = login(members.register("read"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), reader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("body", "저도 지난달에 걸었는데 바다 색이 정말 좋았어요.")))
+                .andExpect(status().isCreated());
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/{postId}/comments", postId))
+                .andExpect(status().isOk())
+                .andDo(document("comment-list",
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        responseFields(
+                                fieldWithPath("count").description("댓글 수"),
+                                fieldWithPath("comments[]").description("댓글 (쓴 순서)"))
+                                .andWithPrefix("comments[].", commentFields())));
+    }
+
+    @Test
+    void 댓글_삭제() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession reader = login(members.register("read"));
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), reader)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("body", "지울 댓글")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Number commentId = JsonPath.read(created, "$.id");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.delete("/api/v1/comments/{commentId}", commentId), reader))
+                .andExpect(status().isNoContent())
+                .andDo(document("comment-delete",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("commentId").description("댓글 번호. 쓴 사람이나 그 블로그 주인만 지운다 (아니면 404)"))));
+    }
+
+    @Test
+    void 좋아요() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession reader = login(members.register("read"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.put("/api/v1/posts/{postId}/like", postId), reader))
+                .andExpect(status().isOk())
+                .andDo(document("post-like",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("postId").description("글 번호. 자기 글에는 누를 수 없다")),
+                        responseFields(
+                                fieldWithPath("likeCount").description("좋아요 수"),
+                                fieldWithPath("likedByMe").description("내가 눌렀는지 (여러 번 눌러도 한 번으로 센다)"))));
+    }
+
+    // ── 6. 블로그 관리 ──
+
+    @Test
+    void 대시보드() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        writePost(member, "제주 올레 7코스 걷기");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/manage/dashboard").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("manage-dashboard", responseFields(
+                        fieldWithPath("views.today").description("오늘 조회수"),
+                        fieldWithPath("views.yesterday").description("어제 조회수"),
+                        fieldWithPath("views.total").description("누적 조회수"),
+                        fieldWithPath("visitors.today").description("오늘 방문자"),
+                        fieldWithPath("visitors.yesterday").description("어제 방문자"),
+                        fieldWithPath("visitors.total").description("누적 방문자"),
+                        fieldWithPath("newCommentCount").description("새 댓글 수 (댓글 관리를 마지막으로 연 뒤 남이 쓴 것)"),
+                        fieldWithPath("chart[]").description("최근 날짜별 그래프 (오래된 날부터)"),
+                        fieldWithPath("chart[].date").description("날짜 (한국 시간 기준)"),
+                        fieldWithPath("chart[].views").description("그날 조회수"),
+                        fieldWithPath("chart[].visitors").description("그날 방문자"),
+                        fieldWithPath("popularPosts[]").description("최근 7일 조회수가 많은 글"),
+                        fieldWithPath("recentPosts[]").description("최근에 쓴 글"),
+                        fieldWithPath("recentPosts[].postId").description("글 번호"),
+                        fieldWithPath("recentPosts[].title").description("제목"),
+                        fieldWithPath("recentPosts[].createdAt").description("쓴 시각"),
+                        fieldWithPath("recentPosts[].visibility").description("공개 범위"))));
+    }
+
+    // ── 7. 공지사항 ──
+
+    private Long insertNotice(Member writer, String kind, String title, String version, boolean pinned) {
+        return jdbc.queryForObject("insert into notice (kind, title, content, release_version, pinned, users_id, created_at)"
+                + " values (?, ?, ?, ?, ?, ?, now()) returning notice_id", Long.class,
+                kind, title, "## 무엇이 바뀌었나\n\n- 공지사항 게시판이 생겼어요", version, pinned, writer.id());
+    }
+
+    @Test
+    void 공지사항_쓰기() throws Exception {
+        Member admin = members.register("docs");
+        jdbc.update("update users set role = 'admin' where users_id = ?", admin.id());
+        MockHttpSession session = login(admin);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/notices"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"kind":"update","title":"공지사항 게시판이 생겼어요","content":"## 무엇이 바뀌었나\\n\\n- 업데이트와 공지를 한곳에서",                                "releaseVersion":"0.6.0","pinned":true}"""))
+                .andExpect(status().isCreated())
+                .andDo(document("notice-create",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("kind").description("`update`(업데이트) 또는 `notice`(공지)"),
+                                fieldWithPath("title").description("제목 (1~100자)"),
+                                fieldWithPath("content").description("본문 마크다운 (1~10,000자)"),
+                                fieldWithPath("releaseVersion").description("릴리스 번호 `0.6.0` 모양. 업데이트에만 넣는다")
+                                        .optional().type(JsonFieldType.STRING),
+                                fieldWithPath("pinned").description("목록 맨 위에 고정할지")),
+                        responseFields(fieldWithPath("noticeId").description("만든 공지사항 번호"))));
+    }
+
+    @Test
+    void 공지사항_목록() throws Exception {
+        Member admin = members.register("docs");
+        jdbc.update("delete from notice");
+        insertNotice(admin, "notice", "서버 점검 안내", null, false);
+        insertNotice(admin, "update", "공지사항 게시판이 생겼어요", "0.6.0", true);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices").param("kind", "").param("page", "1"))
+                .andExpect(status().isOk())
+                .andDo(document("notice-list",
+                        queryParameters(
+                                parameterWithName("kind").description("탭: `update`, `notice`, 비우면 전체").optional(),
+                                parameterWithName("page").description("쪽 번호 (1부터, 한 쪽 10개)").optional()),
+                        responseFields(
+                                fieldWithPath("items[].noticeId").description("번호"),
+                                fieldWithPath("items[].kind").description("`update` 또는 `notice`"),
+                                fieldWithPath("items[].title").description("제목"),
+                                fieldWithPath("items[].releaseVersion").description("릴리스 번호 (업데이트만, 공지는 null)")
+                                        .optional().type(JsonFieldType.STRING),
+                                fieldWithPath("items[].pinned").description("고정 글인지 (고정 먼저, 그 안에서 새 글 먼저)"),
+                                fieldWithPath("items[].createdAt").description("쓴 시각"),
+                                fieldWithPath("page").description("지금 쪽"),
+                                fieldWithPath("totalPages").description("마지막 쪽"),
+                                fieldWithPath("totalCount").description("글 수"))));
+    }
+
+    @Test
+    void 공지사항_읽기() throws Exception {
+        Member admin = members.register("docs");
+        Long noticeId = insertNotice(admin, "update", "공지사항 게시판이 생겼어요", "0.6.0", true);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices/{noticeId}", noticeId))
+                .andExpect(status().isOk())
+                .andDo(document("notice-read",
+                        pathParameters(parameterWithName("noticeId").description("공지사항 번호")),
+                        responseFields(
+                                fieldWithPath("noticeId").description("번호"),
+                                fieldWithPath("kind").description("`update` 또는 `notice`"),
+                                fieldWithPath("title").description("제목"),
+                                fieldWithPath("content").description("본문 마크다운"),
+                                fieldWithPath("releaseVersion").description("릴리스 번호 (업데이트만)").optional()
+                                        .type(JsonFieldType.STRING),
+                                fieldWithPath("releaseUrl").description("그 번호의 GitHub 릴리스 주소 (업데이트만)").optional()
+                                        .type(JsonFieldType.STRING),
+                                fieldWithPath("pinned").description("고정 글인지"),
+                                fieldWithPath("createdAt").description("쓴 시각"),
+                                fieldWithPath("updatedAt").description("고친 시각. 고친 적이 없으면 null").optional()
+                                        .type(JsonFieldType.STRING))));
+    }
+
+    @Test
+    void 공지사항_최신_시각() throws Exception {
+        insertNotice(members.register("docs"), "notice", "서버 점검 안내", null, false);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/notices/latest"))
+                .andExpect(status().isOk())
+                .andDo(document("notice-latest", responseFields(
+                        fieldWithPath("latestAt").description("가장 새 공지사항을 쓴 시각. 글이 없으면 null")
+                                .optional().type(JsonFieldType.STRING))));
+    }
+
+    // ── 8. 오류 ──
+
+    @Test
+    void 오류_입력값() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(postJson(member, "", "본문", null)))
+                .andExpect(status().isBadRequest())
+                .andDo(document("error-validation", responseFields(
+                        fieldWithPath("code").description("오류 종류 (화면은 이 값으로 나눈다)"),
+                        fieldWithPath("message").description("사람이 읽는 안내 문구"),
+                        fieldWithPath("fieldErrors[]").description("칸마다 틀린 곳 (입력값 오류일 때만)"),
+                        fieldWithPath("fieldErrors[].field").description("칸 이름"),
+                        fieldWithPath("fieldErrors[].code").description("틀린 까닭"),
+                        fieldWithPath("fieldErrors[].message").description("칸 옆에 보일 문구"))));
+    }
+
+    @Test
+    void 오류_로그인_필요() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/manage/dashboard"))
+                .andExpect(status().isUnauthorized())
+                .andDo(document("error-unauthenticated", responseFields(errorFields())));
+    }
+
+    @Test
+    void 오류_없는_글() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/{postId}", 999_999_999))
+                .andExpect(status().isNotFound())
+                .andDo(document("error-not-found", responseFields(errorFields())));
+    }
+
+    // ── 칸 설명 묶음 ──
+
+    private static FieldDescriptor[] memberFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("member.id").description("회원 번호"),
+            fieldWithPath("member.nickname").description("닉네임 (2~10자, 한글·영문·숫자)"),
+            fieldWithPath("member.admin").description("관리자인지. 관리자만 공지사항을 쓴다")};
+    }
+
+    private static FieldDescriptor[] categoryFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("categoryId").description("분류 번호"),
+            fieldWithPath("name").description("분류 이름"),
+            fieldWithPath("postCount").description("이 분류의 글 수 (보는 사람이 볼 수 있는 글만)"),
+            fieldWithPath("isDefault").description("\"미분류\"인지 (지울 수 없다)"),
+            fieldWithPath("visibility").description("`public` 또는 `private`"),
+            fieldWithPath("colorIndex").description("화면에서 쓸 분류 색 번호 (0~5)")};
+    }
+
+    private static FieldDescriptor[] postFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("title").description("제목 (1~100자)"),
+            fieldWithPath("content").description("본문 마크다운 (1~10,000자)"),
+            fieldWithPath("categoryId").description("내 블로그의 분류 번호"),
+            fieldWithPath("topicId").description("주제 번호 (여행·음식·취미·운동·개발)"),
+            fieldWithPath("visibility").description("`public` 또는 `private`"),
+            fieldWithPath("tags[]").description("태그 (0~5개). 보낸 목록이 새 전체 목록이다").optional()};
+    }
+
+    private static FieldDescriptor[] listPostFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("postId").description("글 번호"),
+            fieldWithPath("title").description("제목"),
+            fieldWithPath("categoryId").description("분류 번호"),
+            fieldWithPath("categoryName").description("분류 이름"),
+            fieldWithPath("createdAt").description("쓴 시각"),
+            fieldWithPath("preview").description("본문 앞부분 (마크다운 기호를 뺀 글자)"),
+            fieldWithPath("thumbnail").description("본문의 첫 이미지 주소. 없으면 null").optional().type(JsonFieldType.STRING)};
+    }
+
+    private static FieldDescriptor[] pageFields(FieldDescriptor... first) {
+        FieldDescriptor[] page = {
+            fieldWithPath("totalCount").description("전체 글 수"),
+            fieldWithPath("page").description("지금 쪽 번호"),
+            fieldWithPath("totalPages").description("전체 쪽 수"),
+            fieldWithPath("pageSize").description("한 쪽의 글 수")};
+        FieldDescriptor[] all = new FieldDescriptor[first.length + page.length];
+        System.arraycopy(first, 0, all, 0, first.length);
+        System.arraycopy(page, 0, all, first.length, page.length);
+        return all;
+    }
+
+    private static FieldDescriptor[] commentFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("id").description("댓글 번호"),
+            fieldWithPath("author.id").description("쓴 회원 번호"),
+            fieldWithPath("author.nickname").description("쓴 회원 닉네임 (탈퇴했으면 \"탈퇴한 회원\")"),
+            fieldWithPath("author.withdrawn").description("쓴 회원이 탈퇴했는지"),
+            fieldWithPath("body").description("댓글"),
+            fieldWithPath("createdAt").description("쓴 시각"),
+            fieldWithPath("canDelete").description("보는 사람이 지울 수 있는지 (쓴 사람이나 블로그 주인)")};
+    }
+
+    private static FieldDescriptor[] errorFields() {
+        return new FieldDescriptor[] {
+            fieldWithPath("code").description("오류 종류"),
+            fieldWithPath("message").description("사람이 읽는 안내 문구")};
+    }
+
+    private static org.springframework.restdocs.headers.HeaderDescriptor csrfHeader() {
+        return headerWithName(CSRF_HEADER).description("CSRF 토큰 (`GET /api/v1/auth/csrf`로 받은 값, 쿠키 `XSRF-TOKEN`과 함께 보낸다)");
+    }
+
+    // ── 준비 ──
+
+    private record Csrf(Cookie cookie, String token) {
+    }
+
+    /** 화면처럼 CSRF 토큰을 받는다. 로그인하면 토큰이 바뀌므로 로그인한 세션으로 다시 받는다. */
+    private Csrf csrf(MockHttpSession session) throws Exception {
+        MockHttpServletRequestBuilder request = org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .get("/api/v1/auth/csrf");
+        if (session != null) {
+            request.session(session);
+        }
+        var response = mvc.perform(request).andExpect(status().isOk()).andReturn().getResponse();
+        String token = JsonPath.read(response.getContentAsString(), "$.token");
+        return new Csrf(response.getCookie("XSRF-TOKEN"), token);
+    }
+
+    private MockHttpServletRequestBuilder withCsrf(MockHttpServletRequestBuilder request, MockHttpSession session)
+            throws Exception {
+        Csrf csrf = csrf(session);
+        return request.session(session).cookie(csrf.cookie()).header(CSRF_HEADER, csrf.token());
+    }
+
+    private MockHttpSession login(Member member) throws Exception {
+        Csrf csrf = csrf(null);
+        return (MockHttpSession) mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/v1/auth/login").cookie(csrf.cookie()).header(CSRF_HEADER, csrf.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("email", member.user().getEmail(), "password", TestMembers.PASSWORD)))
+                .andExpect(status().isOk())
+                .andReturn().getRequest().getSession(false);
+    }
+
+    /** 글을 표에 바로 넣는다 (문서에 나오지 않는 준비). */
+    private Long writePost(Member member, String title) {
+        return jdbc.queryForObject("insert into post (category_id, topic_id, title, content, visibility, created_at)"
+                + " values (?, (select min(topic_id) from topic), ?, ?, 'public', ?) returning post_id", Long.class,
+                member.defaultCategoryId(), title, "## 걷기 좋은 날\n\n바다를 보며 **3시간** 걸었다.",
+                java.sql.Timestamp.from(Instant.now()));
+    }
+
+    private String postJson(Member member, String title, String content, String extra) {
+        Long topicId = jdbc.queryForObject("select min(topic_id) from topic", Long.class);
+        return "{\"title\":" + quote(title) + ",\"content\":" + quote(content) + ",\"categoryId\":" + member.defaultCategoryId()
+                + ",\"topicId\":" + topicId + ",\"visibility\":\"public\"" + (extra == null ? "" : "," + extra) + "}";
+    }
+
+    private static String json(String... keyValues) {
+        StringBuilder out = new StringBuilder("{");
+        for (int i = 0; i < keyValues.length; i += 2) {
+            out.append(i == 0 ? "" : ",").append(quote(keyValues[i])).append(':').append(quote(keyValues[i + 1]));
+        }
+        return out.append('}').toString();
+    }
+
+    private static String quote(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
+    }
+}

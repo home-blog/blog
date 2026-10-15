@@ -4,6 +4,8 @@ import com.myblog.blog.controller.dto.CategoryRequests;
 import com.myblog.blog.service.BlogQueryService.CategoryView;
 import com.myblog.blog.service.CategoryService;
 import com.myblog.user.LoggedInMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 분류 관리 (specs/003 contracts 5 ~ 8). 모두 로그인해야 하고, 내 블로그는 세션으로만 정한다 (주소에 블로그 번호가 없다).
  * 분류 목록 보기는 BlogController의 GET /api/v1/blogs/{blogId}/categories를 쓴다.
  */
+@Tag(name = "4. 블로그·분류")
 @RestController
 @RequestMapping("/api/{version}/me/blog/categories")
 public class CategoryController {
@@ -35,6 +38,7 @@ public class CategoryController {
     }
 
     /** 분류 추가 (contracts 5). */
+    @Operation(summary = "분류 추가")
     @PostMapping
     public ResponseEntity<CategoryView> create(Authentication authentication, @Valid @RequestBody CategoryRequests.Create request) {
         CategoryView created = categoryService.create(loggedInMember.requireIdOf(authentication), request);
@@ -42,6 +46,7 @@ public class CategoryController {
     }
 
     /** 이름·공개 여부 바꾸기 (contracts 6). 본문은 내 분류인지 본 뒤에 서비스가 검사한다 (@Valid 없음). */
+    @Operation(summary = "분류 이름·공개 여부 바꾸기", description = "비공개 분류의 글은 주인만 본다.")
     @PatchMapping("/{categoryId}")
     public CategoryView update(@PathVariable Long categoryId, Authentication authentication,
             @RequestBody CategoryRequests.Update request) {
@@ -49,12 +54,14 @@ public class CategoryController {
     }
 
     /** 순서 바꾸기 (contracts 7). 응답은 새 순서의 분류 목록 (주인 기준 개수). */
+    @Operation(summary = "분류 순서 바꾸기")
     @PutMapping("/order")
     public CategoriesResponse reorder(Authentication authentication, @RequestBody CategoryRequests.Order request) {
         return new CategoriesResponse(categoryService.reorder(loggedInMember.requireIdOf(authentication), request));
     }
 
     /** 분류 삭제 (contracts 8). */
+    @Operation(summary = "분류 삭제", description = "글이 있는 분류와 \"미분류\"는 지울 수 없다.")
     @DeleteMapping("/{categoryId}")
     public ResponseEntity<Void> delete(@PathVariable Long categoryId, Authentication authentication) {
         categoryService.delete(loggedInMember.requireIdOf(authentication), categoryId);

@@ -1,0 +1,41 @@
+<!-- 글결 화면과 같은 "원고지" 글꼴·색 (frontend/src/index.css). 바깥 아이콘·코드 색칠 파일은 쓰지 않는다 -->
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans+KR:wght@400;500;600&amp;display=swap">
+<style>
+:root {
+  --paper: #f6f8f4; --paper-raised: #ffffff; --ink: #1d2721; --ink-soft: #55635a;
+  --grid: #a9c8b2; --grid-strong: #6f9c7e; --accent: #2c6a4d; --code-bg: #eef3ec;
+  --font-letter: 'Gowun Batang', 'Nanum Myeongjo', serif;
+  --font-ui: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-ui); }
+#header, #content, #footnotes, #footer {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3, #toctitle, .sidebarblock > .content > .title {
+  font-family: var(--font-letter); color: var(--ink); font-weight: 700; letter-spacing: 0;
+}
+#header > h1:first-child { color: var(--ink); border-bottom: 1px solid var(--grid-strong); padding-bottom: 0.4em; }
+h2 { border-bottom: 1px solid var(--grid); padding-bottom: 0.25em; }
+h4, .title, caption, .tableblock > caption { color: var(--ink-soft) !important; font-family: var(--font-ui); font-style: normal; }
+p, li, td, th, dt, dd, .paragraph { font-family: var(--font-ui); color: var(--ink); }
+a { color: var(--accent); }
+a:hover, a:focus { color: var(--ink); }
+#toc.toc2 { background: var(--paper); border-right: 1px solid var(--grid); }
+#toc a { color: var(--ink-soft); }
+#toc a:hover { color: var(--accent); }
+code, pre, kbd { font-family: var(--font-code) !important; }
+:not(pre) > code { background: var(--code-bg); color: var(--ink); border-radius: 3px; }
+.listingblock pre, .literalblock pre {
+  background: var(--code-bg) !important; color: var(--ink); border: 1px solid var(--grid);
+  border-radius: 0; font-size: 0.82em; line-height: 1.55;
+}
+table.tableblock { background: var(--paper-raised); border-color: var(--grid); }
+table.tableblock th, table.tableblock td { border-color: var(--grid) !important; }
+table.tableblock thead th { background: var(--code-bg); color: var(--ink-soft); }
+table.stripes-even tr:nth-of-type(even) > td, table.stripes-all tr > td { background: transparent; }
+#footer { background: var(--ink); }
+#footer-text { color: var(--paper); }
+</style>

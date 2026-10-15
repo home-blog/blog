@@ -3,6 +3,7 @@ package com.myblog.user.service;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.user.LoggedInMember;
+import com.myblog.user.domain.User;
 import com.myblog.user.repository.UserRepository;
 import com.myblog.user.security.MemberPrincipal;
 import java.util.Optional;
@@ -33,5 +34,18 @@ public class LoggedInMemberAdapter implements LoggedInMember {
     @Transactional(readOnly = true)
     public Long requireIdOf(Authentication authentication) {
         return idOf(authentication).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long requireAdminIdOf(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof MemberPrincipal principal)) {
+            throw new ApiException(ErrorCode.UNAUTHENTICATED);
+        }
+        User user = users.findActiveById(principal.getId()).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        if (!user.isAdmin()) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
+        return user.getId();
     }
 }

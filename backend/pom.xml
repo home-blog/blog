@@ -14,7 +14,7 @@
     <groupId>com.myblog</groupId>
     <artifactId>myblog-server</artifactId>
     <!-- 릴리스 버전: 배포할 때마다 올리고 CHANGELOG.md에 바뀐 것을 적는다 (frontend/package.json과 같은 번호) -->
-    <version>0.5.2</version>
+    <version>0.6.0</version>
     <name>myblog-server</name>
     <description>글결 서버 (단일 서버, 기능별 모듈)</description>
 
@@ -139,6 +139,12 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- API 문서 (Spring REST Docs): 테스트가 실제로 부른 요청·응답으로 문서 조각을 만든다 (target/generated-snippets) -->
+        <dependency>
+            <groupId>org.springframework.restdocs</groupId>
+            <artifactId>spring-restdocs-mockmvc</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
@@ -185,4 +191,49 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          API 문서 HTML 만들기: mvn -Pdocs verify → target/generated-docs/index.html
+          테스트가 만든 조각(target/generated-snippets)을 src/docs/asciidoc/index.adoc에 모은다.
+          배포 이미지와 보통 CI가 느려지지 않게 따로 켠다.
+        -->
+        <profile>
+            <id>docs</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctor-maven-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <executions>
+                            <execution>
+                                <id>api-docs</id>
+                                <phase>prepare-package</phase>
+                                <goals><goal>process-asciidoc</goal></goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <sourceDirectory>src/docs/asciidoc</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+                            <attributes>
+                                <snippets>${project.build.directory}/generated-snippets</snippets>
+                                <release>${project.version}</release>
+                            </attributes>
+                            <logHandler>
+                                <failIf><severity>WARN</severity></failIf>
+                            </logHandler>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.springframework.restdocs</groupId>
+                                <artifactId>spring-restdocs-asciidoctor</artifactId>
+                                <version>${spring-restdocs.version}</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
