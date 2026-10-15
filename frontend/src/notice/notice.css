@@ -95,7 +95,7 @@
 }
 
 .notice-pin::before {
-  content: '📌 ';
+  content: '📌 ' / '';
 }
 
 .notice-version {
@@ -104,6 +104,13 @@
 
 .notice-back {
   margin: 0 0 12px;
+  font-size: var(--step--1);
+}
+
+.notice-back a,
+.notice-release a {
+  color: var(--accent);
+  text-underline-offset: 3px;
 }
 
 .notice-release {
@@ -146,6 +153,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
+}
+
+/* 폼 공통 규칙(.field input = 칸 너비 100%)이 고르기 칸까지 늘리지 않게 */
+.notice-kind input,
+.notice-pinned input {
+  width: auto;
+  margin: 0;
 }
 
 .notice-count {

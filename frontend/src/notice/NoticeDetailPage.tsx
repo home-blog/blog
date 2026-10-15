@@ -77,7 +77,7 @@ export default function NoticeDetailPage() {
   }
 
   return (
-    <article className="post-detail notice-detail">
+    <article className="post notice-detail">
       <p className="notice-back">
         <Link to="/notices">← 공지사항</Link>
       </p>
