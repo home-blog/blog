@@ -6,6 +6,7 @@ import com.myblog.common.error.ErrorResponse.FieldErrorItem;
 import com.myblog.image.config.ImageProperties;
 import com.myblog.image.domain.PostImage;
 import com.myblog.image.repository.PostImageRepository;
+import com.myblog.post.DraftContentSavedEvent;
 import com.myblog.post.PostContentSavedEvent;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,20 @@ public class ImageLinker {
         this.images = images;
         this.properties = properties;
         this.events = events;
+    }
+
+    /** 임시 저장 글 (013 D-8): 본문에 든 이미지를 붙이고 빠진 것은 뗀다. 장 수는 발행할 때 글과 같이 센다. */
+    @EventListener
+    public void on(DraftContentSavedEvent event) {
+        Set<String> keys = ImageUrls.fileNamesIn(event.content()).stream()
+                .map(name -> PostImage.KEY_PREFIX + name)
+                .collect(Collectors.toSet());
+        if (keys.isEmpty()) {
+            images.detachAllFromDraft(event.draftId());
+            return;
+        }
+        images.detachFromDraftExcept(event.draftId(), keys);
+        images.attachToDraft(keys, event.draftId(), event.ownerId());
     }
 
     @EventListener

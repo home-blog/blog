@@ -16,6 +16,7 @@ const MENU = [
   { to: '/manage', label: '대시보드', end: true },
   { to: '/manage/posts', label: '글 관리' },
   { to: '/manage/categories', label: '분류 관리' },
+  { to: '/manage/series', label: '연재 관리' },
   { to: '/manage/comments', label: '댓글 관리', newCount: true },
   { to: '/manage/stats', label: '통계' },
   { to: '/manage/blog', label: '설정' },

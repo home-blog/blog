@@ -6,7 +6,9 @@ import { Link, useParams, useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
+import BlogActivity from '../blog/BlogActivity'
 import BlogManuscriptHead from '../blog/BlogManuscriptHead'
+import BlogSeriesList from '../series/BlogSeriesList'
 import BlogPostList from '../explore/BlogPostList'
 import CategoryFilter from '../explore/CategoryFilter'
 import ProofNotFound from '../components/ProofNotFound'
@@ -84,6 +86,8 @@ export default function BlogHomePage() {
         ) : (
           <p className="blog-intro hint">아직 소개가 없습니다</p>
         )}
+        <BlogActivity blogId={id} />
+        <BlogSeriesList blogId={id} viewer={viewer ?? 'guest'} />
         <p className="blog-feed-links">
           <a href={`/blog/${id}/rss.xml`} className="blog-rss" target="_blank" rel="noopener">
             RSS

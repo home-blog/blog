@@ -4,6 +4,7 @@ import com.myblog.blog.BlogDirectory;
 import com.myblog.blog.BlogDirectory.CategoryInfo;
 import com.myblog.blog.CategoryPostCounter;
 import com.myblog.common.Visibility;
+import com.myblog.post.repository.PostDraftRepository;
 import com.myblog.post.repository.PostRepository;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -20,16 +21,25 @@ public class CategoryPostCounterAdapter implements CategoryPostCounter {
     private final PostRepository posts;
     private final BlogDirectory blogDirectory;
     private final PostVisibility visibility;
+    private final PostDraftRepository drafts;
 
-    public CategoryPostCounterAdapter(PostRepository posts, BlogDirectory blogDirectory, PostVisibility visibility) {
+    public CategoryPostCounterAdapter(PostRepository posts, BlogDirectory blogDirectory, PostVisibility visibility,
+            PostDraftRepository drafts) {
         this.posts = posts;
         this.blogDirectory = blogDirectory;
         this.visibility = visibility;
+        this.drafts = drafts;
     }
 
     @Override
     public long countAll(Long categoryId) {
         return posts.countByCategoryId(categoryId);
+    }
+
+    /** 예약된 글(013 US4)은 곧 글이 되므로 함께 센다: 예약된 글이 쓰는 분류는 지우지 못한다 (S4-6). */
+    @Override
+    public long countBlockingDelete(Long categoryId) {
+        return posts.countByCategoryId(categoryId) + drafts.countByCategoryIdAndPublishAtIsNotNull(categoryId);
     }
 
     @Override

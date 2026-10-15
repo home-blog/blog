@@ -12,6 +12,14 @@ public interface CategoryPostCounter {
     /** 분류의 모든 글 (비공개 포함). 주인이 보는 개수와 분류 삭제 거절에 쓴다. */
     long countAll(Long categoryId);
 
+    /**
+     * 분류를 지우지 못하게 막는 것의 수 (분류 삭제 거절, FR-040). 글 모듈이 글과 곧 글이 될 예약 글(013 S4-6)을 함께 센다.
+     * 화면에 보이는 글 수(countAll)와 따로 둔다: 예약 글은 아직 목록에 없으므로 글 수에 넣지 않는다.
+     */
+    default long countBlockingDelete(Long categoryId) {
+        return countAll(categoryId);
+    }
+
     /** 분류마다 모든 글 개수 (비공개 포함, 한 번에 센다). 결과에는 받은 모든 분류 번호가 들어 있다. */
     Map<Long, Long> countAll(Collection<Long> categoryIds);
 

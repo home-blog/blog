@@ -36,6 +36,8 @@ import SearchPage from './pages/SearchPage'
 import SignupPage from './pages/SignupPage'
 import SocialSignupPage from './pages/SocialSignupPage'
 import TagPostsPage from './pages/TagPostsPage'
+import SeriesManagePage from './series/SeriesManagePage'
+import SeriesPage from './series/SeriesPage'
 
 // 그래프 도구(uPlot)를 쓰는 화면은 따로 불러온다: 첫 화면이 가벼워지고, 블로그 관리를 열 때만 받는다 (specs/006 T058)
 const DashboardPage = lazy(() => import('./manage/DashboardPage'))
@@ -127,6 +129,7 @@ const router = createBrowserRouter([
       { path: '/blog/:blogId', element: <BlogHomePage /> },
       { path: '/search', element: <SearchPage /> },
       { path: '/tags/:tagName', element: <TagPostsPage /> },
+      { path: '/series/:seriesId', element: <SeriesPage /> },
       {
         path: '/me/blog',
         element: (
@@ -170,6 +173,7 @@ const router = createBrowserRouter([
           },
           { path: 'posts', element: <ManagePostsPage /> },
           { path: 'categories', element: <CategoryManagePage /> },
+          { path: 'series', element: <SeriesManagePage /> },
           { path: 'comments', element: <ManageCommentsPage /> },
           {
             path: 'stats',

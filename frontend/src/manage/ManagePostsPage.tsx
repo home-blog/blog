@@ -11,6 +11,7 @@ import '../blog/blog.css'
 import '../explore/explore.css'
 import { formatDate, pageFrom } from '../explore/rules'
 import { deletePost } from '../post/postApi'
+import DraftsPanel from './DraftsPanel'
 import { getManagePosts, type ManagePost, type ManagePostPage, type VisibilityFilter } from './manageApi'
 import { useManageBlog } from './manageBlog'
 import './manage-pages.css'
@@ -122,6 +123,8 @@ export default function ManagePostsPage() {
           글쓰기
         </Link>
       </header>
+
+      <DraftsPanel />
 
       <div className="manage-filters">
         <label>

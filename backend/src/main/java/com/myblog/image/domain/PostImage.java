@@ -28,6 +28,10 @@ public class PostImage {
     @Column(name = "post_id")
     private Long postId;
 
+    /** 임시 저장 글에 붙은 이미지 (specs/013 D-8). 글에 연결되기 전까지 정리 작업이 지우지 않는다. */
+    @Column(name = "post_draft_id")
+    private Long postDraftId;
+
     @Column(name = "users_id", nullable = false, updatable = false)
     private Long memberId;
 
