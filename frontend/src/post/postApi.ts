@@ -21,6 +21,10 @@ export interface PostForm {
   defaultTopicId: number | null
   defaultVisibility: Visibility
   limits: { titleMaxLength: number; contentMaxLength: number }
+  /** 내 블로그의 연재 (specs/013 US2) */
+  series: { seriesId: number; name: string }[]
+  /** 글쓰기 도구 설정 (specs/013 contracts 5) */
+  writing: { draftAutosaveSeconds: number; draftMaxCount: number; scheduleMaxDays: number }
 }
 
 export interface PostInput {

@@ -1,0 +1,231 @@
+/* 연재 표시 (specs/013 US2): 원고지 칸 선 위의 작은 머리표와, 글 끝의 이전·다음 화 */
+.series-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: var(--step--1);
+}
+
+.series-head-label {
+  padding: 0 0.375rem;
+  border: 1px solid var(--grid-strong);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.series-head-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.series-head-episode {
+  font-family: var(--font-letter);
+  font-weight: 700;
+}
+
+.series-footer {
+  display: grid;
+  gap: 0.75rem;
+  margin: 2rem 0 1rem;
+  padding: 1rem;
+  border: 1px solid var(--grid);
+  border-left: 4px solid var(--accent);
+  background: var(--paper-raised);
+}
+
+.series-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.series-footer-link {
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.series-footer-link.is-next {
+  margin-left: auto;
+  text-align: right;
+}
+
+.series-footer > .btn {
+  justify-self: start;
+}
+
+.series-footer-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.series-footer-list li[aria-current='page'] {
+  background: var(--highlight);
+}
+
+.series-episode-number {
+  display: inline-block;
+  min-width: 2.5rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 연재 관리 (specs/013 US2) */
+.series-manage-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.series-manage-item {
+  padding: 0.75rem clamp(0.75rem, 3vw, 1.25rem);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+}
+
+.series-manage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.series-manage-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.series-manage-name {
+  font-family: var(--font-letter);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.series-manage-description {
+  margin: 0.25rem 0 0;
+}
+
+.series-manage-posts {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.series-manage-posts .category-row {
+  grid-template-areas: 'order name actions';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.series-manage-empty {
+  margin: 0.5rem 0 0;
+}
+
+.series-form {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.series-form input,
+.series-form textarea {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+}
+
+.series-form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.series-add {
+  padding: 1rem clamp(0.75rem, 3vw, 1.25rem);
+  border: 1px dashed var(--grid-strong);
+  border-radius: var(--radius-field);
+}
+
+.series-add-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+}
+
+/* 연재 한 개 /series/:id, 블로그 화면의 연재 목록 */
+.series-page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+
+.series-page-title {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  text-wrap: balance;
+}
+
+.series-episodes {
+  display: grid;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--grid-strong);
+}
+
+.series-episodes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--grid);
+}
+
+.series-episodes a {
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.blog-series {
+  margin: 0 0 1.5rem;
+}
+
+.blog-series-title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+}
+
+.blog-series-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blog-series-list a {
+  display: inline-flex;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+}

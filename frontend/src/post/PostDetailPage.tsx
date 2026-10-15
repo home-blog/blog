@@ -14,6 +14,8 @@ import ReportDialog from '../community/ReportDialog'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ProofNotFound from '../components/ProofNotFound'
 import '../pages/auth-layout.css'
+import { SeriesFooter, SeriesHead } from '../series/SeriesNav'
+import { usePostSeries } from '../series/usePostSeries'
 import { deletePost, getPost, type PostDetail, type SavedState } from './postApi'
 import './post-detail.css'
 import PostEnd from './PostEnd'
@@ -55,6 +57,8 @@ export default function PostDetailPage() {
   // 저장 알림 ("탈고"·"퇴고", v0.5.1): 한 번 보여 준 뒤 주소의 표시는 지워 새로 고침해도 다시 뜨지 않게 한다
   const location = useLocation()
   const [saved, setSaved] = useState(() => savedState(location.state, id))
+  // 연재 표시 (specs/013 US2): 글과 따로 불러온다
+  const series = usePostSeries(id, viewer)
 
   useEffect(() => {
     if (savedState(location.state, id)) navigate(location.pathname, { replace: true, state: null })
@@ -139,6 +143,7 @@ export default function PostDetailPage() {
           {post.isOwner && post.visibility === 'private' && <span className="blog-badge">비공개 글</span>}
           {post.isOwner && post.category.visibility === 'private' && <span className="blog-badge">비공개 분류</span>}
         </p>
+        {series && <SeriesHead series={series} />}
         <h1 className="post-title">{post.title}</h1>
         <p className="post-times hint">
           <time dateTime={post.createdAt}>{formatTime(post.createdAt)}</time>
@@ -208,6 +213,8 @@ export default function PostDetailPage() {
         {/* 신고 (US6). 자기 글에서는 숨긴다 */}
         {!post.isOwner && <ReportDialog key={`report-${key}`} postId={post.postId} />}
       </div>
+
+      {series && <SeriesFooter series={series} currentPostId={post.postId} />}
 
       <nav className="post-nav" aria-label="이전·다음 글">
         {post.prevPostId !== null ? (

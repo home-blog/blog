@@ -18,6 +18,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import ImageUploadButton from '../image/ImageUploadButton'
 import type { Visibility } from '../blog/blogApi'
 import '../pages/auth-layout.css'
+import { addPostToSeries, getPostSeries, removePostFromSeries } from '../series/seriesApi'
 import { createPost, getPostEdit, getPostForm, updatePost, type PostInput, type SavedState } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import EditorPreview from './EditorPreview'
@@ -58,6 +59,7 @@ interface EditorOptions {
   categories: { categoryId: number; name: string }[]
   topics: { topicId: number; name: string }[]
   limits: { titleMaxLength: number; contentMaxLength: number }
+  series: { seriesId: number; name: string }[]
 }
 
 export default function PostEditorPage() {
@@ -67,6 +69,9 @@ export default function PostEditorPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [initial, setInitial] = useState<PostInput>(EMPTY)
   const [input, setInput] = useState<PostInput>(EMPTY)
+  // 연재 (specs/013 US2): 글과 따로 저장한다. 저장한 뒤 바뀌었으면 연재에 넣거나 뺀다
+  const [initialSeriesId, setInitialSeriesId] = useState<number | null>(null)
+  const [seriesId, setSeriesId] = useState<number | null>(null)
   const [requestKey] = useState(() => crypto.randomUUID())
   const [errors, setErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -97,6 +102,7 @@ export default function PostEditorPage() {
       editingId === null
         ? getPostForm(controller.signal).then((loaded) => ({
             options: loaded as EditorOptions,
+            seriesId: null as number | null,
             start: {
               ...EMPTY,
               categoryId: loaded.defaultCategoryId,
@@ -104,9 +110,14 @@ export default function PostEditorPage() {
               visibility: loaded.defaultVisibility,
             },
           }))
-        : Promise.all([getPostEdit(editingId, controller.signal), getPostForm(controller.signal)]).then(
-            ([post, defaults]) => ({
-              options: { categories: post.categories, topics: post.topics, limits: defaults.limits },
+        : Promise.all([
+            getPostEdit(editingId, controller.signal),
+            getPostForm(controller.signal),
+            getPostSeries(editingId, controller.signal),
+          ]).then(
+            ([post, defaults, series]) => ({
+              options: { categories: post.categories, topics: post.topics, limits: defaults.limits, series: defaults.series },
+              seriesId: series?.seriesId ?? null,
               start: {
                 title: post.title,
                 content: post.content,
@@ -118,10 +129,12 @@ export default function PostEditorPage() {
             }),
           )
     load
-      .then(({ options, start }) => {
+      .then(({ options, start, seriesId: startSeriesId }) => {
         setForm(options)
         setInitial(start)
         setInput(start)
+        setInitialSeriesId(startSeriesId)
+        setSeriesId(startSeriesId)
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return
@@ -137,7 +150,8 @@ export default function PostEditorPage() {
       input.categoryId !== initial.categoryId ||
       input.topicId !== initial.topicId ||
       input.visibility !== initial.visibility ||
-      input.tags.join('\n') !== initial.tags.join('\n'))
+      input.tags.join('\n') !== initial.tags.join('\n') ||
+      seriesId !== initialSeriesId)
   useUnsavedChangesPrompt(dirty)
 
   if (savedPostId !== null) {
@@ -189,13 +203,9 @@ export default function PostEditorPage() {
     sending.current = true
     setBusy(true)
     try {
-      if (editingId === null) {
-        const res = await createPost(input, requestKey)
-        setSavedPostId(res.postId)
-      } else {
-        const res = await updatePost(editingId, input)
-        setSavedPostId(res.postId)
-      }
+      const res = editingId === null ? await createPost(input, requestKey) : await updatePost(editingId, input)
+      await saveSeries(res.postId)
+      setSavedPostId(res.postId)
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
         setErrors({
@@ -214,6 +224,17 @@ export default function PostEditorPage() {
     } finally {
       sending.current = false
       setBusy(false)
+    }
+  }
+
+  /** 연재가 바뀌었으면 넣거나 뺀다. 글은 이미 저장됐으니 실패해도 글 화면으로 간다(연재 관리에서 다시 넣을 수 있다) */
+  async function saveSeries(postId: number) {
+    if (seriesId === initialSeriesId) return
+    try {
+      if (seriesId !== null) await addPostToSeries(seriesId, postId)
+      else if (initialSeriesId !== null) await removePostFromSeries(initialSeriesId, postId)
+    } catch {
+      // 위 주석대로 넘어간다
     }
   }
 
@@ -317,6 +338,25 @@ export default function PostEditorPage() {
               </p>
             )}
           </div>
+
+          {form.series.length > 0 && (
+            <div className="field">
+              <label htmlFor="post-series">연재</label>
+              <select
+                id="post-series"
+                value={seriesId ?? ''}
+                disabled={busy}
+                onChange={(e) => setSeriesId(e.target.value === '' ? null : Number(e.target.value))}
+              >
+                <option value="">연재 없음</option>
+                {form.series.map((series) => (
+                  <option key={series.seriesId} value={series.seriesId}>
+                    {series.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <fieldset className="field editor-visibility" disabled={busy}>
             <legend>공개 여부</legend>

@@ -8,6 +8,7 @@ import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
 import BlogActivity from '../blog/BlogActivity'
 import BlogManuscriptHead from '../blog/BlogManuscriptHead'
+import BlogSeriesList from '../series/BlogSeriesList'
 import BlogPostList from '../explore/BlogPostList'
 import CategoryFilter from '../explore/CategoryFilter'
 import ProofNotFound from '../components/ProofNotFound'
@@ -104,6 +105,7 @@ export default function BlogHomePage() {
       </header>
 
       <div className="blog-body">
+        <BlogSeriesList blogId={id} viewer={viewer ?? 'guest'} />
         <CategoryFilter categories={categories} selected={searchParams.get('category')} />
 
         <BlogPostList blogId={id} viewer={viewer ?? 'guest'} />
