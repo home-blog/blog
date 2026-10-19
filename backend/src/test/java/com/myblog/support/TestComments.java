@@ -24,6 +24,8 @@ public class TestComments {
     /** 회원과 그 블로그·글, 그 회원이 쓴 것과 그 회원의 글에 달린 것을 모두 지운다. */
     public void deleteMember(TestMembers.Member member) {
         String postsOfBlog = "select post_id from post where category_id in (select category_id from category where blog_id = ?)";
+        // 019: 이 회원의 댓글에 남이 단 답글을 먼저 지운다 (답글이 원댓글을 가리킨다)
+        jdbc.update("delete from comment where parent_id in (select comment_id from comment where users_id = ?)", member.id());
         jdbc.update("delete from comment where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_report where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());
         jdbc.update("delete from post_like where users_id = ? or post_id in (" + postsOfBlog + ")", member.id(), member.blogId());

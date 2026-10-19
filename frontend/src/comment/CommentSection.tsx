@@ -4,14 +4,17 @@
 // - 로그인하지 않았으면 입력칸 대신 안내와 로그인 버튼. 로그인하면 이 글로 돌아온다 (FR-001)
 // - 등록 중에는 버튼을 잠근다. 실패 문구는 서버 것 그대로 보여 준다
 // - 지울 수 있는 댓글(canDelete)에만 삭제 버튼. 확인 창에서 취소하면 요청을 보내지 않는다 (US2, FR-004). 고치기 버튼은 없다 (FR-005)
+// - 답글·비밀 댓글 (specs/019): 답글은 원댓글 아래 붉은 교정선을 따라 한 단계. 비밀 댓글은 "봉한 쪽지"(읽을 수 없으면
+//   서버가 내용을 빼고 보내 봉인 도장만 보인다). 답글이 남은 댓글을 지우면 두 줄 그은 "지운 칸"으로 남는다
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useLoginPrompt } from '../auth/loginPrompt'
 import { useAuth } from '../auth/useAuth'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { deleteComment, getComments, writeComment, type CommentItem } from './commentApi'
+import { deleteComment, getComments, writeComment, type CommentItem, type WriteOptions } from './commentApi'
 import { COMMENT_MAX_LENGTH, commentLength, commentMessages } from './rules'
+import { afterDelete, insertReply, liveCount, threads } from './thread'
 import './comment.css'
 
 type Loaded = { key: string; comments: CommentItem[] } | { key: string; error: string }
@@ -34,6 +37,8 @@ export default function CommentSection({ postId, initialCount }: Props) {
   const key = `${postId}:${viewer}`
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [body, setBody] = useState('')
+  const [secret, setSecret] = useState(false)
+  const [replyTo, setReplyTo] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
@@ -82,8 +87,28 @@ export default function CommentSection({ postId, initialCount }: Props) {
 
   const current = loaded?.key === key ? loaded : null
   const comments = current && 'comments' in current ? current.comments : null
-  const count = comments ? comments.length : initialCount
+  const count = comments ? liveCount(comments) : initialCount
   const length = commentLength(body)
+
+  /** 쓰기 요청과 목록 고치기. 등록을 기다리는 사이 화면이 바뀌었으면 null (결과를 넣지 않는다) */
+  async function send(text: string, options: WriteOptions): Promise<CommentItem | null> {
+    const created = await writeComment(postId, text, options)
+    // 등록은 끝났다. 목록이 있으면 제자리에 넣고, 아직 없거나 읽기에 실패했으면 다시 읽는다 (그 실패는 등록 실패가 아니다)
+    if (currentKey.current !== key) return null
+    if (comments) {
+      setLoaded((prev) =>
+        prev?.key === key && 'comments' in prev
+          ? {
+              ...prev,
+              comments: created.parentId === null ? [...prev.comments, created] : insertReply(prev.comments, created),
+            }
+          : prev,
+      )
+    } else {
+      load(key)
+    }
+    return created
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -94,14 +119,9 @@ export default function CommentSection({ postId, initialCount }: Props) {
     setBusy(true)
     setError(null)
     try {
-      const created = await writeComment(postId, body)
-      // 등록은 끝났다. 목록이 있으면 맨 아래에 붙이고, 아직 없거나 읽기에 실패했으면 다시 읽는다 (그 실패는 등록 실패가 아니다)
-      if (currentKey.current !== key) return
-      setBody('')
-      if (comments) {
-        setLoaded((prev) => (prev?.key === key && 'comments' in prev ? { ...prev, comments: [...prev.comments, created] } : prev))
-      } else {
-        load(key)
+      if (await send(body, { secret })) {
+        setBody('')
+        setSecret(false)
       }
     } catch (err) {
       if (currentKey.current !== key) return
@@ -121,12 +141,22 @@ export default function CommentSection({ postId, initialCount }: Props) {
     try {
       await deleteComment(commentId)
       setLoaded((prev) =>
-        prev && 'comments' in prev ? { ...prev, comments: prev.comments.filter((c) => c.id !== commentId) } : prev,
+        prev && 'comments' in prev ? { ...prev, comments: afterDelete(prev.comments, commentId) } : prev,
       )
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : commentMessages.failed)
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  /** 카드의 단추들. 답글 단추는 늘 원댓글에 단다 */
+  function cardActions(rootId: number) {
+    return {
+      deleting: deletingId,
+      onDelete: (id: number) => setDeleteTarget(id),
+      onReply: () => setReplyTo((current) => (current === rootId ? null : rootId)),
+      replying: replyTo === rootId,
     }
   }
 
@@ -151,27 +181,28 @@ export default function CommentSection({ postId, initialCount }: Props) {
       )}
       {comments && comments.length > 0 && (
         <ol className="comment-list">
-          {comments.map((comment) => (
-            <li key={comment.id} className="comment">
-              <p className="comment-meta">
-                <span className={comment.author.withdrawn ? 'comment-author is-withdrawn' : 'comment-author'}>
-                  {comment.author.withdrawn ? commentMessages.withdrawn : comment.author.nickname}
-                </span>
-                <time className="hint" dateTime={comment.createdAt}>
-                  {formatTime(comment.createdAt)}
-                </time>
-                {comment.canDelete && (
-                  <button
-                    type="button"
-                    className="btn btn-quiet btn-small comment-actions"
-                    disabled={deletingId !== null}
-                    onClick={() => setDeleteTarget(comment.id)}
-                  >
-                    {deletingId === comment.id ? '삭제하는 중' : '삭제'}
-                  </button>
-                )}
-              </p>
-              <p className="comment-body">{comment.body}</p>
+          {threads(comments).map(({ root, replies }) => (
+            <li key={root.id} className="comment-thread">
+              <CommentCard comment={root} {...cardActions(root.id)} />
+              {replies.length > 0 && (
+                <ol className="comment-replies" aria-label="답글">
+                  {replies.map((reply) => (
+                    <li key={reply.id}>
+                      <CommentCard comment={reply} {...cardActions(root.id)} />
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {replyTo === root.id && member && (
+                <ReplyForm
+                  root={root}
+                  onCancel={() => setReplyTo(null)}
+                  onSend={async (text, wantSecret) => {
+                    const created = await send(text, { parentId: root.id, secret: wantSecret })
+                    if (created) setReplyTo(null)
+                  }}
+                />
+              )}
             </li>
           ))}
         </ol>
@@ -195,6 +226,10 @@ export default function CommentSection({ postId, initialCount }: Props) {
               setError(null)
             }}
           />
+          <label className="comment-seal-toggle">
+            <input type="checkbox" checked={secret} onChange={(e) => setSecret(e.target.checked)} />
+            봉해서 남기기 <span className="hint">(블로그 주인만 읽어요)</span>
+          </label>
           <div className="comment-form-foot">
             {error ? (
               <p id={`${inputId}-error`} className="msg msg-error" role="alert">
@@ -230,8 +265,157 @@ export default function CommentSection({ postId, initialCount }: Props) {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={remove}
       >
-        <p>댓글을 삭제할까요?</p>
+        <p>댓글을 삭제할까요? 답글이 남아 있으면 "지운 댓글" 자리만 남아요.</p>
       </ConfirmDialog>
     </section>
+  )
+}
+
+interface CardProps {
+  comment: CommentItem
+  deleting: number | null
+  replying: boolean
+  onDelete: (id: number) => void
+  onReply: () => void
+}
+
+/** 댓글 한 장: 지운 칸, 봉한 쪽지, 보통 댓글 */
+function CommentCard({ comment, deleting, replying, onDelete, onReply }: CardProps) {
+  const reply = comment.parentId !== null
+  if (comment.deleted) {
+    return (
+      <article className="comment is-erased">
+        <p className="comment-erased">{commentMessages.erased}</p>
+      </article>
+    )
+  }
+  if (comment.sealed) {
+    return (
+      <article className={reply ? 'comment is-reply is-sealed' : 'comment is-sealed'}>
+        <p className="comment-sealed">
+          <span className="comment-seal" aria-hidden="true">
+            봉
+          </span>
+          {commentMessages.sealed}
+          <time className="hint" dateTime={comment.createdAt}>
+            {formatTime(comment.createdAt)}
+          </time>
+        </p>
+      </article>
+    )
+  }
+  return (
+    <article className={reply ? 'comment is-reply' : 'comment'}>
+      <p className="comment-meta">
+        <span className={comment.author.withdrawn ? 'comment-author is-withdrawn' : 'comment-author'}>
+          {comment.author.withdrawn ? commentMessages.withdrawn : comment.author.nickname}
+        </span>
+        {comment.secret && <span className="comment-tag is-secret">봉한 쪽지</span>}
+        <time className="hint" dateTime={comment.createdAt}>
+          {formatTime(comment.createdAt)}
+        </time>
+        <span className="comment-actions">
+          {comment.canReply && (
+            <button type="button" className="btn btn-quiet btn-small" aria-expanded={replying} onClick={onReply}>
+              답글
+            </button>
+          )}
+          {comment.canDelete && (
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              disabled={deleting !== null}
+              onClick={() => onDelete(comment.id)}
+            >
+              {deleting === comment.id ? '삭제하는 중' : '삭제'}
+            </button>
+          )}
+        </span>
+      </p>
+      <p className="comment-body">{comment.body}</p>
+    </article>
+  )
+}
+
+interface ReplyFormProps {
+  root: CommentItem
+  onSend: (body: string, secret: boolean) => Promise<void>
+  onCancel: () => void
+}
+
+/** 원댓글 아래에 여는 답글 입력칸. 비밀 댓글에 다는 답글은 늘 봉한다 (서버도 그렇게 저장한다) */
+function ReplyForm({ root, onSend, onCancel }: ReplyFormProps) {
+  const [body, setBody] = useState('')
+  const [secret, setSecret] = useState(root.secret)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const inputId = useId()
+  const length = commentLength(body)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (busy) return
+    if (length === 0) return setError(commentMessages.empty)
+    if (length > COMMENT_MAX_LENGTH) return setError(commentMessages.tooLong)
+    setBusy(true)
+    setError(null)
+    try {
+      await onSend(body, secret || root.secret)
+    } catch (err) {
+      setError(err instanceof ApiError ? (err.messageFor('body') ?? err.message) : commentMessages.failed)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="comment-form comment-reply-form" onSubmit={submit} noValidate>
+      <label htmlFor={inputId} className="visually-hidden">
+        답글 내용
+      </label>
+      <textarea
+        id={inputId}
+        className="comment-input"
+        value={body}
+        rows={2}
+        autoFocus
+        placeholder="답글을 남겨 주세요"
+        aria-invalid={error !== null}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        onChange={(e) => {
+          setBody(e.target.value)
+          setError(null)
+        }}
+      />
+      <label className="comment-seal-toggle">
+        <input
+          type="checkbox"
+          checked={secret || root.secret}
+          disabled={root.secret}
+          onChange={(e) => setSecret(e.target.checked)}
+        />
+        봉해서 남기기{' '}
+        <span className="hint">
+          {root.secret ? '(봉한 쪽지에 단 답글은 늘 봉해요)' : '(블로그 주인과 원댓글 쓴 사람만 읽어요)'}
+        </span>
+      </label>
+      <div className="comment-form-foot">
+        {error ? (
+          <p id={`${inputId}-error`} className="msg msg-error" role="alert">
+            {error}
+          </p>
+        ) : (
+          <span />
+        )}
+        <span className={`comment-length${length > COMMENT_MAX_LENGTH ? ' is-over' : ''}`}>
+          {length} / {COMMENT_MAX_LENGTH}
+        </span>
+        <button type="button" className="btn btn-quiet btn-small" onClick={onCancel}>
+          취소
+        </button>
+        <button type="submit" className="btn btn-primary btn-small" disabled={busy}>
+          {busy ? '등록하는 중' : '답글 등록'}
+        </button>
+      </div>
+    </form>
   )
 }

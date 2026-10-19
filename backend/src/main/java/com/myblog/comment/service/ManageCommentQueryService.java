@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>앞부분은 서버가 코드 포인트 기준 manage.comment.preview-length자로 자른다. 화면은 글자 그대로 보여 준다.</li>
  *   <li>작성자는 MemberNames로 한 번에 (탈퇴했으면 번호·닉네임 없이 withdrawn).</li>
  *   <li>NEW 표시는 보여 주기에만 쓴다: newSince보다 늦고 주인이 쓰지 않은 댓글.</li>
+ *   <li>지운 칸은 빼고, 주인은 비밀 댓글도 읽는다. secret·reply는 표시용 (specs/019 S1-3, S2-3).</li>
  * </ul>
  */
 @Service
@@ -74,7 +75,7 @@ public class ManageCommentQueryService {
                 comment.getCreatedAt(),
                 preview(comment.getBody()),
                 new PostRef(comment.getPostId(), titles.get(comment.getPostId())),
-                newSince.isNew(comment, blog.ownerId()))).toList();
+                newSince.isNew(comment, blog.ownerId()), comment.isSecret(), comment.isReply())).toList();
         return new ManageCommentPage(items, page, pageSize, totalCount);
     }
 
@@ -125,7 +126,7 @@ public class ManageCommentQueryService {
     }
 
     public record ManageCommentRow(Long commentId, Author author, Instant createdAt, String preview, PostRef post,
-            boolean isNew) {
+            boolean isNew, boolean secret, boolean reply) {
     }
 
     /** 탈퇴한 작성자는 nickname이 null이고 withdrawn이 참 (화면은 "탈퇴한 사용자"). */

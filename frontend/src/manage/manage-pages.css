@@ -307,3 +307,18 @@
   background: var(--highlight);
   color: var(--ink);
 }
+
+/* 댓글 관리의 답글·봉한 쪽지 표시 (specs/019) */
+.comment-tag {
+  flex: none;
+  padding: 0 0.35rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+
+.comment-tag.is-secret {
+  border-color: var(--seal);
+  color: var(--seal);
+}

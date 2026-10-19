@@ -31,6 +31,15 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int insertCommentNotice(@Param("memberId") Long memberId, @Param("postId") Long postId,
             @Param("title") String title, @Param("actorName") String actorName, @Param("now") Instant now);
 
+    /** 답글 소식(specs/019 D-4): 원댓글 쓴 사람 한 사람에게. 탈퇴했으면 넣지 않는다. */
+    @Modifying
+    @Query(value = "insert into notification (users_id, kind, post_id, post_title, actor_name, created_at)"
+            + " select :memberId, 'reply', :postId, :title, :actorName, :now"
+            + " where exists (select 1 from users u where u.users_id = :memberId and u.deleted_at is null)",
+            nativeQuery = true)
+    int insertReplyNotice(@Param("memberId") Long memberId, @Param("postId") Long postId,
+            @Param("title") String title, @Param("actorName") String actorName, @Param("now") Instant now);
+
     /** 글마당 소식(specs/017): kind는 board(내 글에 댓글) · accepted(내 댓글이 채택됨). 받는 사람 한 사람에게. */
     @Modifying
     @Query(value = "insert into notification (users_id, kind, board_post_id, post_title, actor_name, created_at)"

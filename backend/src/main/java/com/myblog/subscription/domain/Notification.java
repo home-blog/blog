@@ -10,7 +10,8 @@ import java.time.Instant;
 
 /**
  * 우편함 소식 (notification 표, specs/016 data-model). kind는 post(받아 보는 블로그의 새 글) · comment(내 글에 달린 댓글)
- * · board(내 글마당 글에 달린 댓글) · accepted(내 글마당 댓글이 채택됨, specs/017). 블로그 글 소식은 postId, 글마당 소식은 boardPostId.
+ * · board(내 글마당 글에 달린 댓글) · accepted(내 글마당 댓글이 채택됨, specs/017) · editorial(편집실, specs/018)
+ * · reply(내 댓글에 답글, specs/019). 블로그 글 소식은 postId, 글마당 소식은 boardPostId.
  * 글이 지워지면 번호가 비고, 그때의 제목·보낸 이름은 남는다. 엔티티는 읽기와 표 확인(validate)용이다.
  */
 @Entity

@@ -132,6 +132,8 @@ export default function ManageCommentsPage() {
                     {comment.author.withdrawn ? '탈퇴한 사용자' : comment.author.nickname}
                   </span>
                   {comment.isNew && <span className="new-mark">NEW</span>}
+                  {comment.reply && <span className="comment-tag">답글</span>}
+                  {comment.secret && <span className="comment-tag is-secret">봉한 쪽지</span>}
                   <span className="manage-comment-preview">{comment.preview}</span>
                 </div>
                 <p className="manage-row-meta">

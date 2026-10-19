@@ -115,22 +115,42 @@ public class NotificationWriter {
         });
     }
 
+    /**
+     * 댓글 소식은 글 주인에게, 답글 소식은 원댓글 쓴 사람에게 (specs/016 US2, specs/019 D-4). 자기에게는 보내지 않는다.
+     * 글 주인의 댓글에 단 답글이면 글 주인은 댓글 소식 대신 답글 소식 하나만 받는다.
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(CommentWrittenEvent event) {
         worker.execute(() -> {
             try {
                 transaction.executeWithoutResult(status -> postLookup.findVisibleText(event.postId(), event.writerId())
-                        .filter(post -> !post.ownerId().equals(event.writerId()))
                         .ifPresent(post -> {
-                            MemberName writer = memberNames.namesOf(List.of(event.writerId())).get(event.writerId());
-                            String name = writer == null || writer.withdrawn() ? "탈퇴한 회원" : writer.nickname();
-                            notifications.insertCommentNotice(post.ownerId(), post.postId(), clip(post.title(), 100),
-                                    clip(name, 30), Instant.now(clock));
+                            Long parentWriterId = event.parentWriterId();
+                            String name = writerName(event.writerId());
+                            String title = clip(post.title(), 100);
+                            Instant now = Instant.now(clock);
+                            if (!post.ownerId().equals(event.writerId())) {
+                                if (post.ownerId().equals(parentWriterId)) {
+                                    notifications.insertReplyNotice(post.ownerId(), post.postId(), title, name, now);
+                                } else {
+                                    notifications.insertCommentNotice(post.ownerId(), post.postId(), title, name, now);
+                                }
+                            }
+                            if (parentWriterId != null && !parentWriterId.equals(event.writerId())
+                                    && !parentWriterId.equals(post.ownerId())
+                                    && postLookup.findVisibleText(post.postId(), parentWriterId).isPresent()) {
+                                notifications.insertReplyNotice(parentWriterId, post.postId(), title, name, now);
+                            }
                         }));
             } catch (RuntimeException e) {
                 log.warn("우편함: 댓글 {}의 소식을 만들지 못했습니다: {}", event.commentId(), e.toString());
             }
         });
+    }
+
+    private String writerName(Long writerId) {
+        MemberName writer = memberNames.namesOf(List.of(writerId)).get(writerId);
+        return clip(writer == null || writer.withdrawn() ? "탈퇴한 회원" : writer.nickname(), 30);
     }
 
     /** 글마당 글에 댓글 (specs/017 US3). 글 쓴 사람이 단 댓글은 글마당 모듈이 이벤트를 내지 않는다. */
