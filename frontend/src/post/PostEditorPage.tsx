@@ -36,6 +36,9 @@ import { isoToLocalInput, localInputToIso, publishAtLabel, savedAtLabel, schedul
 import { createPost, getPostEdit, getPostForm, updatePost, type PostForm, type PostInput, type SavedState } from './postApi'
 import { contentLength, isBlank, postMessages, titleLength } from './rules'
 import EditorPreview from './EditorPreview'
+import RedPenSheet from './redpen/RedPenSheet'
+import { getRedPenStatus, proofread, type RedPenStatus } from './redpen/redPenApi'
+import { applyDecisions, isStale, type Correction, type Decision } from './redpen/redPenRules'
 import CoverPicker from './CoverPicker'
 import MarkdownToolbar from './MarkdownToolbar'
 import TagInput from './TagInput'
@@ -50,6 +53,23 @@ const EMPTY: PostInput = { title: '', content: '', categoryId: null, topicId: nu
 
 /** 넓은 화면에서 미리보기를 펼쳐 둘지 (브라우저에 기억) */
 const PREVIEW_KEY = 'geulgyeol-editor-preview'
+
+/** 빨간 펜에 본문을 보내도 된다고 한 번 동의했는지 (이 기기에 기억, specs/014 D-8) */
+const RED_PEN_CONSENT_KEY = 'geulgyeol-redpen-consent'
+
+function redPenConsented(): boolean {
+  try {
+    return localStorage.getItem(RED_PEN_CONSENT_KEY) === 'yes'
+  } catch {
+    return false
+  }
+}
+
+interface Proof {
+  base: string
+  corrections: Correction[]
+  decisions: Decision[]
+}
 
 function savedPreviewOpen(): boolean {
   try {
@@ -124,6 +144,21 @@ export default function PostEditorPage() {
   const [previewOpen, setPreviewOpen] = useState(savedPreviewOpen)
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const previewRef = useRef<HTMLElement>(null)
+  // 빨간 펜 (specs/014 US1): 교정받은 본문(base)과 고칠 곳, 고칠 곳마다 정한 것
+  const [redPen, setRedPen] = useState<RedPenStatus | null>(null)
+  const [proof, setProof] = useState<Proof | null>(null)
+  const [proofing, setProofing] = useState(false)
+  const [askRedPenConsent, setAskRedPenConsent] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getRedPenStatus(controller.signal).then(setRedPen, () => setRedPen(null))
+    return () => controller.abort()
+  }, [])
+
+  // 교정지를 연 뒤 쓰는 사람이 본문을 따로 고치면 위치가 맞지 않으므로 교정지를 닫는다
+  const proofStale = proof !== null && isStale(input.content, proof.base, proof.corrections, proof.decisions)
+  const activeProof = proofStale ? null : proof
 
   useLayoutEffect(() => {
     const area = contentRef.current
@@ -430,6 +465,43 @@ export default function PostEditorPage() {
     }
   }
 
+  function startRedPen() {
+    if (redPenConsented()) void runRedPen()
+    else setAskRedPenConsent(true)
+  }
+
+  async function runRedPen() {
+    const content = input.content
+    if (isBlank(content)) {
+      setDraftMessage({ text: '※ 본문을 먼저 써 주세요', error: true })
+      return
+    }
+    setProof(null)
+    setProofing(true)
+    setMode('preview')
+    try {
+      const result = await proofread(content)
+      setProof({ base: content, corrections: result.corrections, decisions: result.corrections.map(() => 'pending') })
+      setRedPen((prev) => (prev ? { ...prev, remaining: result.remaining } : prev))
+    } catch (err) {
+      setDraftMessage({ text: err instanceof ApiError ? err.message : '※ 지금은 빨간 펜을 쓸 수 없습니다', error: true })
+      setMode('write')
+    } finally {
+      setProofing(false)
+    }
+  }
+
+  function decideRedPen(next: Decision[]) {
+    if (!activeProof) return
+    setProof({ ...activeProof, decisions: next })
+    update('content', applyDecisions(activeProof.base, activeProof.corrections, next))
+  }
+
+  function closeRedPen() {
+    setProof(null)
+    setMode('write')
+  }
+
   function togglePreview() {
     const next = !previewOpen
     setPreviewOpen(next)
@@ -472,7 +544,7 @@ export default function PostEditorPage() {
 
   return (
     <form
-      className={previewOpen ? 'editor has-preview' : 'editor'}
+      className={previewOpen || proofing || activeProof ? 'editor has-preview' : 'editor'}
       onSubmit={submit}
       noValidate
       aria-labelledby="editor-title"
@@ -678,7 +750,26 @@ export default function PostEditorPage() {
           </div>
         </section>
 
-        {previewOpen && (
+        {proofing ? (
+          <section className="redpen" aria-label="빨간 펜 교정지" aria-busy="true">
+            <div className="redpen-waiting" role="status">
+              <span className="redpen-waiting-line" aria-hidden="true" />
+              빨간 펜으로 읽는 중입니다. 긴 글은 30초쯤 걸립니다.
+            </div>
+          </section>
+        ) : activeProof ? (
+          <RedPenSheet
+            base={activeProof.base}
+            corrections={activeProof.corrections}
+            decisions={activeProof.decisions}
+            remaining={redPen?.remaining ?? 0}
+            onDecide={(index, decision) =>
+              decideRedPen(activeProof.decisions.map((d, i) => (i === index ? decision : d)))
+            }
+            onAcceptAll={() => decideRedPen(activeProof.decisions.map((d) => (d === 'pending' ? 'accepted' : d)))}
+            onClose={closeRedPen}
+          />
+        ) : previewOpen && (
           <EditorPreview
             ref={previewRef}
             title={input.title}
@@ -698,11 +789,23 @@ export default function PostEditorPage() {
           </p>
         ) : (
           <p className={`editor-draft-status ${draftMessage?.error ? 'msg msg-error' : 'hint'}`} role="status" aria-live="polite">
-            {draftMessage?.text ?? (savedAt ? savedAtLabel(savedAt) : '')}
+            {draftMessage?.text ??
+              (proofStale ? '본문이 바뀌어 빨간 펜 교정지를 닫았습니다' : savedAt ? savedAtLabel(savedAt) : '')}
             {publishAt && <span className="editor-draft-scheduled">{publishAtLabel(publishAt)}</span>}
           </p>
         )}
         <div className="editor-bar-actions">
+          {redPen?.enabled && (
+            <button
+              type="button"
+              className="btn btn-quiet redpen-button"
+              disabled={busy || proofing}
+              title={`오늘 ${redPen.remaining}번 남음`}
+              onClick={startRedPen}
+            >
+              {proofing ? '교정하는 중' : '빨간 펜'}
+            </button>
+          )}
           {editingId === null && (
             <>
               <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void saveDraftNow()}>
@@ -748,6 +851,30 @@ export default function PostEditorPage() {
             {scheduleProblem ?? `지금부터 1분 뒤 ~ ${writing.scheduleMaxDays}일 안. 그 시각이 될 때까지는 나만 봅니다`}
           </p>
         </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={askRedPenConsent}
+        title="빨간 펜"
+        confirmLabel="교정받기"
+        onCancel={() => setAskRedPenConsent(false)}
+        onConfirm={() => {
+          setAskRedPenConsent(false)
+          try {
+            localStorage.setItem(RED_PEN_CONSENT_KEY, 'yes')
+          } catch {
+            // 기억하지 못하면 다음에 한 번 더 묻는다
+          }
+          void runRedPen()
+        }}
+      >
+        <p>
+          글 본문이 AI(Anthropic의 Claude)로 보내져 띄어쓰기·맞춤법·어색한 문장을 교정받습니다. 자동으로 고치지 않고, 고칠 곳마다
+          받아들일지 고릅니다.
+        </p>
+        <p className="hint">
+          Anthropic은 API로 받은 글을 AI 학습에 쓰지 않습니다. 글결은 같은 본문을 다시 교정받을 때를 위해 교정 결과만 하루 동안 보관합니다.
+        </p>
       </ConfirmDialog>
 
       <ConfirmDialog

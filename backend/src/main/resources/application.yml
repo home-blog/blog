@@ -153,6 +153,21 @@ series:
   max-per-blog: 50
   max-posts: 200
 
+# 빨간 펜 교정 (specs/014 research D-1 ~ D-7, D-15)
+proofread:
+  provider: ${PROOFREAD_PROVIDER:auto}   # auto: 열쇠가 있으면 claude, 없으면 without-key / claude / fake / off
+  without-key: off                       # 열쇠가 없을 때. 배포는 off(단추 숨김), 개발은 fake(규칙 교정)
+  api-key: ${ANTHROPIC_API_KEY:}         # 환경 변수로만 (GitHub Secrets → 서버 .env.deploy)
+  model: claude-opus-5-5
+  effort: low              # 생각 깊이: 교정은 low로 충분하고 빠르다 (바깥 Nginx가 60초에 끊는다)
+  max-tokens: 16000
+  timeout: 50s             # Claude API 한 번의 제한 시간. 바깥 Nginx 60초보다 짧게
+  daily-limit: 20          # 회원마다 하루 교정 횟수 (한국 날짜)
+  max-length: 10000        # 본문 한도 = 글 본문 한도(post.content.max-length)
+  max-corrections: 100     # 한 번에 돌려주는 고칠 곳 수
+  cache-ttl: 1d            # 같은 본문의 결과를 보관하는 시간
+  zone: Asia/Seoul
+
 # 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
 share:
   rss-size: 20              # RSS 한 번에 주는 최신 공개 글 수

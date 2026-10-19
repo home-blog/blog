@@ -1,0 +1,226 @@
+/* 빨간 펜 교정지 (specs/014 US1): 원고지 종이 위에 인주색(--seal)으로 교정부호를 긋는다 */
+.redpen {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+  animation: rise-in 0.4s var(--ease-out) both;
+}
+
+/* 글쓰기 화면의 미리보기 자리와 같은 배치: 넓으면 쓰기 종이 높이에 맞추고 안에서 스크롤, 좁으면 "미리보기" 탭일 때만 */
+@media (min-width: 64rem) {
+  .editor.has-preview .redpen {
+    contain: size;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  .editor.has-preview .editor-split[data-mode='write'] .redpen {
+    display: none;
+  }
+
+  .redpen {
+    min-height: 60vh;
+  }
+}
+
+.redpen-button {
+  color: var(--seal);
+}
+
+.redpen-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--grid);
+}
+
+.redpen-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  color: var(--seal);
+}
+
+.redpen-pen {
+  font-size: 1.1em;
+}
+
+.redpen-count {
+  font-size: var(--step--1);
+}
+
+.redpen-head-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.redpen-paper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 1.25rem clamp(1rem, 3vw, 2rem);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px);
+  background-size: 100% 2.6em;
+  background-position: 0 2.2em;
+}
+
+/* 본문은 마크다운 그대로(글자 그대로) 보인다. 위치가 서버 위치와 같아야 하므로 바꾸지 않는다 */
+.redpen-text {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: 1.05rem;
+  line-height: 2.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.redpen-mark {
+  position: relative;
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.redpen-mark:focus-visible,
+.redpen-mark.is-selected {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* 위에 고쳐 쓴 말 */
+.redpen-ins {
+  position: absolute;
+  left: 0;
+  bottom: 1.35em;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 0.72em;
+  line-height: 1;
+  color: var(--seal);
+  pointer-events: none;
+}
+
+.redpen-caret {
+  margin-right: 0.15em;
+  font-weight: 700;
+}
+
+/* 맞춤법: 줄을 긋는다 */
+.redpen-mark.is-spelling .redpen-orig {
+  text-decoration: line-through;
+  text-decoration-color: var(--seal);
+  text-decoration-thickness: 2px;
+}
+
+/* 띄어쓰기: 아래에 점선 */
+.redpen-mark.is-spacing .redpen-orig {
+  border-bottom: 2px dotted var(--seal);
+}
+
+/* 다듬기: 물결 밑줄 */
+.redpen-mark.is-style .redpen-orig {
+  text-decoration: underline wavy var(--seal);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.3em;
+}
+
+.redpen-done {
+  background: linear-gradient(transparent 62%, color-mix(in srgb, var(--accent) 22%, transparent) 62%);
+}
+
+.redpen-note {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem 0.9rem;
+  border-top: 2px solid var(--seal);
+  background: var(--paper);
+}
+
+.redpen-note-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: 1.05rem;
+}
+
+.redpen-note-line del {
+  text-decoration-color: var(--seal);
+}
+
+.redpen-note-line ins {
+  text-decoration: none;
+  color: var(--seal);
+  font-weight: 700;
+}
+
+.redpen-kind {
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--seal);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  color: var(--seal);
+}
+
+.redpen-reason {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.redpen-note-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+}
+
+/* 교정을 기다리는 동안: 빨간 펜이 줄을 따라 지나간다 */
+.redpen-waiting {
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.redpen-waiting-line {
+  width: min(16rem, 70%);
+  height: 2px;
+  background: linear-gradient(90deg, var(--seal) 0 30%, transparent 30%) no-repeat;
+  background-size: 200% 100%;
+  animation: redpen-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes redpen-sweep {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .redpen-waiting-line {
+    animation: none;
+    background: var(--seal);
+  }
+}
