@@ -11,6 +11,11 @@ export interface Blog {
   intro: string
   /** 화면이 "블로그 설정" 버튼을 보일지만 정한다. 실제 권한은 서버가 다시 본다 */
   isOwner: boolean
+  /** 받아 보는 사람 수와 내가 받아 보는지 (specs/016 US1) */
+  subscriberCount: number
+  subscribedByMe: boolean
+  /** 내가 새 원고를 메일로도 받는가 */
+  subscriptionEmail: boolean
 }
 
 export interface MyBlog {

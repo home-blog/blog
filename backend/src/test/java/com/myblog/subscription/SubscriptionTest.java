@@ -92,6 +92,8 @@ class SubscriptionTest {
         mvc.perform(put(url(writer)).with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"emailEnabled\":true}"))
                 .andExpect(jsonPath("$.emailEnabled").value(true));
+        mvc.perform(get("/api/v1/blogs/{id}", writer.blogId()).session(readerSession))
+                .andExpect(jsonPath("$.subscriptionEmail").value(true));
         mvc.perform(put(url(writer)).with(csrf()).session(readerSession).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"emailEnabled\":false}"))
                 .andExpect(jsonPath("$.emailEnabled").value(false))

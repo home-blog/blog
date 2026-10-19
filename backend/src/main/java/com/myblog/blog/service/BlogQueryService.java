@@ -74,7 +74,7 @@ public class BlogQueryService {
 
     /** 소개가 비었으면 ""로 준다 (data-model 1). */
     public record BlogView(Long blogId, String name, String intro, boolean isOwner, long subscriberCount,
-            boolean subscribedByMe) {
+            boolean subscribedByMe, boolean subscriptionEmail) {
 
         static BlogView of(Blog blog, boolean isOwner) {
             return of(blog, isOwner, Summary.NONE);
@@ -82,7 +82,7 @@ public class BlogQueryService {
 
         static BlogView of(Blog blog, boolean isOwner, Summary summary) {
             return new BlogView(blog.getId(), blog.getName(), blog.getIntro() == null ? "" : blog.getIntro(), isOwner,
-                    summary.subscriberCount(), summary.subscribedByMe());
+                    summary.subscriberCount(), summary.subscribedByMe(), summary.emailByMe());
         }
     }
 

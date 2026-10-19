@@ -12,6 +12,7 @@ import BlogSeriesList from '../series/BlogSeriesList'
 import BlogPostList from '../explore/BlogPostList'
 import CategoryFilter from '../explore/CategoryFilter'
 import ProofNotFound from '../components/ProofNotFound'
+import SubscribeButton from '../subscription/SubscribeButton'
 import './auth-layout.css'
 import '../blog/blog.css'
 
@@ -86,6 +87,17 @@ export default function BlogHomePage() {
         ) : (
           <p className="blog-intro hint">아직 소개가 없습니다</p>
         )}
+        {/* 원고 받아 보기 (specs/016 US1). 보는 사람이 바뀌면 새 값으로 다시 그린다 */}
+        <SubscribeButton
+          key={`${id}:${viewer ?? 'guest'}`}
+          blogId={id}
+          isOwner={blog.isOwner}
+          initial={{
+            subscriberCount: blog.subscriberCount ?? 0,
+            subscribedByMe: blog.subscribedByMe ?? false,
+            emailEnabled: blog.subscriptionEmail ?? false,
+          }}
+        />
         <BlogActivity blogId={id} />
         <BlogSeriesList blogId={id} viewer={viewer ?? 'guest'} />
         <p className="blog-feed-links">

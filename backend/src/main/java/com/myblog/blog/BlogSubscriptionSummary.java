@@ -6,11 +6,12 @@ package com.myblog.blog;
  */
 public interface BlogSubscriptionSummary {
 
-    /** viewerId는 로그인하지 않았으면 null (그때 subscribedByMe는 거짓). */
+    /** viewerId는 로그인하지 않았으면 null (그때 subscribedByMe·emailByMe는 거짓). */
     Summary summary(Long blogId, Long viewerId);
 
-    record Summary(long subscriberCount, boolean subscribedByMe) {
+    /** emailByMe: 내가 새 원고를 메일로도 받는가 (받아 보지 않으면 거짓). */
+    record Summary(long subscriberCount, boolean subscribedByMe, boolean emailByMe) {
 
-        public static final Summary NONE = new Summary(0, false);
+        public static final Summary NONE = new Summary(0, false, false);
     }
 }

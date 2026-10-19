@@ -2,8 +2,10 @@ package com.myblog.subscription.service;
 
 import com.myblog.blog.BlogSubscriptionSummary;
 import com.myblog.post.SubscribedBlogs;
+import com.myblog.subscription.domain.BlogSubscription;
 import com.myblog.subscription.repository.BlogSubscriptionRepository;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +22,10 @@ public class SubscriptionAdapters implements BlogSubscriptionSummary, Subscribed
 
     @Override
     public Summary summary(Long blogId, Long viewerId) {
-        boolean mine = viewerId != null && subscriptions.existsByMemberIdAndBlogId(viewerId, blogId);
-        return new Summary(subscriptions.countByBlogId(blogId), mine);
+        Optional<BlogSubscription> mine = viewerId == null ? Optional.empty()
+                : subscriptions.findByMemberIdAndBlogId(viewerId, blogId);
+        return new Summary(subscriptions.countByBlogId(blogId), mine.isPresent(),
+                mine.map(BlogSubscription::isEmailEnabled).orElse(false));
     }
 
     @Override
