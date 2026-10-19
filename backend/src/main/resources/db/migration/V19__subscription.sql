@@ -2,7 +2,8 @@
 --   blog_subscription: 원고 받아 보기(블로그 구독). 한 사람이 한 블로그에 한 줄, 원고 편지(메일)도 받을지.
 --   notification: 우편함 소식(받아 보는 블로그의 새 글, 내 글에 달린 댓글). 30일 뒤 서버가 지운다.
 --   post.first_published_at: 글이 처음 공개된 시각. 비어 있는 글이 공개될 때만 채우고 새 글 소식을 낸다(두 번 내지 않게).
--- 외래 키에 연쇄 삭제는 없다: 탈퇴(MemberWithdrawnEvent)·블로그 닫기(BlogClosingEvent) 때 subscription 모듈이 먼저 지운다.
+-- 탈퇴(MemberWithdrawnEvent)·블로그 닫기(BlogClosingEvent) 때 subscription 모듈이 먼저 지운다. 회원·블로그 줄을 실제로 지우는 일은
+-- 서비스에 없지만(회원은 남는 soft delete), 연쇄 삭제를 걸어 두어 소식을 만드는 일꾼과 지우기가 겹쳐도 막히지 않는다.
 -- 글이 지워지면 소식은 남기고 글 번호만 비운다(ON DELETE SET NULL, 그때의 제목은 남는다).
 
 ALTER TABLE post ADD COLUMN first_published_at TIMESTAMPTZ;
@@ -17,8 +18,8 @@ CREATE TABLE blog_subscription (
     created_at           TIMESTAMPTZ NOT NULL,
     CONSTRAINT blog_subscription_pk PRIMARY KEY (blog_subscription_id),
     CONSTRAINT uk_blog_subscription_users_blog UNIQUE (users_id, blog_id),
-    CONSTRAINT fk_blog_subscription_users FOREIGN KEY (users_id) REFERENCES users (users_id),
-    CONSTRAINT fk_blog_subscription_blog FOREIGN KEY (blog_id) REFERENCES blog (blog_id)
+    CONSTRAINT fk_blog_subscription_users FOREIGN KEY (users_id) REFERENCES users (users_id) ON DELETE CASCADE,
+    CONSTRAINT fk_blog_subscription_blog FOREIGN KEY (blog_id) REFERENCES blog (blog_id) ON DELETE CASCADE
 );
 
 -- 블로그의 받아 보는 사람 수, 새 글 소식 보내기
@@ -38,7 +39,7 @@ CREATE TABLE notification (
     created_at      TIMESTAMPTZ  NOT NULL,
     CONSTRAINT notification_pk PRIMARY KEY (notification_id),
     CONSTRAINT ck_notification_kind CHECK (kind IN ('post', 'comment')),
-    CONSTRAINT fk_notification_users FOREIGN KEY (users_id) REFERENCES users (users_id),
+    CONSTRAINT fk_notification_users FOREIGN KEY (users_id) REFERENCES users (users_id) ON DELETE CASCADE,
     CONSTRAINT fk_notification_post FOREIGN KEY (post_id) REFERENCES post (post_id) ON DELETE SET NULL
 );
 
