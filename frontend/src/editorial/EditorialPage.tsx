@@ -72,6 +72,7 @@ export default function EditorialPage() {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [openId, setOpenId] = useState<number | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const admin = Boolean(member?.admin)
 
@@ -105,6 +106,7 @@ export default function EditorialPage() {
   }, [admin, tab, page, reload])
 
   const done = useCallback((message: string) => {
+    setActionError(null)
     setNotice(message)
     setOpenId(null)
     setReload((n) => n + 1)
@@ -123,10 +125,11 @@ export default function EditorialPage() {
 
   async function unlock(postId: number) {
     try {
-      await unlockPost(postId)
-      done('잠금을 풀었습니다. 글 주인이 다시 공개할 수 있어요')
+      const { unlocked } = await unlockPost(postId)
+      done(unlocked ? '잠금을 풀었습니다. 글 주인이 다시 공개할 수 있어요' : '이미 잠금이 풀린 글입니다')
     } catch (err) {
-      setNotice(messageOf(err))
+      setNotice(null)
+      setActionError(messageOf(err))
     }
   }
 
@@ -163,6 +166,11 @@ export default function EditorialPage() {
       {notice && (
         <p className="msg msg-ok" role="status">
           {notice}
+        </p>
+      )}
+      {actionError && (
+        <p className="msg msg-error" role="alert">
+          {actionError}
         </p>
       )}
       {!current ? (

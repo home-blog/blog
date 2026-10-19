@@ -6,6 +6,7 @@ import com.myblog.board.repository.BoardPostRepository;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.ErrorResponse.FieldErrorItem;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
@@ -38,6 +39,11 @@ public class BoardReportService {
 
     @Transactional
     public void report(Long memberId, Long boardPostId, String reason, String detail) {
+        // 글을 붙잡아 두고 신고한다: 편집실이 같은 때에 지워도 외래 키 오류(500) 대신 없는 글(404)
+        if (!Boolean.TRUE.equals(jdbc.query("select board_post_id from board_post where board_post_id = ? for key share",
+                ResultSet::next, boardPostId))) {
+            throw new ApiException(ErrorCode.BOARD_POST_NOT_FOUND);
+        }
         BoardPost post = posts.findById(boardPostId).orElseThrow(() -> new ApiException(ErrorCode.BOARD_POST_NOT_FOUND));
         if (post.isWrittenBy(memberId)) {
             throw new ApiException(ErrorCode.SELF_REPORT_NOT_ALLOWED);

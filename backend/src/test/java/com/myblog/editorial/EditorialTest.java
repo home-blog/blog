@@ -138,6 +138,9 @@ class EditorialTest {
         mvc.perform(get("/api/v1/editorial/summary").session(writerSession)).andExpect(status().isForbidden());
         mvc.perform(get("/api/v1/editorial/reports/posts").session(writerSession)).andExpect(status().isForbidden());
         takeDown(writerSession, publicPost("남의 글"), "사유").andExpect(status().isForbidden());
+        // 본문이 없어도 관리자 확인이 먼저다
+        mvc.perform(post("/api/v1/editorial/posts/{id}/take-down", publicPost("본문 없음")).with(csrf())
+                .session(writerSession)).andExpect(status().isForbidden());
         mvc.perform(get("/api/v1/editorial/summary").session(adminSession)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.members").isNumber())
                 .andExpect(jsonPath("$.pendingReports").isNumber());
@@ -209,7 +212,12 @@ class EditorialTest {
                 .contentType(MediaType.APPLICATION_JSON).content(toPrivate)).andExpect(status().isOk());
 
         mvc.perform(post("/api/v1/editorial/posts/{id}/unlock", postId).with(csrf()).session(adminSession))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.unlocked").value(true));
+        // 이미 풀린 글은 그대로이고 기록도 남기지 않는다
+        mvc.perform(post("/api/v1/editorial/posts/{id}/unlock", postId).with(csrf()).session(adminSession))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.unlocked").value(false));
+        assertThat(jdbc.queryForObject("select count(*) from editorial_action where post_id = ? and action = 'unlocked'",
+                Long.class, postId)).isEqualTo(1);
         mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).session(writerSession)
                 .contentType(MediaType.APPLICATION_JSON).content(toPublic)).andExpect(status().isOk());
     }
@@ -257,6 +265,15 @@ class EditorialTest {
         mvc.perform(get("/api/v1/editorial/reports/board/{id}", boardPostId).session(adminSession))
                 .andExpect(jsonPath("$.title").value("광고 글마당"))
                 .andExpect(jsonPath("$.reports", hasSize(1)));
+        // 반려한 뒤에는 지울 대기 신고가 없어 409, 새 신고가 오면 다시 지울 수 있다
+        mvc.perform(post("/api/v1/editorial/board/{id}/dismiss", boardPostId).with(csrf()).session(adminSession))
+                .andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/editorial/board/{id}/remove", boardPostId).with(csrf()).session(adminSession)
+                        .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("reason", "광고")))
+                .andExpect(status().isConflict());
+        Member second = register("er4");
+        mvc.perform(post(url, boardPostId).with(csrf()).session(members.login(mvc, second))
+                .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("reason", "SPAM"))).andExpect(status().isCreated());
         mvc.perform(post("/api/v1/editorial/board/{id}/remove", boardPostId).with(csrf()).session(adminSession)
                         .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("reason", "광고")))
                 .andExpect(status().isNoContent());

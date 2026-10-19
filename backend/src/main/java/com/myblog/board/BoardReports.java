@@ -20,6 +20,9 @@ public interface BoardReports {
     /** 한 글의 대기 신고, 오래된 순. */
     List<BoardReportLine> pendingOf(Long boardPostId);
 
+    /** 글 줄을 잠근다(편집실 처리끼리 차례로). 없는 글이면 거짓. */
+    boolean lock(Long boardPostId);
+
     /** 글 하나(쓴 사람, 제목, 본문 앞부분). 없으면 비운다. */
     Optional<BoardBrief> brief(Long boardPostId);
 

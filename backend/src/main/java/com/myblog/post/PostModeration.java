@@ -15,8 +15,8 @@ public interface PostModeration {
     /** 비공개로 돌리고 잠근다. 이미 잠겼으면 사유만 바꾼다. */
     void lock(Long postId, String reason, Instant now);
 
-    /** 잠금을 푼다. 공개로 되돌리지는 않는다(주인이 고른다). */
-    void unlock(Long postId);
+    /** 잠금을 푼다. 공개로 되돌리지는 않는다(주인이 고른다). 잠겨 있지 않았으면 거짓. */
+    boolean unlock(Long postId);
 
     /** excerpt는 마크다운을 걷어 낸 앞부분, locked는 지금 잠겨 있는가. */
     record PostBrief(Long postId, Long blogId, Long ownerId, String blogName, String title, String excerpt,

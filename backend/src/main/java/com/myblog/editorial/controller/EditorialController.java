@@ -63,7 +63,7 @@ public class EditorialController {
 
     @Operation(summary = "내림", description = "대기 신고를 모두 닫고 글을 비공개로 돌리고 잠근다. 주인 우편함에 사유와 함께 소식. 닫을 신고가 없으면 409.")
     @PostMapping("/posts/{postId:\\d+}/take-down")
-    public ResponseEntity<Void> takeDown(@PathVariable Long postId, @RequestBody ReasonInput input,
+    public ResponseEntity<Void> takeDown(@PathVariable Long postId, @RequestBody(required = false) ReasonInput input,
             @Parameter(hidden = true) Authentication authentication) {
         Long adminId = loggedInMember.requireAdminIdOf(authentication);
         editorialService.takeDown(adminId, postId, input == null ? null : input.reason());
@@ -78,12 +78,10 @@ public class EditorialController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "잠금 풀기", description = "내린 글을 주인이 다시 공개할 수 있게 한다. 공개로 되돌리지는 않는다.")
+    @Operation(summary = "잠금 풀기", description = "내린 글을 주인이 다시 공개할 수 있게 한다. 공개로 되돌리지는 않는다. unlocked는 이번에 풀었는가(이미 풀려 있었으면 false).")
     @PostMapping("/posts/{postId:\\d+}/unlock")
-    public ResponseEntity<Void> unlock(@PathVariable Long postId,
-            @Parameter(hidden = true) Authentication authentication) {
-        editorialService.unlock(loggedInMember.requireAdminIdOf(authentication), postId);
-        return ResponseEntity.noContent().build();
+    public UnlockResponse unlock(@PathVariable Long postId, @Parameter(hidden = true) Authentication authentication) {
+        return new UnlockResponse(editorialService.unlock(loggedInMember.requireAdminIdOf(authentication), postId));
     }
 
     @Operation(summary = "글마당 검토 대기", description = "대기 신고가 있는 글마당 글, 신고가 많은 글 먼저.")
@@ -104,7 +102,7 @@ public class EditorialController {
 
     @Operation(summary = "글마당 글 지우기", description = "대기 신고가 있는 글을 댓글과 함께 지운다. 쓴 사람 우편함에 사유와 함께 소식.")
     @PostMapping("/board/{boardPostId:\\d+}/remove")
-    public ResponseEntity<Void> removeBoard(@PathVariable Long boardPostId, @RequestBody ReasonInput input,
+    public ResponseEntity<Void> removeBoard(@PathVariable Long boardPostId, @RequestBody(required = false) ReasonInput input,
             @Parameter(hidden = true) Authentication authentication) {
         Long adminId = loggedInMember.requireAdminIdOf(authentication);
         editorialService.removeBoardPost(adminId, boardPostId, input == null ? null : input.reason());
@@ -128,5 +126,8 @@ public class EditorialController {
     }
 
     public record ReasonInput(String reason) {
+    }
+
+    public record UnlockResponse(boolean unlocked) {
     }
 }

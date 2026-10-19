@@ -182,8 +182,7 @@ export default function Mailbox() {
                           </>
                         ) : notice.kind === 'editorial' ? (
                           <>
-                            <strong>편집실</strong>이 신고된 내 글을{' '}
-                            {notice.postId === null ? '살펴보았어요' : '내렸어요'}
+                            <strong>편집실</strong>에서 신고된 내 글을 처리했어요
                           </>
                         ) : notice.kind === 'accepted' ? (
                           <>

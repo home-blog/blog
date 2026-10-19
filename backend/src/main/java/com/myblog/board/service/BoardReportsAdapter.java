@@ -79,6 +79,13 @@ public class BoardReportsAdapter implements BoardReports {
     }
 
     @Override
+    @Transactional
+    public boolean lock(Long boardPostId) {
+        return Boolean.TRUE.equals(jdbc.query("select board_post_id from board_post where board_post_id = ? for update",
+                ResultSet::next, boardPostId));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<BoardBrief> brief(Long boardPostId) {
         return posts.findById(boardPostId).map(post -> new BoardBrief(post.getId(), post.getWriterId(),

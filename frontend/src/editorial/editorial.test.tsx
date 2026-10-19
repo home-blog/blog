@@ -113,7 +113,7 @@ describe('편집실', () => {
     expect(await screen.findByText('검토할 신고가 없습니다.')).toBeInTheDocument()
   })
 
-  it('이미 처리한 신고면 서버 문구를 보인다', async () => {
+  it('이미 처리한 신고면 서버 문구를 보이고 목록을 다시 읽는다', async () => {
     loggedIn(true)
     server.use(
       http.get('/api/v1/editorial/summary', () => HttpResponse.json(SUMMARY)),
@@ -126,7 +126,8 @@ describe('편집실', () => {
     renderAt()
     fireEvent.click(await screen.findByRole('button', { name: /광고 글/ }))
     fireEvent.click(await screen.findByRole('button', { name: '반려' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('이미 처리한 신고입니다')
+    expect(await screen.findByRole('status')).toHaveTextContent('이미 처리한 신고입니다')
+    expect(screen.queryByRole('button', { name: '반려' })).not.toBeInTheDocument()
   })
 
   it('처리 기록에서 내린 글의 잠금을 푼다', async () => {
@@ -157,7 +158,7 @@ describe('편집실', () => {
       ),
       http.post('/api/v1/editorial/posts/9/unlock', () => {
         unlocked = true
-        return new HttpResponse(null, { status: 204 })
+        return HttpResponse.json({ unlocked: true })
       }),
     )
     renderAt('/editorial?tab=history')

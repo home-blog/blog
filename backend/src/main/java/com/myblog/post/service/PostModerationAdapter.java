@@ -39,7 +39,7 @@ public class PostModerationAdapter implements PostModeration {
 
     @Override
     @Transactional
-    public void unlock(Long postId) {
-        posts.unlock(postId);
+    public boolean unlock(Long postId) {
+        return posts.unlock(postId) > 0;
     }
 }

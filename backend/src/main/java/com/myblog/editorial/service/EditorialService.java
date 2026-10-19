@@ -161,21 +161,25 @@ public class EditorialService {
         actions.save(EditorialAction.onPost(postId, brief.title(), "dismissed", null, closed, adminId, now));
     }
 
-    /** 잠금 풀기 (US1-6). 공개로 되돌리지는 않는다. 잠기지 않은 글이면 아무 일도 없다. */
+    /**
+     * 잠금 풀기 (US1-6). 공개로 되돌리지는 않는다. 잠긴 글일 때만 풀고 기록한다(두 관리자가 겹쳐도 한 번).
+     * @return 이번에 풀었는가 (이미 풀려 있었으면 거짓)
+     */
     @Transactional
-    public void unlock(Long adminId, Long postId) {
+    public boolean unlock(Long adminId, Long postId) {
         PostBrief brief = moderation.brief(postId).orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND));
-        if (!brief.locked()) {
-            return;
+        if (!moderation.unlock(postId)) {
+            return false;
         }
-        moderation.unlock(postId);
         actions.save(EditorialAction.onPost(postId, brief.title(), "unlocked", null, 0, adminId, Instant.now(clock)));
+        return true;
     }
 
     /** 글마당 글 지우기 (US2-2): 대기 신고가 있어야 한다. 글·댓글·신고를 지우고 쓴 사람에게 알린다. */
     @Transactional
     public void removeBoardPost(Long adminId, Long boardPostId, String rawReason) {
         String reason = checkReason(rawReason);
+        lockBoardPost(boardPostId);
         BoardBrief brief = boardReports.brief(boardPostId)
                 .orElseThrow(() -> new ApiException(ErrorCode.BOARD_POST_NOT_FOUND));
         int pending = boardReports.pendingOf(boardPostId).size();
@@ -192,6 +196,7 @@ public class EditorialService {
 
     @Transactional
     public void dismissBoardPost(Long adminId, Long boardPostId) {
+        lockBoardPost(boardPostId);
         BoardBrief brief = boardReports.brief(boardPostId)
                 .orElseThrow(() -> new ApiException(ErrorCode.BOARD_POST_NOT_FOUND));
         Instant now = Instant.now(clock);
@@ -212,6 +217,13 @@ public class EditorialService {
                         a.getTargetTitle(), a.getAction(), a.getReason(), a.getReportCount(), a.getCreatedAt()))
                 .toList();
         return new Pending<>(total, slice.page(), slice.totalPages(), slice.pageSize(), rows);
+    }
+
+    /** 글마당 지우기·반려는 글 줄을 잠그고 차례로 한다: 한쪽이 끝난 뒤 다른 쪽은 대기 신고가 없어 409. */
+    private void lockBoardPost(Long boardPostId) {
+        if (!boardReports.lock(boardPostId)) {
+            throw new ApiException(ErrorCode.BOARD_POST_NOT_FOUND);
+        }
     }
 
     private PendingPostRow postRow(PendingPost p) {

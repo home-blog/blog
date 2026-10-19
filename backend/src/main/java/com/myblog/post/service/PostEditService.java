@@ -72,6 +72,8 @@ public class PostEditService {
      * 태그(005)는 보낸 목록이 새 전체 목록이다. 태그만 바꿔도 수정 시각을 넣는다 (2026-10-08 가안, 003 FR-020과 같은 판단).
      */
     public Updated update(Long memberId, Long postId, PostRequests.Update request) {
+        // 글 줄을 먼저 잠근다: 편집실이 같은 때에 내리면 그쪽이 끝난 뒤에 잠금을 보고 판단한다 (specs/018 S1-3)
+        posts.findByIdForUpdate(postId);
         Owned owned = findMine(memberId, postId);
         Set<ConstraintViolation<PostRequests.Update>> violations = validator.validate(request);
         if (!violations.isEmpty()) {

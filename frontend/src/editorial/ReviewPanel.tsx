@@ -1,6 +1,7 @@
 // 신고 자세히와 처리 (specs/018 US1-3~5, US2-2): 신고마다 사유·설명·시각(신고한 사람은 없음), 글 앞부분,
 // 사유를 적고 붉은 "내림"(글마당은 "지우기") 도장 또는 먹색 "반려" 도장을 찍는다
 import { useEffect, useId, useState } from 'react'
+import { ApiError } from '../api/client'
 import { formatDate } from '../explore/rules'
 import { countChars } from '../auth/rules'
 import {
@@ -75,6 +76,11 @@ export default function ReviewPanel({ kind, id, onDone }: Props) {
       }
       onDone(action === 'dismiss' ? '반려했습니다' : kind === 'post' ? '글을 내렸습니다' : '글을 지웠습니다')
     } catch (err) {
+      // 다른 관리자가 먼저 처리했으면 목록을 다시 읽어 그 줄을 치운다
+      if (err instanceof ApiError && err.status === 409) {
+        onDone(err.message)
+        return
+      }
       setError(messageOf(err))
       setBusy(false)
     }

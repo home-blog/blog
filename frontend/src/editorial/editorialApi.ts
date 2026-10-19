@@ -98,7 +98,9 @@ export const takeDown = (postId: number, reason: string) =>
   api<void>(`/api/v1/editorial/posts/${postId}/take-down`, { method: 'POST', body: { reason } })
 export const dismissPost = (postId: number) =>
   api<void>(`/api/v1/editorial/posts/${postId}/dismiss`, { method: 'POST' })
-export const unlockPost = (postId: number) => api<void>(`/api/v1/editorial/posts/${postId}/unlock`, { method: 'POST' })
+/** unlocked: 이번에 풀었는가 (이미 풀려 있었으면 false) */
+export const unlockPost = (postId: number) =>
+  api<{ unlocked: boolean }>(`/api/v1/editorial/posts/${postId}/unlock`, { method: 'POST' })
 export const removeBoardPost = (boardPostId: number, reason: string) =>
   api<void>(`/api/v1/editorial/board/${boardPostId}/remove`, { method: 'POST', body: { reason } })
 export const dismissBoardPost = (boardPostId: number) =>

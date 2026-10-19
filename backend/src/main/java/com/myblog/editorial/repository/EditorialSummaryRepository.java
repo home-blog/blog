@@ -7,14 +7,17 @@ import org.springframework.stereotype.Repository;
 
 /**
  * 운영 현황 숫자 (specs/018 US3, D-6). 관리자만 보므로 요청마다 센다. 여러 모듈의 표를 SQL로만 읽고 쓰지 않는다
- * (글 검색과 같은 방식). 블로그 글은 공개 분류의 공개 글만 센다.
+ * (글 검색과 같은 방식). 블로그 글은 탈퇴하지 않은 회원의 공개 분류의 공개 글만 센다(첫 화면과 같은 기준).
  */
 @Repository
 public class EditorialSummaryRepository {
 
     private static final String PUBLIC_POSTS = """
-            select count(*) from post p join category c on c.category_id = p.category_id
-            where p.visibility = 'public' and c.visibility = 'public'
+            select count(*) from post p
+            join category c on c.category_id = p.category_id
+            join blog b on b.blog_id = c.blog_id
+            join users u on u.users_id = b.users_id
+            where p.visibility = 'public' and c.visibility = 'public' and u.deleted_at is null
             """;
 
     private final JdbcTemplate jdbc;
