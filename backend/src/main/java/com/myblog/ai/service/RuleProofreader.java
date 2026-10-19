@@ -127,7 +127,9 @@ public class RuleProofreader implements Proofreader {
 
     /** 띄어쓰기를 넘나드는 규칙: 본문 전체에서 찾는다. */
     private static final List<Rule> SPAN_RULES = List.of(
-            Rule.of(SPELLING, "(?<![가-힣])몇 일(?![가-힣])", "며칠", "'며칠'이 표준어입니다"), // 몇 일본인은 그대로
+            // 뒤에는 조사·접미사(이, 간, 부터 …)만 허용한다: 몇 일본인, 몇 일자리는 그대로
+            Rule.of(SPELLING, "(?<![가-힣])몇 일(?=(?:이|은|을|의|간|도|째|에|씩|부터|까지)(?:[^가-힣]|$)|[^가-힣]|$)", "며칠",
+                    "'며칠'이 표준어입니다"),
             Rule.of(SPACING, "(?<![가-힣])수 밖에", "수밖에", "'밖에'는 조사라 앞말에 붙여 씁니다")); // 호수 밖에(명사)는 그대로
 
     private static final Pattern WORD = Pattern.compile("\\S+");
