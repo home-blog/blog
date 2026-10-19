@@ -82,8 +82,11 @@ public class RuleProofreader implements Proofreader {
             Rule.of(SPELLING, "갈려(고|면)", "가려$1", "'-려고'는 받침 없이 붙입니다"),
             Rule.of(SPELLING, "볼려(고|면)", "보려$1", "'-려고'는 받침 없이 붙입니다"),
             Rule.of(SPELLING, "줄려(고|면)", "주려$1", "'-려고'는 받침 없이 붙입니다"),
-            Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")께(?=요|[^가-힣]|$)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
-            Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")껄(?=요|[^가-힣]|$)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
+            // '께요'는 높임 조사 '께' 뒤에 오지 않으므로 받침 ㄹ 글자 모두(보낼께요, 만들께요). 말끝의 '께'는 자주 쓰는 글자만
+            Rule.of(SPELLING, "(" + RIEUL + ")께(?=요)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
+            Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")께(?=[^가-힣]|$)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
+            Rule.of(SPELLING, "(" + RIEUL + ")껄(?=요)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
+            Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")껄(?=[^가-힣]|$)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
             // 외래어 표기 (고친 말의 받침이 같은 것만: 뒤의 조사가 그대로 맞게)
             Rule.of(SPELLING, "메세지", "메시지", LOANWORD),
             Rule.of(SPELLING, "컨텐츠", "콘텐츠", LOANWORD),
