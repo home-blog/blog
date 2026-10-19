@@ -161,7 +161,21 @@ public enum ErrorCode {
     SELF_SUBSCRIBE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "※ 내 블로그는 받아 볼 수 없습니다"),
     SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 받아 보는 블로그는 %d개까지입니다. 읽지 않는 블로그를 그만 받아 보세요"),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 우편함에 없는 소식입니다"),
-    NEWSLETTER_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "※ 메일의 그만 받기 주소가 올바르지 않습니다");
+    NEWSLETTER_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "※ 메일의 그만 받기 주소가 올바르지 않습니다"),
+
+    // 글마당 (specs/017)
+    BOARD_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 글입니다"),
+    BOARD_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 댓글입니다"),
+    BOARD_TOPIC_INVALID(HttpStatus.BAD_REQUEST, "※ 주제를 골라 주세요"),
+    BOARD_KIND_INVALID(HttpStatus.BAD_REQUEST, "※ 이야기와 물음 가운데 골라 주세요"),
+    BOARD_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 제목은 %d자 이하로 입력해 주세요"),
+    BOARD_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 본문은 %,d자 이하로 입력해 주세요"),
+    BOARD_COMMENT_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 댓글은 %,d자 이하로 입력해 주세요"),
+    BOARD_POST_TOO_FAST(HttpStatus.TOO_MANY_REQUESTS, "※ 글은 조금 쉬었다가 올려 주세요"),
+    BOARD_COMMENT_TOO_FAST(HttpStatus.TOO_MANY_REQUESTS, "※ 잠시 뒤에 다시 등록해 주세요"),
+    BOARD_ACCEPTED_KIND_LOCKED(HttpStatus.BAD_REQUEST, "※ 채택한 댓글이 있는 물음은 이야기로 바꿀 수 없습니다"),
+    BOARD_ACCEPT_INVALID(HttpStatus.BAD_REQUEST, "※ 이 물음에 다른 사람이 단 댓글만 채택할 수 있습니다"),
+    BOARD_COMMENT_ACCEPTED(HttpStatus.CONFLICT, "※ 채택된 댓글은 지울 수 없습니다. 채택을 거둔 뒤 지워 주세요");
 
     private final HttpStatus status;
     private final String message;

@@ -15,6 +15,8 @@ import {
 import './subscription.css'
 
 const POLL_MS = 60_000
+/** 소식마다 우표 글자: 새 원고, 댓글은 답장, 글마당 채택은 채택 */
+const STAMP: Record<Notice['kind'], string> = { post: '원고', comment: '답장', board: '답장', accepted: '채택' }
 
 export default function Mailbox() {
   const [unread, setUnread] = useState(0)
@@ -95,9 +97,15 @@ export default function Mailbox() {
         // 읽음 표시는 다음에 다시 할 수 있다
       }
     }
-    if (notice.available && notice.postId !== null) {
+    const target =
+      notice.boardPostId !== null
+        ? `/board/${notice.boardPostId}`
+        : notice.postId !== null
+          ? `/posts/${notice.postId}`
+          : null
+    if (notice.available && target) {
       setOpen(false)
-      navigate(`/posts/${notice.postId}`)
+      navigate(target)
     }
   }
 
@@ -158,7 +166,7 @@ export default function Mailbox() {
                     onClick={() => openNotice(notice)}
                   >
                     <span className={`stamp stamp-${notice.kind}`} aria-hidden="true">
-                      {notice.kind === 'post' ? '원고' : '답장'}
+                      {STAMP[notice.kind]}
                     </span>
                     <span className="mailbox-text">
                       <span className="mailbox-line">
@@ -166,9 +174,14 @@ export default function Mailbox() {
                           <>
                             <strong>{notice.actorName}</strong>에 새 원고
                           </>
+                        ) : notice.kind === 'accepted' ? (
+                          <>
+                            <strong>{notice.actorName}</strong>님이 내 댓글을 채택했어요
+                          </>
                         ) : (
                           <>
-                            <strong>{notice.actorName}</strong>님이 댓글을 남겼어요
+                            <strong>{notice.actorName}</strong>님이 {notice.kind === 'board' ? '글마당 글에 ' : ''}
+                            댓글을 남겼어요
                           </>
                         )}
                         {!notice.read && <span className="visually-hidden"> (안 읽음)</span>}

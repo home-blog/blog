@@ -65,7 +65,9 @@ public class OpenApiConfig {
                         tag("10. 공유·검색엔진", "링크 미리보기 카드, RSS, 사이트 지도 (화면이 아니라 로봇이 읽는 주소)"),
                         tag("11. 공지사항", "업데이트 소식과 공지. 읽기는 누구나, 쓰기는 관리자만"),
                         tag("12. 글쓰기 도구", "글쓰기 잔디, 연재, 임시 저장, 예약 발행"),
-                        tag("13. AI", "빨간 펜 교정(Claude), 비슷한 글(Voyage 임베딩). 열쇠가 없으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다")))
+                        tag("13. AI", "빨간 펜 교정(Claude), 비슷한 글(Voyage 임베딩). 열쇠가 없으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다"),
+                        tag("14. 구독·알림", "원고 받아 보기(블로그 구독), 우편함, 원고 편지(새 글 메일)"),
+                        tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")
@@ -122,7 +124,7 @@ public class OpenApiConfig {
     private static final List<String> PUBLIC_ANY_METHOD = List.of("/api/*/auth/**");
     private static final List<String> PUBLIC_GET = List.of("/api/*/blogs/**", "/api/*/posts", "/api/*/posts/popular",
             "/api/*/posts/summary", "/api/*/posts/{postId}", "/api/*/search/**", "/api/*/posts/{postId}/comments",
-            "/api/*/tags/**", "/api/*/series/{seriesId}", "/api/*/posts/{postId}/series", "/api/*/posts/{postId}/related", "/api/*/notices", "/api/*/notices/**", "/api/images/**", "/og", "/og/", "/og/**",
+            "/api/*/tags/**", "/api/*/series/{seriesId}", "/api/*/posts/{postId}/series", "/api/*/posts/{postId}/related", "/api/*/notices", "/api/*/notices/**", "/api/*/board/**", "/api/images/**", "/og", "/og/", "/og/**",
             "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml", "/robots.txt");
 
     /** 보안 설정으로는 열려 있지만 로그인하지 않았으면 처리기가 401로 답하는 주소 (지금 로그인했는지 묻는 주소). */

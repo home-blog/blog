@@ -117,6 +117,8 @@ public class SecurityConfig {
                                 "/api/*/posts/{postId:\\d+}/related").permitAll()
                         // 공지사항 읽기는 누구나. 쓰기는 로그인한 관리자만(서비스가 역할을 확인, specs/012 D-2)
                         .requestMatchers(HttpMethod.GET, "/api/*/notices", "/api/*/notices/**").permitAll()
+                        // 글마당 읽기는 누구나 (specs/017 US1)
+                        .requestMatchers(HttpMethod.GET, "/api/*/board/**").permitAll()
                         // 이미지 보기 (005 contracts 11). 볼 수 있는지는 서비스가 글·올린 사람을 보고 정한다. 본문에 저장되는 주소라 버전 없이 고정
                         .requestMatchers(HttpMethod.GET, "/api/images/**").permitAll()
                         // 로봇이 읽는 주소: 링크 미리보기 카드, RSS, 사이트 지도, 검색엔진 안내 (specs/007)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
+import BoardSearchResults from '../board/BoardSearchResults'
 import EmptySheet from '../components/EmptySheet'
 import { searchPosts, type SearchPage as SearchResultPage } from '../explore/exploreApi'
 import Pagination from '../explore/Pagination'
@@ -92,6 +93,8 @@ export default function SearchPage() {
           )}
         </>
       )}
+      {/* 글마당 결과는 블로그 글 결과 아래에 따로 (specs/017 US5) */}
+      {!problem && <BoardSearchResults keyword={q.trim()} />}
       <TrendingKeywords className="search-trending" />
     </div>
   )

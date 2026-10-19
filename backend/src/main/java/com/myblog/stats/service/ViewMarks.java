@@ -32,6 +32,11 @@ public class ViewMarks {
         return mark("stats:view:" + postId + ":" + visitorKey, viewWindow);
     }
 
+    /** 이 사람이 이 글마당 글을 dedupe-window 안에 처음 열었으면 참 (specs/017 S1-2, 블로그 글과 같은 창). */
+    public boolean firstBoardView(Long boardPostId, String visitorKey) {
+        return mark("stats:board-view:" + boardPostId + ":" + visitorKey, viewWindow);
+    }
+
     /**
      * 이 사람이 이 블로그에 이 한국 날짜에 처음 왔으면 참.
      * 표시는 다음 한국 자정까지 + visit-margin. 서버·Redis 시계가 조금 달라도 그날 안에 지워지지 않게 여유를 둔다.

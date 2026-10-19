@@ -7,6 +7,7 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import FeaturedPost from '../explore/FeaturedPost'
 import FeedItem from '../explore/FeedItem'
+import BoardRecent from '../board/BoardRecent'
 import TrendingKeywords from '../explore/TrendingKeywords'
 import Pagination from '../explore/Pagination'
 import {
@@ -153,7 +154,10 @@ export default function HomePage() {
               <Link to="/">전체 글 보기</Link>
             </div>
           ) : shownFeed.data.totalCount === 0 ? (
-            <EmptySheet lines={['아직 쓴 글이', '없어요.']} message={`아직 ${topic ? `${topic} 주제의 ` : ''}글이 없습니다.`}>
+            <EmptySheet
+              lines={['아직 쓴 글이', '없어요.']}
+              message={`아직 ${topic ? `${topic} 주제의 ` : ''}글이 없습니다.`}
+            >
               {member && <Link to="/write">첫 글 쓰기</Link>}
             </EmptySheet>
           ) : (
@@ -204,6 +208,8 @@ export default function HomePage() {
           <TrendingKeywords />
         </div>
       </div>
+      {/* 글마당 최근 글 (specs/017 US5) */}
+      <BoardRecent />
     </div>
   )
 }
