@@ -4,9 +4,13 @@ import com.myblog.post.service.PostFeedService;
 import com.myblog.post.service.PostFeedService.FeedView;
 import com.myblog.post.service.PostFeedService.PopularView;
 import com.myblog.post.service.PostFeedService.SiteSummary;
+import com.myblog.post.service.PostFeedService.SubscribedFeedView;
 import com.myblog.post.service.PostFeedService.TodayIssueView;
+import com.myblog.user.LoggedInMember;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,9 +26,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class PostFeedController {
 
     private final PostFeedService feedService;
+    private final LoggedInMember loggedInMember;
 
-    public PostFeedController(PostFeedService feedService) {
+    public PostFeedController(PostFeedService feedService, LoggedInMember loggedInMember) {
         this.feedService = feedService;
+        this.loggedInMember = loggedInMember;
+    }
+
+    /** 받아 보는 글 (specs/016 US1). GET /api/v1/me/subscriptions/feed?page=2 (로그인) */
+    @Operation(summary = "받아 보는 글", description = "내가 받아 보는 블로그의 공개 글, 최신순. 첫 화면 글 모음과 같은 카드.")
+    @GetMapping("/api/{version}/me/subscriptions/feed")
+    public SubscribedFeedView subscribedFeed(@RequestParam(required = false) String page,
+            @Parameter(hidden = true) Authentication authentication) {
+        return feedService.subscribedFeed(loggedInMember.requireIdOf(authentication), page);
     }
 
     @Operation(summary = "첫 화면 글 모음", description = "모든 블로그의 공개 글. topic(여행·음식·취미·운동·개발)으로 거른다.")

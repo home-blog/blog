@@ -1,5 +1,7 @@
 package com.myblog.blog.service;
 
+import com.myblog.blog.BlogSubscriptionSummary;
+import com.myblog.blog.BlogSubscriptionSummary.Summary;
 import com.myblog.blog.CategoryPostCounter;
 import com.myblog.blog.domain.Blog;
 import com.myblog.blog.domain.Category;
@@ -10,6 +12,7 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +27,14 @@ public class BlogQueryService {
     private final BlogRepository blogs;
     private final CategoryRepository categories;
     private final CategoryPostCounter postCounter;
+    private final ObjectProvider<BlogSubscriptionSummary> subscriptionSummary;
 
-    public BlogQueryService(BlogRepository blogs, CategoryRepository categories, CategoryPostCounter postCounter) {
+    public BlogQueryService(BlogRepository blogs, CategoryRepository categories, CategoryPostCounter postCounter,
+            ObjectProvider<BlogSubscriptionSummary> subscriptionSummary) {
         this.blogs = blogs;
         this.categories = categories;
         this.postCounter = postCounter;
+        this.subscriptionSummary = subscriptionSummary;
     }
 
     /** 내 블로그 (회원 번호는 세션에서). */
@@ -40,7 +46,10 @@ public class BlogQueryService {
     /** 누구나 보는 블로그 정보. viewerId는 로그인하지 않았으면 null. */
     public BlogView blog(Long blogId, Long viewerId) {
         Blog blog = find(blogId);
-        return BlogView.of(blog, blog.getOwnerId().equals(viewerId));
+        // 받아 보는 사람 수 (specs/016 US1). 구독 모듈이 없으면 0
+        BlogSubscriptionSummary.Summary summary = subscriptionSummary.getIfAvailable(() -> (id, viewer) -> Summary.NONE)
+                .summary(blogId, viewerId);
+        return BlogView.of(blog, blog.getOwnerId().equals(viewerId), summary);
     }
 
     /**
@@ -64,10 +73,16 @@ public class BlogQueryService {
     }
 
     /** 소개가 비었으면 ""로 준다 (data-model 1). */
-    public record BlogView(Long blogId, String name, String intro, boolean isOwner) {
+    public record BlogView(Long blogId, String name, String intro, boolean isOwner, long subscriberCount,
+            boolean subscribedByMe, boolean subscriptionEmail) {
 
         static BlogView of(Blog blog, boolean isOwner) {
-            return new BlogView(blog.getId(), blog.getName(), blog.getIntro() == null ? "" : blog.getIntro(), isOwner);
+            return of(blog, isOwner, Summary.NONE);
+        }
+
+        static BlogView of(Blog blog, boolean isOwner, Summary summary) {
+            return new BlogView(blog.getId(), blog.getName(), blog.getIntro() == null ? "" : blog.getIntro(), isOwner,
+                    summary.subscriberCount(), summary.subscribedByMe(), summary.emailByMe());
         }
     }
 
