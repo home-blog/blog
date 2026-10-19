@@ -300,9 +300,12 @@ class RelatedPostApiTest {
         Member a = members.register("rel");
         Long source = post(a, "깨진 보관", repeat("깨진 보관 시험"), "public");
         embeddings.refresh(List.of(source));
-        redis.opsForValue().set("related:" + source, "meaning|1,x");
+        for (String broken : List.of("meaning|1,x", "garbage|" + source, "meaning|999999999")) {
+            redis.opsForValue().set("related:" + source, broken);
 
-        mvc.perform(get("/api/v1/posts/" + source + "/related")).andExpect(status().isOk());
-        assertThat(redis.opsForValue().get("related:" + source)).doesNotContain("x");
+            mvc.perform(get("/api/v1/posts/" + source + "/related")).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.basis").value(org.hamcrest.Matchers.oneOf("meaning", "tags")));
+            assertThat(redis.opsForValue().get("related:" + source)).isNotEqualTo(broken);
+        }
     }
 }

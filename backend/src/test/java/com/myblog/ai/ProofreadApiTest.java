@@ -248,4 +248,23 @@ class ProofreadApiTest {
         reset(redis);
         mvc.perform(get(PROOFREAD).session(session)).andExpect(jsonPath("$.remaining").value(3));
     }
+
+    @Test
+    void 횟수를_되돌리지_못하면_500이_아니라_503() throws Exception {
+        when(proofreader.proofread(anyString())).thenThrow(new Proofreader.UnavailableException("시간 초과"));
+        ValueOperations<String, String> ops = spyValueOps();
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(ops).decrement(anyString());
+
+        proofread(unique("글")).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("PROOFREAD_UNAVAILABLE"));
+    }
+
+    @Test
+    void 남은_횟수_값이_숫자가_아니면_503() throws Exception {
+        String today = java.time.LocalDate.ofInstant(clock.instant(), java.time.ZoneId.of("Asia/Seoul")).toString();
+        redis.opsForValue().set("proofread:count:" + member.user().getId() + ":" + today, "망가짐", Duration.ofMinutes(5));
+
+        mvc.perform(get(PROOFREAD).session(session)).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("PROOFREAD_UNAVAILABLE"));
+    }
 }

@@ -90,7 +90,7 @@ public class ProofreadService {
             throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
         }
         if (used > properties.dailyLimit()) {
-            redis.opsForValue().decrement(countKey);
+            release(countKey);
             throw new ApiException(ErrorCode.PROOFREAD_LIMIT_EXCEEDED,
                     ErrorCode.PROOFREAD_LIMIT_EXCEEDED.message().formatted(properties.dailyLimit()));
         }
@@ -98,7 +98,7 @@ public class ProofreadService {
         try {
             corrections = checker.check(content, proofreader.proofread(content));
         } catch (RuntimeException e) {
-            redis.opsForValue().decrement(countKey);
+            release(countKey);
             log.warn("빨간 펜을 쓰지 못했습니다: {}", e.getMessage());
             throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
         }
@@ -106,10 +106,26 @@ public class ProofreadService {
         return new Result(corrections, (int) Math.max(0, properties.dailyLimit() - used), false);
     }
 
+    /** 오늘 남은 횟수. Redis를 읽지 못하거나 값이 숫자가 아니면 503(화면은 단추를 숨긴다). */
     private int remaining(Long memberId) {
-        String value = redis.opsForValue().get(countKey(memberId));
-        long used = value == null ? 0 : Long.parseLong(value);
-        return (int) Math.max(0, properties.dailyLimit() - used);
+        try {
+            String value = redis.opsForValue().get(countKey(memberId));
+            long used = value == null ? 0 : Long.parseLong(value);
+            return (int) Math.max(0, properties.dailyLimit() - used);
+        } catch (RuntimeException e) {
+            log.warn("빨간 펜 남은 횟수를 읽지 못했습니다: {}", e.toString());
+            throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
+    }
+
+    /** 올린 횟수를 되돌린다. 되돌리지 못하면 503(그 한 번은 쓴 것으로 남는다). */
+    private void release(String countKey) {
+        try {
+            redis.opsForValue().decrement(countKey);
+        } catch (RuntimeException e) {
+            log.warn("빨간 펜 횟수를 되돌리지 못했습니다: {}", e.toString());
+            throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
     }
 
     /**

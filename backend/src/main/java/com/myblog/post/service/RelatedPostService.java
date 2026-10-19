@@ -17,6 +17,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RelatedPostService {
 
     private static final Logger log = LoggerFactory.getLogger(RelatedPostService.class);
+    private static final Set<String> BASES = Set.of("meaning", "tags");
 
     private final PostRepository posts;
     private final BlogDirectory blogDirectory;
@@ -95,7 +97,10 @@ public class RelatedPostService {
         return new RelatedView(basis, feedService.rowsOf(chosen));
     }
 
-    /** 보관한 번호로 카드를 읽는다. 없거나 Redis를 읽지 못하면 null(새로 고른다). */
+    /**
+     * 보관한 번호로 카드를 읽는다. 없거나, Redis를 읽지 못하거나, 값이 올바르지 않거나,
+     * 그사이 볼 수 없게 된 글이 있으면 null(새로 고른다. 새로 고른 것으로 보관을 덮어쓴다).
+     */
     private RelatedView cached(Long postId) {
         String value;
         try {
@@ -108,6 +113,10 @@ public class RelatedPostService {
             return null;
         }
         String[] parts = value.split("\\|", 2);
+        if (!BASES.contains(parts[0])) {
+            log.warn("비슷한 글 보관 값이 올바르지 않습니다 (글 {}): {}", postId, value);
+            return null;
+        }
         List<Long> ids;
         try {
             ids = parts[1].isEmpty() ? List.of() : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
@@ -115,7 +124,8 @@ public class RelatedPostService {
             log.warn("비슷한 글 보관 값이 올바르지 않습니다 (글 {}): {}", postId, value);
             return null;
         }
-        return new RelatedView(parts[0], feedService.rowsOf(ids));
+        List<FeedRow> rows = feedService.rowsOf(ids);
+        return rows.size() == ids.size() ? new RelatedView(parts[0], rows) : null;
     }
 
     private void keep(Long postId, String basis, List<Long> chosen) {
