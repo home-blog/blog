@@ -42,8 +42,8 @@ describe('첫 화면 맨 위 카드', () => {
     const section = screen.getByRole('region', { name: '오늘의 이슈' })
     expect(within(section).getByRole('heading', { name: '가장 많이 읽힌 글' })).toBeInTheDocument()
     expect(within(section).getByText('1위')).toBeInTheDocument()
-    expect(within(section).getByLabelText('2위')).toBeInTheDocument()
-    expect(within(section).getByLabelText('3위')).toBeInTheDocument()
+    expect(within(section).getByText('2위')).toBeInTheDocument()
+    expect(within(section).getByText('3위')).toBeInTheDocument()
   })
 
   it('이번 주 인기 글은 사진이 있는 글을 크게 놓는다', () => {

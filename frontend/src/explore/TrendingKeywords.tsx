@@ -12,19 +12,19 @@ function ChangeMark({ trend }: { trend: Trend }) {
       return <span className="trend-change trend-new">NEW</span>
     case 'up':
       return (
-        <span className="trend-change trend-up" aria-label={`${trend.delta}칸 올라감`}>
+        <span className="trend-change trend-up" role="img" aria-label={`${trend.delta}칸 올라감`}>
           ▲{trend.delta}
         </span>
       )
     case 'down':
       return (
-        <span className="trend-change trend-down" aria-label={`${trend.delta}칸 내려감`}>
+        <span className="trend-change trend-down" role="img" aria-label={`${trend.delta}칸 내려감`}>
           ▼{trend.delta}
         </span>
       )
     default:
       return (
-        <span className="trend-change trend-same" aria-label="그대로">
+        <span className="trend-change trend-same" role="img" aria-label="그대로">
           –
         </span>
       )
