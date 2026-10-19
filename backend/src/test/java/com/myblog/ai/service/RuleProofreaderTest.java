@@ -45,6 +45,7 @@ class RuleProofreaderTest {
             설겆이를 했다                | 설겆이를→설거지를
             시간이 있슴                  | 있슴→있음
             그건 않돼                    | 않돼→안 돼
+            그건 않되요                  | 않되요→안 돼요
             금새 끝났다                  | 금새→금세
             알맞는 답을 골라라           | 알맞는→알맞은
             """)
@@ -106,6 +107,13 @@ class RuleProofreaderTest {
         "왠지 콘셉트가 좋다",            // 맞는 표기
         "만들려고 했다",                 // 만들다 → 만들려고가 맞다
         "지금 새로 시작한다",            // '금새'가 아니다
+        "김희안 씨를 만났다",             // 이름 속의 '희안'
+        "많지 않되 적지도 않게",         // '-지 않되'는 맞는 연결 어미
+        "말하지 않되 웃었다",
+        "호수 밖에 나갔다",              // '호수' + '밖'
+        "연수 밖에서 만났다",
+        "몇 일본인이 왔다",               // '몇' + '일본인'
+        "몇 일자리가 생겼다",             // '몇' + '일자리'
         "컨셉트라는 말"                  // 콘셉트로 바꾸면 '콘셉트트'가 되지 않게 그대로 둔다
     })
     void 맞게_쓴_말은_고치지_않는다(String text) {
@@ -115,6 +123,17 @@ class RuleProofreaderTest {
     @Test
     void 한_낱말에_틀린_곳이_둘이면_한_번에_고친다() {
         assertThat(fixes("비가 올것같애")).containsExactly("올것같애→올 것 같아");
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', textBlock = """
+            몇 일이 지났다               | 몇 일→며칠
+            몇 일간 쉬었다               | 몇 일→며칠
+            그게 몇 일은 걸려            | 몇 일→며칠
+            몇 일부터 시작해             | 몇 일→며칠
+            """)
+    void 띄어_쓴_몇_일에_조사가_붙어도_며칠로_고친다(String text, String expected) {
+        assertThat(fixes(text)).containsExactly(expected);
     }
 
     @Test

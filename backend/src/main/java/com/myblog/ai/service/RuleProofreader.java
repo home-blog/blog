@@ -59,7 +59,7 @@ public class RuleProofreader implements Proofreader {
             Rule.of(SPELLING, "설레이는", "설레는", "'설레다'가 기본형입니다"),
             Rule.of(SPELLING, "설레인다", "설렌다", "'설레다'가 기본형입니다"),
             Rule.of(SPELLING, "어의없", "어이없", "'어이없다'가 맞는 표기입니다"),
-            Rule.of(SPELLING, "희안", "희한", "'희한하다'가 맞는 표기입니다"),
+            Rule.of(SPELLING, "희안(?=[하한해했])", "희한", "'희한하다'가 맞는 표기입니다"), // 이름 속의 희안은 그대로
             Rule.of(SPELLING, "일일히", "일일이", "'-이'로 끝나는 부사입니다"),
             Rule.of(SPELLING, "깨끗히", "깨끗이", "'-이'로 끝나는 부사입니다"),
             Rule.of(SPELLING, "곰곰히", "곰곰이", "'-이'로 끝나는 부사입니다"),
@@ -77,7 +77,7 @@ public class RuleProofreader implements Proofreader {
             Rule.of(SPELLING, "같애", "같아", "'같다'는 '같아'로 활용합니다"),
             Rule.of(SPELLING, "알맞는", "알맞은", "형용사 '알맞다'는 '알맞은'으로 활용합니다"),
             Rule.of(SPELLING, "걸맞는", "걸맞은", "형용사 '걸맞다'는 '걸맞은'으로 활용합니다"),
-            Rule.of(SPELLING, "않되", "안 되", "부정의 '안'은 띄어 씁니다('않'은 '-지 않다')"),
+            Rule.of(SPELLING, "않되(?=[가-힣])", "안 되", "부정의 '안'은 띄어 씁니다('않'은 '-지 않다')"), // '-지 않되'(연결 어미)는 그대로
             Rule.of(SPELLING, "않돼", "안 돼", "부정의 '안'은 띄어 씁니다('않'은 '-지 않다')"),
             Rule.of(SPELLING, "않한", "안 한", "부정의 '안'은 띄어 씁니다('않'은 '-지 않다')"),
             Rule.of(SPELLING, "할려(고|면)", "하려$1", "'-려고'는 받침 없이 붙입니다"),
@@ -127,8 +127,10 @@ public class RuleProofreader implements Proofreader {
 
     /** 띄어쓰기를 넘나드는 규칙: 본문 전체에서 찾는다. */
     private static final List<Rule> SPAN_RULES = List.of(
-            Rule.of(SPELLING, "몇 일", "며칠", "'며칠'이 표준어입니다"),
-            Rule.of(SPACING, "수 밖에", "수밖에", "'밖에'는 조사라 앞말에 붙여 씁니다"));
+            // 뒤에는 조사·접미사(이, 간, 부터 …)만 허용한다: 몇 일본인, 몇 일자리는 그대로
+            Rule.of(SPELLING, "(?<![가-힣])몇 일(?=(?:이|은|을|의|간|도|째|에|씩|부터|까지)(?:[^가-힣]|$)|[^가-힣]|$)", "며칠",
+                    "'며칠'이 표준어입니다"),
+            Rule.of(SPACING, "(?<![가-힣])수 밖에", "수밖에", "'밖에'는 조사라 앞말에 붙여 씁니다")); // 호수 밖에(명사)는 그대로
 
     private static final Pattern WORD = Pattern.compile("\\S+");
 
