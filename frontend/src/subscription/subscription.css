@@ -244,3 +244,15 @@
   display: grid;
   gap: 0.75rem;
 }
+
+/* 좁은 화면: 우편함 단추가 머리글 가운데쯤에 있어 오른쪽에 맞추면 화면 밖으로 나간다. 아래에서 올라오는 판으로 */
+@media (max-width: 40rem) {
+  .mailbox-panel {
+    position: fixed;
+    top: auto;
+    left: max(16px, env(safe-area-inset-left, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+  }
+}
