@@ -339,6 +339,42 @@ class CommentReplyTest {
     }
 
     @Test
+    void S1_4_답글이_잠금을_기다리는_사이_가리킨_답글이_지워지면_404다() throws Exception {
+        Long parent = writeOk(askerSession, asker);
+        Long target = writeOk(ownerSession, owner, "parentId", parent);
+        writeOk(askerSession, asker, "parentId", parent);
+        testComments.rewind(other.id());
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            // 답글 지우기처럼 원댓글 줄을 먼저 잡고 가리킨 답글을 지운 뒤, 새 답글이 잠금에 걸릴 때까지 커밋하지 않는다
+            Future<?> eraser = pool.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(s -> {
+                jdbc.queryForList("select comment_id from comment where comment_id = ? for update", parent);
+                jdbc.update("delete from comment where comment_id = ?", target);
+                locked.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }));
+            locked.await();
+            Future<Integer> reply = pool.submit(() ->
+                    write(otherSession, postId, "parentId", target).andReturn().getResponse().getStatus());
+            Thread.sleep(500);
+            release.countDown();
+            eraser.get();
+            assertThat(reply.get()).isEqualTo(404);
+        } finally {
+            release.countDown();
+            pool.shutdown();
+        }
+        assertThat(jdbc.queryForObject("select count(*) from comment where parent_id = ?", Long.class, parent))
+                .isEqualTo(1);
+    }
+
+    @Test
     void S1_5_답글이_달리면_원댓글_쓴_사람에게_답글_소식이_가고_자기_답글에는_가지_않는다() throws Exception {
         Long askerComment = writeOk(askerSession, asker);
         writeOk(otherSession, other, "parentId", askerComment);

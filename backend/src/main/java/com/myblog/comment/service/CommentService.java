@@ -118,8 +118,10 @@ public class CommentService {
             throw new ConstraintViolationException(violations);
         }
         jdbc.query(MEMBER_LOCK_SQL, IGNORE, "comment:" + memberId);
-        if (parent != null && comments.lockShared(parent.getId()).isEmpty()) {
-            // 확인한 뒤 잠그기 전에 지워졌다
+        // 확인한 뒤 잠그기 전에 원댓글이 지워졌거나 지운 칸이 되었거나, 가리킨 답글이 지워졌다.
+        // 답글 지우기도 원댓글 줄을 FOR UPDATE로 잡으므로, 잠근 뒤 다시 보면 그사이 지워진 답글이 보인다
+        if (parent != null && (comments.lockShared(parent.getId()).isEmpty()
+                || !request.parentId().equals(parent.getId()) && !comments.existsById(request.parentId()))) {
             throw commentNotFound();
         }
         // 블로그 주인의 읽음 처리와 줄을 선 뒤에 작성 시각을 정한다: 새 댓글이 보지도 못하고 읽음이 되지 않게 (specs/006 R-4)
