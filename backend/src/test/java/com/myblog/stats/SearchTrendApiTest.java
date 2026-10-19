@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,8 +34,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 /**
  * 실시간 인기 검색어 (specs/015 US1, S1-1 ~ S1-6). 검색 칸(10분)은 Redis에 있으므로, 테스트마다 시계를 먼 미래의
- * 서로 다른 시각으로 옮겨 다른 실행의 검색과 섞이지 않게 한다. 방문자는 쿠키(MYBLOG_VISITOR)로 가린다.
- * 여기서는 한 번 센 말도 보이게(min-count=1) 하고, 최소 횟수와 쿠키 없는 검색은 아래 마지막 테스트들에서 따로 본다.
+ * 서로 다른 시각으로 옮겨 다른 실행의 검색과 섞이지 않게 한다. 로그인한 회원의 검색만 센다.
+ * 여기서는 한 번 센 말도 보이게(min-count=1) 하고, 최소 횟수는 SearchTrendMinCountTest에서 따로 본다.
  */
 @SpringBootTest
 @Transactional
@@ -86,13 +87,14 @@ class SearchTrendApiTest {
         clock.reset();
     }
 
-    /** visitor: 같은 사람이면 같은 값. */
-    private ResultActions search(String q, String visitor) throws Exception {
-        return mvc.perform(get("/api/v1/search/posts").param("q", q).cookie(new Cookie("MYBLOG_VISITOR", visitor)));
+    /** visitor: 같은 사람이면 같은 세션 (로그인한 회원의 검색만 센다). */
+    private ResultActions search(String q, MockHttpSession visitor) throws Exception {
+        return mvc.perform(get("/api/v1/search/posts").param("q", q).session(visitor));
     }
 
-    private static String visitor() {
-        return UUID.randomUUID().toString().replace("-", "");
+    /** 새로 가입하고 로그인한 사람 하나. */
+    private MockHttpSession visitor() throws Exception {
+        return members.login(mvc, members.register("tv"));
     }
 
     @Test
@@ -108,7 +110,7 @@ class SearchTrendApiTest {
 
     @Test
     void S1_2_같은_사람이_10분_안에_다시_찾으면_한_번만_센다() throws Exception {
-        String same = visitor();
+        MockHttpSession same = visitor();
         for (int i = 0; i < 3; i++) {
             search(word + "가", same); // 한 사람이 세 번: 1
         }
@@ -185,17 +187,22 @@ class SearchTrendApiTest {
 
     @Test
     void S1_6_Redis가_멈춰도_검색은_되고_순위만_빈다() throws Exception {
+        MockHttpSession someone = visitor(); // 로그인은 Redis를 멈추기 전에
         doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(redis).opsForZSet();
         doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(redis).opsForValue();
 
-        search(word + "가", visitor()).andExpect(status().isOk())
+        search(word + "가", someone).andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(1));
         mvc.perform(get(TRENDING)).andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
     }
 
     @Test
-    void 쿠키_없는_검색은_매번_새_사람이_되므로_세지_않는다() throws Exception {
+    void 로그인하지_않은_검색은_쿠키가_있어도_세지_않는다() throws Exception {
+        // 방문자 쿠키는 아무 값이나 지어 보낼 수 있어, 쿠키마다 다른 사람으로 세면 순위를 꾸밀 수 있다 (PR #83 리뷰)
         for (int i = 0; i < 5; i++) {
+            mvc.perform(get("/api/v1/search/posts").param("q", word + "가")
+                    .cookie(new Cookie("MYBLOG_VISITOR", UUID.randomUUID().toString().replace("-", ""))))
+                    .andExpect(status().isOk());
             mvc.perform(get("/api/v1/search/posts").param("q", word + "가")).andExpect(status().isOk());
         }
         mvc.perform(get(TRENDING)).andExpect(jsonPath("$.items").isEmpty());

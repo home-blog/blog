@@ -2,7 +2,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { server } from '../test/server'
 import type { Trend } from './exploreApi'
 import TrendingKeywords from './TrendingKeywords'
@@ -45,5 +45,26 @@ describe('지금 많이 찾는 말', () => {
     const { container } = renderWith({ code: 'INTERNAL', message: '잠시 뒤' }, 500)
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(container.querySelector('.trending')).toBeNull()
+  })
+
+  it('창을 열어 둔 동안 10분마다 순위를 다시 묻는다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let calls = 0
+      server.use(
+        http.get('/api/v1/search/trending', () => {
+          calls++
+          return HttpResponse.json({ items: [{ rank: 1, keyword: `말${calls}`, change: 'new', delta: 0 }] })
+        }),
+      )
+      const router = createMemoryRouter([{ path: '/', element: <TrendingKeywords /> }])
+      render(<RouterProvider router={router} />)
+      expect(await screen.findByText('말1')).toBeInTheDocument()
+
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000)
+      expect(await screen.findByText('말2')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

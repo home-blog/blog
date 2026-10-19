@@ -95,8 +95,9 @@ function ClipCard({ clip, onRemove }: { clip: Clip; onRemove: () => void }) {
   const chars = Array.from(clip.text)
   return (
     <li className="clip-card">
-      {/* 원고지 칸에 한 글자씩. 읽는 프로그램에는 문장을 그대로 읽힌다 */}
-      <blockquote className="clip-sheet" aria-label={clip.text}>
+      {/* 원고지 칸에 한 글자씩. 화면 낭독기에는 칸 대신 숨긴 글자로 문장을 그대로 읽힌다 (aria-label은 읽기 모드에서 건너뛰기도 한다) */}
+      <blockquote className="clip-sheet">
+        <span className="visually-hidden">{clip.text}</span>
         {chars.map((char, index) => (
           <span key={index} className={char === ' ' ? 'clip-cell clip-cell-space' : 'clip-cell'} aria-hidden="true">
             {char}

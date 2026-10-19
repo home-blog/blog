@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.myblog.support.TestClock;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
-import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -19,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,12 +62,12 @@ class SearchTrendMinCountTest {
         clock.reset();
     }
 
-    private void search(String visitor) throws Exception {
-        mvc.perform(get("/api/v1/search/posts").param("q", word).cookie(new Cookie("MYBLOG_VISITOR", visitor)));
+    private void search(MockHttpSession visitor) throws Exception {
+        mvc.perform(get("/api/v1/search/posts").param("q", word).session(visitor));
     }
 
-    private static String visitor() {
-        return UUID.randomUUID().toString().replace("-", "");
+    private MockHttpSession visitor() throws Exception {
+        return members.login(mvc, members.register("tv"));
     }
 
     @Test
