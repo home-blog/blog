@@ -65,7 +65,8 @@ class OllamaEmbedderTest {
 
     @Test
     void 빈_답이나_빈_숫자가_든_답도_쓸_수_없음으로_알린다() {
-        for (String body : List.of("null", "{}", "{\"embeddings\":[null]}", "{\"embeddings\":[[1.0,null,0.0]]}")) {
+        for (String body : List.of("null", "{}", "{\"embeddings\":[null]}", "{\"embeddings\":[[1.0,null,0.0]]}",
+                "{\"embeddings\":[[0.0,0.0,0.0]]}")) { // 0 벡터는 어느 글과도 비슷한 정도가 0이라 뜻 정보가 아니다
             ollama.reset();
             ollama.expect(requestTo("http://ollama:11434/api/embed")).andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
 

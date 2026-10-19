@@ -93,7 +93,11 @@ public class OllamaEmbedder implements Embedder {
                 }
                 vector[i] = value.floatValue();
             }
-            vectors.add(Vectors.normalize(vector));
+            float[] normalized = Vectors.normalize(vector);
+            if (Vectors.dot(normalized, normalized) == 0) {
+                throw new UnavailableException("Ollama 임베딩 답이 0 벡터입니다");
+            }
+            vectors.add(normalized);
         }
         return vectors;
     }
