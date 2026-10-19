@@ -9,23 +9,33 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.myblog.ai.service.Proofreader;
+import com.myblog.ai.service.Proofreader.Suggestion;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.HexFormat;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
@@ -35,6 +45,7 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -59,6 +70,13 @@ class ApiDocumentationTest {
 
     @Autowired
     private TestMembers members;
+
+    /** 빨간 펜의 AI는 가짜로 바꿔 끼운다 (실제 Claude API를 부르지 않는다) */
+    @MockitoBean
+    private Proofreader proofreader;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -734,6 +752,53 @@ class ApiDocumentationTest {
     }
 
     /** 글을 표에 바로 넣는다 (문서에 나오지 않는 준비). */
+    // ── 9. AI (specs/014) ──
+
+    @Test
+    void 빨간_펜() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        String content = "오늘은 할수있다고 믿었다. 몇일 동안 연습했다.";
+        when(proofreader.available()).thenReturn(true);
+        when(proofreader.proofread(anyString())).thenReturn(List.of(
+                new Suggestion("spacing", "오늘은 ", "할수있다고", "할 수 있다고", "의존 명사 '수'는 띄어 씁니다"),
+                new Suggestion("spelling", "믿었다. ", "몇일", "며칠", "'며칠'이 표준어입니다")));
+        // 이 예시 본문의 앞 결과만 지워 예시가 늘 같게 한다 (다른 본문의 보관 결과는 건드리지 않는다)
+        redis.delete("proofread:result:" + HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8))));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/proofread"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("content", content)))
+                .andExpect(status().isOk())
+                .andDo(document("proofread",
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("content").description("교정받을 마크다운 본문 (1~10,000자)")),
+                        responseFields(
+                                fieldWithPath("corrections[]").description("고칠 곳. 본문 앞에서부터, 겹치지 않는다"),
+                                fieldWithPath("corrections[].start").description("본문에서 시작 위치 (UTF-16, 자바스크립트 문자열 위치)"),
+                                fieldWithPath("corrections[].end").description("끝 위치 (이 위치는 빼고)"),
+                                fieldWithPath("corrections[].kind").description("`spacing`(띄어쓰기) · `spelling`(맞춤법) · `style`(다듬기)"),
+                                fieldWithPath("corrections[].original").description("본문의 원문 (start~end 그대로)"),
+                                fieldWithPath("corrections[].replacement").description("고친 말"),
+                                fieldWithPath("corrections[].reason").description("고친 까닭"),
+                                fieldWithPath("remaining").description("오늘(한국 날짜) 남은 횟수"),
+                                fieldWithPath("cached").description("같은 본문의 앞 결과를 다시 썼는지 (횟수에 넣지 않음)"))));
+    }
+
+    @Test
+    void 비슷한_글() throws Exception {
+        Member member = members.register("docs");
+        Long postId = writePost(member, "제주 렌터카 여행 후기");
+        writePost(member, "제주 버스 여행 팁");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/{postId}/related", postId))
+                .andExpect(status().isOk())
+                .andDo(document("related-posts",
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        responseFields(
+                                fieldWithPath("basis").description("`meaning`(뜻이 비슷한 글, 임베딩) 또는 `tags`(태그·주제가 겹치는 글로 대신)"),
+                                subsectionWithPath("posts[]").description("비슷한 글 4개까지. 첫 화면 글 모음과 같은 카드 한 줄"))));
+    }
+
     private Long writePost(Member member, String title) {
         return jdbc.queryForObject("insert into post (category_id, topic_id, title, content, visibility, created_at)"
                 + " values (?, (select min(topic_id) from topic), ?, ?, 'public', ?) returning post_id", Long.class,

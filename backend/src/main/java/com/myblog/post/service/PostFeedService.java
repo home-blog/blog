@@ -12,8 +12,11 @@ import com.myblog.post.repository.TopicRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -134,6 +137,14 @@ public class PostFeedService {
                 .filter(t -> t.getName().equals(name))
                 .findFirst()
                 .orElseThrow(() -> new ApiException(ErrorCode.TOPIC_NOT_FOUND));
+    }
+
+    /** 정해진 글 번호들의 카드 한 줄, 번호 순서 그대로. 볼 수 없는 글은 빠진다 (비슷한 글, specs/014). */
+    @Transactional(readOnly = true)
+    public List<FeedRow> rowsOf(List<Long> postIds) {
+        Map<Long, FeedItem> items = new HashMap<>();
+        feedRepository.findOpenByIds(postIds).forEach(item -> items.put(item.postId(), item));
+        return postIds.stream().map(items::get).filter(Objects::nonNull).map(this::toRow).toList();
     }
 
     private FeedRow toRow(FeedItem item) {

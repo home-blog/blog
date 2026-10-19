@@ -19,3 +19,11 @@ springdoc:
 myblog:
   mail:
     sender: ${MAIL_SENDER:log}
+
+# 빨간 펜 (specs/014 D-15): 개발에서 열쇠(ANTHROPIC_API_KEY)가 없으면 규칙으로 고치는 가짜 교정기를 쓴다
+proofread:
+  without-key: fake
+
+# 비슷한 글 (specs/014 D-15): 개발에서 열쇠(VOYAGE_API_KEY)가 없으면 글자 조각을 세는 가짜 임베딩을 쓴다
+related:
+  without-key: fake
