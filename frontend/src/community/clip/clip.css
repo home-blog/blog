@@ -1,0 +1,148 @@
+/* 문장 수집·필사 노트 (specs/015 US3). 토큰은 index.css 한곳 */
+
+/* 본문에서 문장을 고르면 그 위에 뜨는 단추 */
+.post-body {
+  position: relative;
+}
+
+.clip-button {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, calc(-100% - 0.4rem));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  animation: clip-pop 0.18s var(--ease-out);
+}
+
+.clip-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@keyframes clip-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -80%) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clip-button {
+    animation: none;
+  }
+}
+
+.clip-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.clip-collectors {
+  margin: 0.75rem 0 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+/* 필사 노트 */
+.library-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.library-title {
+  margin: 0;
+  font-family: var(--font-letter);
+}
+
+.library-lead {
+  margin: -0.5rem 0 0;
+  color: var(--ink-soft);
+}
+
+.clip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+}
+
+.clip-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+/* 원고지 칸: 글자 하나에 칸 하나, 줄이 차면 다음 줄로 */
+.clip-sheet {
+  --clip-cell: 1.75rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--grid);
+  border-left: 1px solid var(--grid);
+}
+
+.clip-cell {
+  display: grid;
+  place-items: center;
+  width: var(--clip-cell);
+  height: var(--clip-cell);
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  font-family: var(--font-letter);
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.clip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clip-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.clip-source-title {
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.clip-source-title.is-gone {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.clip-actions {
+  display: flex;
+  gap: 0.4rem;
+}
