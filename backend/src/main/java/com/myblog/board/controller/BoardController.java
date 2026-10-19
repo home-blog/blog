@@ -4,6 +4,7 @@ import com.myblog.board.BoardPostViewedEvent;
 import com.myblog.board.service.BoardCommentService;
 import com.myblog.board.service.BoardCommentService.CommentList;
 import com.myblog.board.service.BoardCommentService.CommentView;
+import com.myblog.board.service.BoardReportService;
 import com.myblog.board.service.BoardService;
 import com.myblog.board.service.BoardService.BoardDetail;
 import com.myblog.board.service.BoardService.BoardInput;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -40,13 +42,15 @@ public class BoardController {
     private final LoggedInMember loggedInMember;
     private final BoardService boardService;
     private final BoardCommentService commentService;
+    private final BoardReportService reportService;
     private final ApplicationEventPublisher events;
 
     public BoardController(LoggedInMember loggedInMember, BoardService boardService, BoardCommentService commentService,
-            ApplicationEventPublisher events) {
+            BoardReportService reportService, ApplicationEventPublisher events) {
         this.loggedInMember = loggedInMember;
         this.boardService = boardService;
         this.commentService = commentService;
+        this.reportService = reportService;
         this.events = events;
     }
 
@@ -135,6 +139,23 @@ public class BoardController {
     public AcceptedResponse unaccept(@PathVariable Long boardPostId,
             @Parameter(hidden = true) Authentication authentication) {
         return new AcceptedResponse(commentService.accept(loggedInMember.requireIdOf(authentication), boardPostId, null));
+    }
+
+    @Operation(summary = "글마당 글 신고", description = "로그인. 자기 글 403, 같은 글 두 번 409. 사유는 SPAM·ABUSE·ADULT·OTHER, 설명은 기타일 때만 저장한다. 처리는 편집실이 한다.")
+    @PostMapping("/api/{version}/board/posts/{boardPostId:\\d+}/reports")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReportReceived report(@PathVariable Long boardPostId, @RequestBody ReportInput input,
+            @Parameter(hidden = true) Authentication authentication) {
+        Long memberId = loggedInMember.requireIdOf(authentication);
+        reportService.report(memberId, boardPostId, input == null ? null : input.reason(),
+                input == null ? null : input.detail());
+        return new ReportReceived("신고가 접수되었습니다");
+    }
+
+    public record ReportInput(String reason, String detail) {
+    }
+
+    public record ReportReceived(String message) {
     }
 
     public record RecentResponse(List<BoardRow> posts) {

@@ -67,7 +67,8 @@ public class OpenApiConfig {
                         tag("12. 글쓰기 도구", "글쓰기 잔디, 연재, 임시 저장, 예약 발행"),
                         tag("13. AI", "빨간 펜 교정(Claude), 비슷한 글(Voyage 임베딩). 열쇠가 없으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다"),
                         tag("14. 구독·알림", "원고 받아 보기(블로그 구독), 우편함, 원고 편지(새 글 메일)"),
-                        tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장")))
+                        tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장"),
+                        tag("16. 편집실", "관리자만: 신고 검토(내림·반려), 글마당 신고, 처리 기록, 운영 현황")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")

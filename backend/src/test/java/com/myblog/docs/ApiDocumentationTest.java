@@ -901,7 +901,8 @@ class ApiDocumentationTest {
                                 fieldWithPath("items[].postId").description("블로그 글 번호 (글마당 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].boardPostId").description("글마당 글 번호 (블로그 글 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),
-                                fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임"),
+                                fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임, 편집실 소식이면 \"편집실\""),
+                                fieldWithPath("items[].note").description("편집실 소식의 사유 (다른 소식은 null)").optional(),
                                 fieldWithPath("items[].available").description("지금 그 글을 볼 수 있는가"),
                                 fieldWithPath("items[].read").description("읽었는가"),
                                 fieldWithPath("items[].createdAt").description("소식이 온 시각"),
@@ -980,6 +981,43 @@ class ApiDocumentationTest {
                         requestHeaders(csrfHeader()),
                         requestFields(fieldWithPath("commentId").description("채택할 댓글 번호 (이 물음에 다른 사람이 단 댓글)")),
                         responseFields(fieldWithPath("acceptedCommentId").description("지금 채택한 댓글 번호"))));
+    }
+
+    // ── 13. 편집실 (specs/018) ──
+
+    @Test
+    void 편집실_내림() throws Exception {
+        Member writer = members.register("docs");
+        Member reporter = members.register("docs");
+        Member admin = members.register("docs");
+        jdbc.update("update users set role = 'admin' where users_id = ?", admin.id());
+        Long postId = writePost(writer, "광고만 있는 글");
+        jdbc.update("insert into post_report (users_id, post_id, reason, detail, created_at) values (?, ?, 'SPAM', null, now())",
+                reporter.id(), postId);
+        MockHttpSession session = login(admin);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/editorial/reports/posts/{postId}", postId).session(session))
+                .andExpect(status().isOk())
+                .andDo(document("editorial-review",
+                        pathParameters(parameterWithName("postId").description("신고된 글 번호")),
+                        responseFields(
+                                fieldWithPath("postId").description("글 번호"),
+                                fieldWithPath("blogName").description("블로그 이름"),
+                                fieldWithPath("title").description("제목"),
+                                fieldWithPath("excerpt").description("본문 앞부분 (마크다운을 걷어 낸 글자)"),
+                                fieldWithPath("visibility").description("지금 공개 범위"),
+                                fieldWithPath("locked").description("이미 내린(잠긴) 글인가"),
+                                fieldWithPath("lockReason").description("내림 사유 (잠기지 않았으면 null)").optional(),
+                                fieldWithPath("reports[]").description("대기 신고, 오래된 순 (신고한 사람은 없음)"),
+                                fieldWithPath("reports[].reason").description("`SPAM` · `ABUSE` · `ADULT` · `OTHER`"),
+                                fieldWithPath("reports[].detail").description("기타 설명 (기타가 아니면 null)").optional(),
+                                fieldWithPath("reports[].createdAt").description("신고 시각"))));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/editorial/posts/{postId}/take-down", postId),
+                        session).contentType(MediaType.APPLICATION_JSON).content(json("reason", "광고 링크만 있는 글입니다")))
+                .andExpect(status().isNoContent())
+                .andDo(document("editorial-take-down",
+                        pathParameters(parameterWithName("postId").description("내릴 글 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("reason").description("사유 1~200자 (글 주인에게 보인다)"))));
     }
 
     private Long writePost(Member member, String title) {

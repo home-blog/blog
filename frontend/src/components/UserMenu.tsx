@@ -7,11 +7,13 @@ import NewBadge from '../manage/NewBadge'
 
 interface Props {
   nickname: string
+  /** 관리자면 편집실(specs/018)이 보인다 */
+  admin?: boolean
   newCommentCount: number | null
   onLogout: () => void
 }
 
-export default function UserMenu({ nickname, newCommentCount, onLogout }: Props) {
+export default function UserMenu({ nickname, admin, newCommentCount, onLogout }: Props) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
@@ -122,6 +124,14 @@ export default function UserMenu({ nickname, newCommentCount, onLogout }: Props)
             </span>
             받아 보는 글
           </Link>
+          {admin && (
+            <Link to="/editorial" role="menuitem" className="user-menu-item" onClick={() => close(false)}>
+              <span className="user-menu-icon" aria-hidden="true">
+                ⚖
+              </span>
+              편집실
+            </Link>
+          )}
           <span className="user-menu-sep" role="separator" />
           <button
             type="button"

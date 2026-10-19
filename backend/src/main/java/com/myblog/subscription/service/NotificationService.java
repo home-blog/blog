@@ -40,9 +40,10 @@ public class NotificationService {
     /**
      * available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false, 그때 postId·boardPostId·postTitle은 null).
      * 블로그 글 소식은 postId, 글마당 소식(board·accepted)은 boardPostId가 차 있다.
+     * 편집실 소식(editorial)은 내 글 이야기라 볼 수 없어도 제목을 주고, note에 사유가 있다 (specs/018).
      */
     public record NotificationView(Long notificationId, String kind, Long postId, Long boardPostId, String postTitle,
-            String actorName, boolean available, boolean read, Instant createdAt) {
+            String actorName, String note, boolean available, boolean read, Instant createdAt) {
     }
 
     public record NotificationPage(List<NotificationView> items, int page, int totalPages, long unreadCount) {
@@ -84,7 +85,7 @@ public class NotificationService {
     private static NotificationView view(Notification n, boolean available) {
         // 볼 수 없게 된 글은 번호·제목도 주지 않는다 (비공개로 돌린 글의 제목이 우편함에 남지 않게)
         return new NotificationView(n.getId(), n.getKind(), available ? n.getPostId() : null,
-                available ? n.getBoardPostId() : null, available ? n.getPostTitle() : null, n.getActorName(), available,
-                n.getReadAt() != null, n.getCreatedAt());
+                available ? n.getBoardPostId() : null, available || n.isEditorial() ? n.getPostTitle() : null,
+                n.getActorName(), n.getNote(), available, n.getReadAt() != null, n.getCreatedAt());
     }
 }

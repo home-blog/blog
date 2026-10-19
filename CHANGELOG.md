@@ -14,6 +14,33 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.13.0] - 준비 중
+
+편집실: 접수만 되던 신고를 관리자가 **편집실**에서 살펴보고 **내림**(비공개로 돌리고 잠금) 또는 **반려** 도장을 찍습니다. 글마당 글도 신고할 수 있습니다.
+
+### 화면
+- 내 메뉴 **편집실**(관리자만, `/editorial`): 운영 현황 숫자(회원·오늘 가입·공개 글·오늘 글·글마당 글·검토 대기 신고), 탭 검토 대기·글마당·처리 기록. 줄을 펼치면 신고마다 사유·설명·시각(신고한 사람은 없음)과 글 앞부분, 사유를 적고 붉은 "내림"(글마당은 "지우기")·먹색 "반려" 도장
+- 처리 기록: 내림·반려·지움·잠금 풂 도장과 사유, 내린 글은 "잠금 풀기"(주인이 다시 공개할 수 있게, 자동으로 공개하지는 않음)
+- 글 고치기: 편집실이 내린 글은 "공개"를 고를 수 없고 사유를 보여 준다
+- 글마당 글 읽기에 **신고** 단추(블로그 글과 같은 사유 넷)
+- 우편함: "편집실" 우표 소식(내 글이 내려지거나 지워짐, 사유)
+- 공지사항: 0.13.0 업데이트 글(0.12.0 글의 고정을 푼다)
+
+### API (v1 그대로, 깨지지 않는 변경)
+- 새 주소(관리자): `GET /api/v1/editorial/summary`, `GET /api/v1/editorial/reports/posts?page=`, `GET /api/v1/editorial/reports/posts/{postId}`, `POST /api/v1/editorial/posts/{postId}/take-down` `{ reason }`, `POST …/dismiss`, `POST …/unlock`(→ `{ unlocked }`, 이미 풀려 있었으면 false), `GET /api/v1/editorial/reports/board?page=`, `GET /api/v1/editorial/reports/board/{id}`, `POST /api/v1/editorial/board/{id}/remove` `{ reason }`, `POST /api/v1/editorial/board/{id}/dismiss`, `GET /api/v1/editorial/actions?page=` (관리자가 아니면 403)
+- 새 주소(로그인): `POST /api/v1/board/posts/{id}/reports` `{ reason, detail }`(블로그 글 신고와 같은 규칙·오류 코드)
+- `GET /api/v1/posts/{postId}/edit`에 `locked`, `lockReason` 칸, 우편함 소식에 `kind` 값 `editorial`과 칸 `note`(사유)를 더했다
+- 새 오류 코드: `POST_LOCKED_BY_EDITOR`(400, 내린 글을 공개로), `REPORT_ALREADY_RESOLVED`(409), `EDITORIAL_REASON_INVALID`(400)
+- API 문서 묶음 "16. 편집실", REST Docs 편집실 절
+
+### 운영
+- 새 모듈 `editorial`(맨 위). 글 잠금은 글 모듈의 `PostModeration`, 신고는 `PostReports`(좋아요·신고 모듈)·`BoardReports`(글마당 모듈)로만 묻고 닫는다. 소식은 `EditorialNoticeEvent`를 구독 모듈이 커밋 뒤에 듣는다
+- Flyway V23: `post.locked_at`·`lock_reason`, `post_report.resolved_at`·`resolution`, 새 표 `board_report`·`editorial_action`(처리 기록, 글이 지워져도 제목은 남음), `notification.note`와 kind `editorial`
+- 내림·반려는 대기 신고를 닫는 UPDATE가 먼저라 두 관리자가 겹쳐도 한 번만 처리되고, 닫을 것이 없으면 409. 글 고치기는 글 줄을 잠그고 읽어 내림과 겹쳐도 "잠겼는데 공개"가 남지 않고, 글마당 지우기·반려도 글 줄 잠금으로 차례가 된다
+- 설정 `editorial.*`(한 쪽 20, 사유 200자, 날짜 기준), `board.report-detail-max-length`(= 블로그 글 신고), `board.excerpt-length`
+- Flyway V24: 0.13.0 업데이트 공지
+- 테스트: 서버 편집실 6개, 화면 편집실 4개 (별도 리뷰 에이전트 지적 반영: 고치기·내림 겹침, 지우기·반려 겹침, 신고·지우기 겹침, 잠금 풀기 두 번)
+
 ## [0.12.0] - 2026-10-19
 
 글마당: 블로그 밖에서 주제별로 묻고 이야기하는 **글마당**이 열립니다. 물음을 올린 사람은 가장 도움이 된 댓글에 붉은 **채택 도장**을 찍습니다.

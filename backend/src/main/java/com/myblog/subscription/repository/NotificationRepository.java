@@ -41,6 +41,15 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("boardPostId") Long boardPostId, @Param("title") String title, @Param("actorName") String actorName,
             @Param("now") Instant now);
 
+    /** 편집실 소식(specs/018): 글 주인 한 사람에게, 사유(note)와 함께. 지운 글마당 글이면 postId가 비어 있다. */
+    @Modifying
+    @Query(value = "insert into notification (users_id, kind, post_id, post_title, actor_name, note, created_at)"
+            + " select :memberId, 'editorial', :postId, :title, '편집실', :note, :now"
+            + " where exists (select 1 from users u where u.users_id = :memberId and u.deleted_at is null)",
+            nativeQuery = true)
+    int insertEditorialNotice(@Param("memberId") Long memberId, @Param("postId") Long postId,
+            @Param("title") String title, @Param("note") String note, @Param("now") Instant now);
+
     Page<Notification> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
 
     long countByMemberId(Long memberId);

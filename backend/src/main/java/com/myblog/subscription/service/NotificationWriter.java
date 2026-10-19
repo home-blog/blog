@@ -3,6 +3,7 @@ package com.myblog.subscription.service;
 import com.myblog.board.BoardAnswerAcceptedEvent;
 import com.myblog.board.BoardCommentWrittenEvent;
 import com.myblog.comment.CommentWrittenEvent;
+import com.myblog.editorial.EditorialNoticeEvent;
 import com.myblog.post.PostLookup;
 import com.myblog.post.PostPublishedEvent;
 import com.myblog.subscription.config.SubscriptionProperties;
@@ -142,6 +143,19 @@ public class NotificationWriter {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(BoardAnswerAcceptedEvent event) {
         boardNotice(event.commentWriterId(), "accepted", event.boardPostId(), event.postTitle(), event.accepterName());
+    }
+
+    /** 편집실이 내 글을 내리거나 지웠다 (specs/018). 그사이 블로그 글이 지워졌으면 외래 키가 맞지 않아 기록만 남는다. */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(EditorialNoticeEvent event) {
+        worker.execute(() -> {
+            try {
+                transaction.executeWithoutResult(status -> notifications.insertEditorialNotice(event.memberId(),
+                        event.postId(), clip(event.title(), 100), clip(event.reason(), 200), Instant.now(clock)));
+            } catch (RuntimeException e) {
+                log.warn("우편함: 편집실 소식을 만들지 못했습니다: {}", e.toString());
+            }
+        });
     }
 
     /** 그사이 글이 지워졌으면 글 번호 FK가 맞지 않아 넣지 못하고 기록만 남는다. */

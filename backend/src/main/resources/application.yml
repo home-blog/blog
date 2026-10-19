@@ -278,6 +278,14 @@ board:
   post-interval: 1m        # 같은 회원의 글 사이 최소 간격 (S2-3)
   comment-interval: 5s     # 같은 회원의 댓글 사이 최소 간격 (S3-3, 블로그 댓글과 같음)
   keyword-max-length: ${explore.search.keyword-max-length}   # 검색어 한도 = 블로그 글 검색 한도
+  report-detail-max-length: ${community.report.detail-max-length}   # 신고 기타 설명 = 블로그 글 신고와 같음 (specs/018)
+  excerpt-length: 200      # 편집실에 보이는 본문 앞부분
+
+# 편집실 (관리자 화면, specs/018 research D-1 ~ D-7)
+editorial:
+  page-size: 20            # 검토 대기·처리 기록 한 쪽
+  reason-max-length: 200   # 내림·지우기 사유 (post.lock_reason 칸 200자보다 길게 정하면 서버가 켜지지 않는다)
+  day-zone: ${stats.day-zone}   # 운영 현황의 "오늘"
 
 notice:
   title:

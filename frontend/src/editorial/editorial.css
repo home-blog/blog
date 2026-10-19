@@ -1,0 +1,251 @@
+/* 편집실 (specs/018 D-7): 원고지 칸 숫자 카드, 탭, 펼치는 줄, 붉은 "내림"·먹색 "반려" 도장 단추. 색은 index.css 토큰만 쓴다 */
+.editorial-page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  display: grid;
+  gap: 16px;
+}
+
+.editorial-title {
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+}
+
+.editorial-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 10px;
+}
+
+.editorial-cards li {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--grid);
+  border-top: 6px solid var(--grid);
+  background: var(--paper-raised);
+}
+
+.editorial-cards li.is-alert {
+  border-top-color: var(--seal);
+}
+
+.editorial-card-label {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.editorial-card-value {
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.editorial-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--grid);
+}
+
+.editorial-tab {
+  padding: 8px 14px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.editorial-tab[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.editorial-empty {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.editorial-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.editorial-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--grid);
+  background: var(--paper-raised);
+}
+
+.editorial-row:has(.editorial-row-toggle) {
+  display: block;
+  padding: 0;
+}
+
+.editorial-row-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editorial-row-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.editorial-row-main strong {
+  overflow-wrap: anywhere;
+}
+
+.editorial-count {
+  display: grid;
+  place-items: center;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid var(--seal);
+  color: var(--seal);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.editorial-stamp {
+  display: inline-grid;
+  place-items: center;
+  min-width: 3.2rem;
+  padding: 4px 6px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--font-letter);
+  font-weight: 700;
+  font-size: var(--step--1);
+  transform: rotate(-4deg);
+}
+
+.editorial-stamp.is-taken_down,
+.editorial-stamp.is-removed {
+  border-color: var(--seal);
+  color: var(--seal);
+}
+
+.review-panel {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 14px;
+  border-top: 1px dashed var(--grid);
+}
+
+.review-where {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.review-excerpt {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--grid-strong);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.review-reports {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 4px;
+  font-size: var(--step--1);
+}
+
+.review-reports li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-reason {
+  font-weight: 600;
+}
+
+.review-detail {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.review-label {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.review-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.review-actions {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+}
+
+/* 도장 단추: 누르면 비스듬히 찍힌다 */
+.stamp-button {
+  min-width: 4.5rem;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.stamp-button.is-red {
+  border-color: var(--seal);
+  color: var(--seal);
+}
+
+.stamp-button:hover:not(:disabled) {
+  transform: rotate(-4deg);
+}
+
+.stamp-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-button {
+    transition: none;
+  }
+}

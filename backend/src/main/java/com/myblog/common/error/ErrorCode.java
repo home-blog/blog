@@ -175,7 +175,12 @@ public enum ErrorCode {
     BOARD_COMMENT_TOO_FAST(HttpStatus.TOO_MANY_REQUESTS, "※ 잠시 뒤에 다시 등록해 주세요"),
     BOARD_ACCEPTED_KIND_LOCKED(HttpStatus.BAD_REQUEST, "※ 채택한 댓글이 있는 물음은 이야기로 바꿀 수 없습니다"),
     BOARD_ACCEPT_INVALID(HttpStatus.BAD_REQUEST, "※ 이 물음에 다른 사람이 단 댓글만 채택할 수 있습니다"),
-    BOARD_COMMENT_ACCEPTED(HttpStatus.CONFLICT, "※ 채택된 댓글은 지울 수 없습니다. 채택을 거둔 뒤 지워 주세요");
+    BOARD_COMMENT_ACCEPTED(HttpStatus.CONFLICT, "※ 채택된 댓글은 지울 수 없습니다. 채택을 거둔 뒤 지워 주세요"),
+
+    // 편집실 (specs/018)
+    POST_LOCKED_BY_EDITOR(HttpStatus.BAD_REQUEST, "※ 편집실이 내린 글이라 공개로 바꿀 수 없습니다. 비공개로 두고 고칠 수 있어요"),
+    REPORT_ALREADY_RESOLVED(HttpStatus.CONFLICT, "※ 이미 처리한 신고입니다"),
+    EDITORIAL_REASON_INVALID(HttpStatus.BAD_REQUEST, "※ 사유를 1~%d자로 적어 주세요");
 
     private final HttpStatus status;
     private final String message;

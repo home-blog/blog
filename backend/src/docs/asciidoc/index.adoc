@@ -313,6 +313,22 @@ operation::board-write[snippets='request-headers,request-fields,http-request,htt
 
 operation::board-accept[snippets='path-parameters,request-headers,request-fields,http-request,http-response,response-fields']
 
+== 편집실
+관리자만 쓰는 곳입니다(아니면 403). 접수된 신고를 살펴보고 **내림**(글을 비공개로 돌리고 잠금) 또는 **반려**합니다 (0.13.0).
+
+[[editorial-review]]
+=== 신고 자세히
+검토 대기 목록은 `GET /api/v1/editorial/reports/posts?page=`(신고가 많은 글 먼저), 글마당은 `GET /api/v1/editorial/reports/board?page=`, 운영 현황 숫자는 `GET /api/v1/editorial/summary`, 처리 기록은 `GET /api/v1/editorial/actions?page=`입니다.
+
+operation::editorial-review[snippets='path-parameters,http-request,http-response,response-fields']
+
+[[editorial-take-down]]
+=== 내림
+대기 신고를 모두 닫고 글을 비공개로 돌려 잠급니다. 잠긴 글은 주인이 공개로 바꿀 수 없습니다(400 `POST_LOCKED_BY_EDITOR`). 닫을 신고가 없으면 409 `REPORT_ALREADY_RESOLVED`.
+반려는 `POST …/dismiss`, 잠금 풀기는 `POST …/unlock`, 글마당 글 지우기는 `POST /api/v1/editorial/board/{id}/remove` `{ "reason" }`입니다. 글마당 신고는 `POST /api/v1/board/posts/{id}/reports`(블로그 글 신고와 같은 규칙)입니다.
+
+operation::editorial-take-down[snippets='path-parameters,request-headers,request-fields,http-request,http-response']
+
 [[errors]]
 == 오류 예시
 
