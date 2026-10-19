@@ -106,6 +106,37 @@ describe('문장 수집 단추', () => {
     expect(await screen.findByText(/1000개까지/)).toBeInTheDocument()
   })
 
+  it('본문을 고른 뒤 본문 밖의 글자를 고르면 단추를 거둔다', async () => {
+    loggedIn()
+    render(
+      <AuthProvider>
+        <RouterProvider
+          router={createMemoryRouter([
+            {
+              path: '/',
+              element: (
+                <>
+                  <Body />
+                  <p data-testid="outside">댓글 글자</p>
+                </>
+              ),
+            },
+          ])}
+        />
+      </AuthProvider>,
+    )
+    selectFirstParagraph()
+    expect(await screen.findByRole('button', { name: /수집/ })).toBeInTheDocument()
+
+    const range = document.createRange()
+    range.selectNodeContents(screen.getByTestId('outside'))
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+    fireEvent(document, new Event('selectionchange'))
+    expect(screen.queryByRole('button', { name: /수집/ })).toBeNull()
+  })
+
   it('아무것도 고르지 않으면 단추가 없다', async () => {
     renderRoutes([{ path: '/posts/12', element: <Body /> }])
     window.getSelection()?.removeAllRanges()

@@ -48,10 +48,17 @@ export default function SentenceCollector({ postId, container }: Props) {
     const element = container.current
     if (!element) return
     const update = () => setPicked(pickedIn(element))
-    // 고르기를 마친 때(마우스·손가락·키보드)에 단추를 놓고, 고른 것이 풀리면 바로 거둔다
+    // 고르기를 마친 때(마우스·손가락·키보드)에 단추를 놓고, 고른 것이 풀리거나 본문 밖(댓글 등)으로 옮겨 가면 바로 거둔다
     const onSelectionChange = () => {
       const selection = window.getSelection()
-      if (!selection || selection.isCollapsed) setPicked(null)
+      if (
+        !selection ||
+        selection.isCollapsed ||
+        selection.rangeCount === 0 ||
+        !element.contains(selection.getRangeAt(0).commonAncestorContainer)
+      ) {
+        setPicked(null)
+      }
     }
     element.addEventListener('mouseup', update)
     element.addEventListener('touchend', update)

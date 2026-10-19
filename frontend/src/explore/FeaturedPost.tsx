@@ -38,8 +38,9 @@ export default function FeaturedPost({ posts, label = '이번 주 눈여겨볼 �
           {side.map((post, index) => (
             <li key={post.postId} className="card feature-mini">
               {ranked && (
-                <span className="issue-rank" aria-label={`${index + 2}위`}>
-                  {index + 2}
+                <span className="issue-rank">
+                  <span aria-hidden="true">{index + 2}</span>
+                  <span className="visually-hidden">{index + 2}위</span>
                 </span>
               )}
               <Thumbnail src={post.thumbnail} text={post.preview || post.title} topic={post.topic} variant="row" />
