@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 여러 블로그의 공개 글 검색 (specs/004 contracts 2, FR-010 ~ FR-018).
  * 검색어를 다듬어 길이를 먼저 본 뒤에만 쿼리를 실행한다 (서버 검사가 마지막 방어선, 헌법 IV).
- * 로그인했든 안 했든 결과는 같다: 비공개 글과 비공개 분류의 글은 항상 빠진다 (FR-011, D-7). 검색 기록은 남기지 않는다 (R-6).
+ * 로그인했든 안 했든 결과는 같다: 비공개 글과 비공개 분류의 글은 항상 빠진다 (FR-011, D-7). 사람마다의 검색 기록은 남기지 않는다 (R-6). 인기 검색어는 검색어별 횟수만 센다(specs/015).
  */
 @Service
 @Transactional(readOnly = true)

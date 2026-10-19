@@ -275,6 +275,12 @@ stats:
     cookie-name: MYBLOG_VISITOR
     cookie-max-age: 365d   # 비회원 방문자 쿠키 (D-2, 가안)
     visit-margin: 1h       # "오늘 왔다" 표시를 다음 한국 자정보다 이만큼 더 둔다 (시계 차이 여유)
+  search-trend:            # 실시간 인기 검색어 (specs/015 US1, 가안)
+    bucket: 10m            # 한 칸. 순위는 window-buckets칸(1시간)의 합, 변화는 한 칸 앞과 견준다
+    window-buckets: 6
+    dedupe-window: 10m     # 같은 사람·같은 검색어는 10분에 한 번
+    size: 10
+    banned: []             # 들어 있으면 세지 않는 말 (배포에서 늘린다)
 
 # API 문서(Swagger)는 기본으로 끈다. 개발 설정(application-dev.yml)에서만 켠다
 springdoc:
