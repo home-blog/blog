@@ -26,6 +26,7 @@ import NoticeListPage from './notice/NoticeListPage'
 import SiteFooter from './components/SiteFooter'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
+import LibraryPage from './community/clip/LibraryPage'
 import HomePage from './pages/HomePage'
 import PostDetailPage from './post/PostDetailPage'
 import PostEditorPage from './post/PostEditorPage'
@@ -115,6 +116,14 @@ const router = createBrowserRouter([
         element: (
           <RequireLogin>
             <PasswordChangePage />
+          </RequireLogin>
+        ),
+      },
+      {
+        path: '/mypage/library',
+        element: (
+          <RequireLogin>
+            <LibraryPage />
           </RequireLogin>
         ),
       },

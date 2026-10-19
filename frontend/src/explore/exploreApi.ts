@@ -143,3 +143,27 @@ export interface SiteSummary {
 export function getSiteSummary(signal?: AbortSignal): Promise<SiteSummary> {
   return api<SiteSummary>('/api/v1/posts/summary', { signal })
 }
+
+/** 실시간 인기 검색어 한 줄 (specs/015 US1). change: 10분 전 순위와 견준 변화 */
+export interface Trend {
+  rank: number
+  keyword: string
+  change: 'up' | 'down' | 'new' | 'same'
+  /** 올라가거나 내려간 칸 수 (new·same이면 0) */
+  delta: number
+}
+
+export function getTrending(signal?: AbortSignal): Promise<{ items: Trend[] }> {
+  return api<{ items: Trend[] }>('/api/v1/search/trending', { signal })
+}
+
+/** 오늘의 이슈 (specs/015 US2): 오늘과 어제 많이 읽힌 공개 글, 블로그마다 하나, 3개 이하 */
+export interface TodayIssue {
+  /** 고른 날 (한국 날짜, yyyy-MM-dd) */
+  date: string
+  posts: FeedPost[]
+}
+
+export function getTodayIssue(signal?: AbortSignal): Promise<TodayIssue> {
+  return api<TodayIssue>('/api/v1/posts/today-issue', { signal })
+}

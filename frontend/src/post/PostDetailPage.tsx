@@ -10,6 +10,8 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import CommentSection from '../comment/CommentSection'
 import LikeButton from '../community/LikeButton'
+import CollectorCount from '../community/clip/CollectorCount'
+import SentenceCollector from '../community/clip/SentenceCollector'
 import ReportDialog from '../community/ReportDialog'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ProofNotFound from '../components/ProofNotFound'
@@ -186,9 +188,13 @@ export default function PostDetailPage() {
         <Suspense fallback={<div className="post-content-raw">{post.content}</div>}>
           <MarkdownView source={post.content} />
         </Suspense>
+        {/* 문장을 고르면 "수집" 단추 (specs/015 US3) */}
+        <SentenceCollector key={post.postId} postId={post.postId} container={bodyRef} />
       </div>
 
       <PostEnd sheets={post.sheets} readMinutes={post.readMinutes} />
+      {/* 글 주인에게만: 몇 명이 이 글에서 문장을 모았나 */}
+      {post.isOwner && <CollectorCount key={`clips-${key}`} postId={post.postId} />}
 
       {/* 태그 (specs/005 US5). 누르면 같은 태그의 공개 글 */}
       {post.tags.length > 0 && (

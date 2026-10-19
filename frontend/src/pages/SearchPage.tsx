@@ -1,4 +1,4 @@
-// 검색 결과 (specs/004 US5, US6, T031, T034): "검색 결과 {N}건", 블로그 이름이 붙은 목록, 페이지 번호
+// 검색 결과 (specs/004 US5, US6, T031, T034): "검색 결과 {N}건", 블로그 이름이 붙은 목록, 페이지 번호, 아래에 지금 많이 찾는 말(specs/015)
 // 주소: /search?q=입력 그대로&page=. 로그인 없이 본다. 짧은 검색어면 요청하지 않고 안내한다 (서버 검사가 마지막 방어선)
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -7,6 +7,7 @@ import EmptySheet from '../components/EmptySheet'
 import { searchPosts, type SearchPage as SearchResultPage } from '../explore/exploreApi'
 import Pagination from '../explore/Pagination'
 import PostRow from '../explore/PostRow'
+import TrendingKeywords from '../explore/TrendingKeywords'
 import { checkKeyword, MESSAGES, pageFrom } from '../explore/rules'
 import '../blog/blog.css'
 import '../explore/explore.css'
@@ -91,6 +92,7 @@ export default function SearchPage() {
           )}
         </>
       )}
+      <TrendingKeywords className="search-trending" />
     </div>
   )
 }

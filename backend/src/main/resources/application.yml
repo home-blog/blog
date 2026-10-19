@@ -214,6 +214,10 @@ explore:
     popular-days: 7   # 인기 글을 고르는 기간 (오늘 포함)
     day-zone: ${stats.day-zone}
     summary-ttl: 5m   # 첫 화면 머리 분량(블로거·글·원고지 매수)을 다시 세기까지 (v0.5.1). 세려면 공개 글 본문을 모두 읽는다
+  today-issue:       # 오늘의 이슈 (specs/015 US2): 오늘과 어제 조회수 합이 큰 공개 글, 블로그마다 하나
+    size: 3
+    days: 2          # 오늘 포함 (2 = 오늘과 어제, 한국 날짜는 feed.day-zone)
+    ttl: 5m          # 고른 순서를 다시 쓰는 시간. 카드는 요청마다 다시 읽어 비공개로 바뀐 글은 바로 빠진다
 
 # 댓글·좋아요·신고·태그·이미지 (specs/005 plan.md 설정값 목록). 글자는 코드 포인트로 센다
 community:
@@ -243,6 +247,10 @@ community:
       secret-key: ${IMAGE_S3_SECRET_KEY:}
     disk:
       directory: ${IMAGE_DISK_DIRECTORY:./data/images}
+  clip:                    # 문장 수집·필사 노트 (specs/015 US3)
+    max-length: 300        # 한 문장 (sentence_clip.text 칸(300)보다 길게 정하면 서버가 켜지지 않는다)
+    max-per-member: 1000   # 한 사람이 모을 수 있는 문장 수
+    page-size: 20          # 필사 노트 한 쪽
 
 # 공지사항 (specs/012 research D-5, D-10). 글자는 코드 포인트로 센다. 릴리스 링크는 번호만 저장하고 이 틀로 만든다
 notice:
@@ -275,6 +283,13 @@ stats:
     cookie-name: MYBLOG_VISITOR
     cookie-max-age: 365d   # 비회원 방문자 쿠키 (D-2, 가안)
     visit-margin: 1h       # "오늘 왔다" 표시를 다음 한국 자정보다 이만큼 더 둔다 (시계 차이 여유)
+  search-trend:            # 실시간 인기 검색어 (specs/015 US1, 가안)
+    bucket: 10m            # 한 칸. 순위는 window-buckets칸(1시간)의 합, 변화는 한 칸 앞과 견준다
+    window-buckets: 6
+    dedupe-window: 10m     # 같은 사람·같은 검색어는 10분에 한 번
+    size: 10
+    min-count: 2           # 1시간 동안 이만큼 세어진 말만 보인다 (한 사람의 한 번 검색이 그대로 드러나지 않게)
+    banned: []             # 들어 있으면 세지 않는 말 (배포에서 늘린다)
 
 # API 문서(Swagger)는 기본으로 끈다. 개발 설정(application-dev.yml)에서만 켠다
 springdoc:
