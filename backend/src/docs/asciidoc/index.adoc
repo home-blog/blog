@@ -291,6 +291,28 @@ operation::subscription-put[snippets='path-parameters,request-headers,request-fi
 
 operation::notifications[snippets='http-request,http-response,response-fields']
 
+== 글마당
+블로그와 따로 서는 주제별 게시판입니다. 글은 이야기(`talk`)와 물음(`question`) 두 가지이고, 물음을 쓴 사람이 가장 도움이 된 댓글을 채택합니다 (0.12.0).
+
+[[board-list]]
+=== 목록·검색
+로그인 없이 봅니다. 첫 화면용 최근 글은 `GET /api/v1/board/posts/recent`, 글 하나는 `GET /api/v1/board/posts/{boardPostId}`(없으면 404 `BOARD_POST_NOT_FOUND`), 댓글은 `GET /api/v1/board/posts/{boardPostId}/comments`(채택한 댓글이 맨 위)입니다.
+
+operation::board-list[snippets='query-parameters,http-request,http-response,response-fields']
+
+[[board-write]]
+=== 글쓰기
+로그인이 필요합니다. 같은 회원은 1분 간격으로만 올립니다(429 `BOARD_POST_TOO_FAST`). 고치기는 쓴 사람만 `PUT` 같은 주소(남의 글 403), 지우기는 쓴 사람과 관리자가 `DELETE /api/v1/board/posts/{boardPostId}`(댓글도 함께)입니다.
+댓글은 `POST /api/v1/board/posts/{boardPostId}/comments` `{ "content" }`(1~1,000자, 5초 간격), 지우기는 `DELETE /api/v1/board/comments/{boardCommentId}`입니다.
+
+operation::board-write[snippets='request-headers,request-fields,http-request,http-response,response-fields']
+
+[[board-accept]]
+=== 채택
+물음을 쓴 사람만(403), 이 물음에 다른 사람이 단 댓글만(400 `BOARD_ACCEPT_INVALID`) 채택합니다. 다른 댓글을 고르면 바뀌고, 거두기는 `DELETE` 같은 주소입니다. 채택된 댓글은 쓴 사람이 지울 수 없습니다(409 `BOARD_COMMENT_ACCEPTED`). 채택하면 댓글 쓴 사람의 우편함에 소식이 갑니다.
+
+operation::board-accept[snippets='path-parameters,request-headers,request-fields,http-request,http-response,response-fields']
+
 [[errors]]
 == 오류 예시
 

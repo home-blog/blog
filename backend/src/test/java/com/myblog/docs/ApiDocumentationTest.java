@@ -896,8 +896,10 @@ class ApiDocumentationTest {
                         responseFields(
                                 fieldWithPath("items[]").description("소식, 최근 순 20개씩 (30일 보관)"),
                                 fieldWithPath("items[].notificationId").description("소식 번호"),
-                                fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"),
-                                fieldWithPath("items[].postId").description("글 번호 (지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"
+                                        + " · `board`(내 글마당 글에 달린 댓글) · `accepted`(내 글마당 댓글이 채택됨)"),
+                                fieldWithPath("items[].postId").description("블로그 글 번호 (글마당 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].boardPostId").description("글마당 글 번호 (블로그 글 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임"),
                                 fieldWithPath("items[].available").description("지금 그 글을 볼 수 있는가"),
@@ -906,6 +908,78 @@ class ApiDocumentationTest {
                                 fieldWithPath("page").description("쪽 번호"),
                                 fieldWithPath("totalPages").description("모든 쪽 수"),
                                 fieldWithPath("unreadCount").description("안 읽은 소식 수"))));
+    }
+
+    // ── 12. 글마당 (specs/017) ──
+
+    @Test
+    void 글마당_목록() throws Exception {
+        Member writer = members.register("docs");
+        jdbc.update("insert into board_post (users_id, topic_id, kind, title, content, created_at, updated_at)"
+                + " values (?, (select min(topic_id) from topic), 'question', '제주 렌터카 vs 대중교통', '어느 쪽이 나을까요?', now(), now())",
+                writer.id());
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/board/posts").param("kind", "question").param("page", "1"))
+                .andExpect(status().isOk())
+                .andDo(document("board-list",
+                        queryParameters(
+                                parameterWithName("topic").description("주제 이름 (없으면 모두, 없는 주제는 400)").optional(),
+                                parameterWithName("kind").description("`talk`(이야기) · `question`(물음), 없으면 모두").optional(),
+                                parameterWithName("unsolved").description("`true`면 채택 전인 물음만").optional(),
+                                parameterWithName("q").description("검색어. 단어마다 제목·본문·주제·쓴 사람 가운데 어딘가에 있는 글 (50자까지)").optional(),
+                                parameterWithName("page").description("쪽 번호 (1부터, 넘으면 마지막 쪽)").optional()),
+                        responseFields(
+                                fieldWithPath("topics[]").description("주제 탭에 쓸 이름 (정해진 순서)"),
+                                fieldWithPath("topic").description("고른 주제 (없으면 null)").optional(),
+                                fieldWithPath("kind").description("고른 종류 (없으면 null)").optional(),
+                                fieldWithPath("unsolved").description("채택 전 물음만 골랐는가"),
+                                fieldWithPath("keyword").description("실제로 찾은 검색어 (없으면 null)").optional(),
+                                fieldWithPath("totalCount").description("고른 글 수"),
+                                fieldWithPath("page").description("쪽 번호"),
+                                fieldWithPath("totalPages").description("모든 쪽 수"),
+                                fieldWithPath("pageSize").description("한 쪽 글 수 (`board.page-size`)"),
+                                fieldWithPath("posts[]").description("최신순"),
+                                fieldWithPath("posts[].boardPostId").description("글 번호"),
+                                fieldWithPath("posts[].topic").description("주제 이름"),
+                                fieldWithPath("posts[].kind").description("`talk` · `question`"),
+                                fieldWithPath("posts[].title").description("제목"),
+                                subsectionWithPath("posts[].writer").description("쓴 사람 `{ id, nickname, withdrawn }` (탈퇴했으면 id·nickname이 null)"),
+                                fieldWithPath("posts[].createdAt").description("쓴 시각"),
+                                fieldWithPath("posts[].views").description("조회 수 (같은 사람 30분에 한 번)"),
+                                fieldWithPath("posts[].commentCount").description("댓글 수"),
+                                fieldWithPath("posts[].solved").description("채택한 댓글이 있는 물음인가"))));
+    }
+
+    @Test
+    void 글마당_글쓰기와_채택() throws Exception {
+        Member writer = members.register("docs");
+        Member answerer = members.register("docs");
+        MockHttpSession session = login(writer);
+        Long topicId = jdbc.queryForObject("select min(topic_id) from topic", Long.class);
+        String topic = jdbc.queryForObject("select topic_name from topic where topic_id = ?", String.class, topicId);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/board/posts"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json("topic", topic, "kind", "question", "title", "NPE가 나요", "content", "어디서 **null**이 오나요?")))
+                .andExpect(status().isCreated())
+                .andDo(document("board-write",
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("topic").description("주제 이름"),
+                                fieldWithPath("kind").description("`talk`(이야기) · `question`(물음)"),
+                                fieldWithPath("title").description("제목 1~100자 (앞뒤 공백은 지운다)"),
+                                fieldWithPath("content").description("마크다운 본문 1~10,000자")),
+                        responseFields(fieldWithPath("boardPostId").description("새 글 번호"))));
+        Long postId = jdbc.queryForObject("select max(board_post_id) from board_post where users_id = ?", Long.class,
+                writer.id());
+        Long commentId = jdbc.queryForObject("insert into board_comment (board_post_id, users_id, content, created_at)"
+                + " values (?, ?, 'null 확인을 하세요', now()) returning board_comment_id", Long.class, postId, answerer.id());
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.put("/api/v1/board/posts/{boardPostId}/accepted", postId),
+                        session).contentType(MediaType.APPLICATION_JSON).content("{\"commentId\":" + commentId + "}"))
+                .andExpect(status().isOk())
+                .andDo(document("board-accept",
+                        pathParameters(parameterWithName("boardPostId").description("물음 글 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("commentId").description("채택할 댓글 번호 (이 물음에 다른 사람이 단 댓글)")),
+                        responseFields(fieldWithPath("acceptedCommentId").description("지금 채택한 댓글 번호"))));
     }
 
     private Long writePost(Member member, String title) {

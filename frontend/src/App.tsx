@@ -19,6 +19,9 @@ import ManageCommentsPage from './manage/ManageCommentsPage'
 import ManageLayout from './manage/ManageLayout'
 import ManagePostsPage from './manage/ManagePostsPage'
 import NewCommentCountProvider from './manage/NewCommentCountProvider'
+import BoardEditorPage from './board/BoardEditorPage'
+import BoardListPage from './board/BoardListPage'
+import BoardPostPage from './board/BoardPostPage'
 import NoticeAlertProvider from './notice/NoticeAlertProvider'
 import NoticeDetailPage from './notice/NoticeDetailPage'
 import NoticeEditorPage from './notice/NoticeEditorPage'
@@ -59,6 +62,16 @@ function PostDetailRoute() {
 function PostEditRoute() {
   const { postId } = useParams()
   return <PostEditorPage key={postId} />
+}
+
+function BoardPostRoute() {
+  const { boardPostId } = useParams()
+  return <BoardPostPage key={boardPostId} />
+}
+
+function BoardEditRoute() {
+  const { boardPostId } = useParams()
+  return <BoardEditorPage key={boardPostId} />
 }
 
 function NoticeDetailRoute() {
@@ -206,6 +219,25 @@ const router = createBrowserRouter([
           },
           { path: 'blog', element: <BlogSettingsPage /> },
         ],
+      },
+      // 글마당 (specs/017): 읽기는 누구나, 쓰기는 로그인
+      { path: '/board', element: <BoardListPage /> },
+      {
+        path: '/board/write',
+        element: (
+          <RequireLogin>
+            <BoardEditorPage />
+          </RequireLogin>
+        ),
+      },
+      { path: '/board/:boardPostId', element: <BoardPostRoute /> },
+      {
+        path: '/board/:boardPostId/edit',
+        element: (
+          <RequireLogin>
+            <BoardEditRoute />
+          </RequireLogin>
+        ),
       },
       { path: '/notices', element: <NoticeListPage /> },
       { path: '/notices/:noticeId', element: <NoticeDetailRoute /> },

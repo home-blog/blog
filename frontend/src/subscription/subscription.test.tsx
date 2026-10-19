@@ -40,6 +40,7 @@ function notice(overrides: Partial<Notice> = {}): Notice {
     notificationId: 1,
     kind: 'post',
     postId: 12,
+    boardPostId: null,
     postTitle: '바다 일기',
     actorName: '바다 블로그',
     available: true,

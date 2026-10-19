@@ -20,13 +20,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * 예약 발행 S4-4: 앱 두 벌이 같은 시각에 예약을 올려도 글은 하나씩만 생긴다 (D-3, SKIP LOCKED + 요청 번호).
  * 두 벌이 따로 커밋해야 하므로 @Transactional을 쓰지 않고 끝에서 지운다.
+ * 서버의 예약 발행 작업(1분마다)이 테스트 도중에 끼어들면 그 작업이 올린 수만큼 total이 모자라므로,
+ * 이 테스트에서는 그 작업의 첫 실행을 한참 뒤로 미룬다(두 벌은 테스트가 직접 흉내 낸다).
  */
 @SpringBootTest
 @Import(TestMembers.class)
+@TestPropertySource(properties = "writing.schedule.check-interval=1h")
 class DraftScheduleConcurrencyTest {
 
     private static final int DRAFTS = 20;

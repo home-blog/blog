@@ -42,6 +42,10 @@ export default function SiteHeader() {
       {/* 글 검색은 누구나 (specs/004 US5) */}
       <SearchBox />
       <nav className="site-nav" aria-label="계정">
+        {/* 글마당 (specs/017) */}
+        <Link to="/board" className="header-notice">
+          글마당
+        </Link>
         <Link to="/notices" className="header-notice">
           공지
           {hasNewNotice && (

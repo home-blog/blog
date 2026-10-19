@@ -1,5 +1,6 @@
 package com.myblog.subscription.service;
 
+import com.myblog.board.BoardPosts;
 import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.paging.PageNumbers;
@@ -11,6 +12,7 @@ import com.myblog.subscription.repository.NotificationRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,20 +24,25 @@ public class NotificationService {
 
     private final NotificationRepository notifications;
     private final PostLookup postLookup;
+    private final BoardPosts boardPosts;
     private final SubscriptionProperties properties;
     private final Clock clock;
 
-    public NotificationService(NotificationRepository notifications, PostLookup postLookup,
+    public NotificationService(NotificationRepository notifications, PostLookup postLookup, BoardPosts boardPosts,
             SubscriptionProperties properties, Clock clock) {
         this.notifications = notifications;
         this.postLookup = postLookup;
+        this.boardPosts = boardPosts;
         this.properties = properties;
         this.clock = clock;
     }
 
-    /** available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false, 그때 postId·postTitle은 null). */
-    public record NotificationView(Long notificationId, String kind, Long postId, String postTitle, String actorName,
-            boolean available, boolean read, Instant createdAt) {
+    /**
+     * available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false, 그때 postId·boardPostId·postTitle은 null).
+     * 블로그 글 소식은 postId, 글마당 소식(board·accepted)은 boardPostId가 차 있다.
+     */
+    public record NotificationView(Long notificationId, String kind, Long postId, Long boardPostId, String postTitle,
+            String actorName, boolean available, boolean read, Instant createdAt) {
     }
 
     public record NotificationPage(List<NotificationView> items, int page, int totalPages, long unreadCount) {
@@ -45,10 +52,14 @@ public class NotificationService {
     public NotificationPage list(Long memberId, String page) {
         long total = notifications.countByMemberId(memberId);
         PageSlice slice = PageNumbers.of(page, total, properties.notificationPageSize());
-        List<NotificationView> items = notifications.findByMemberIdOrderByCreatedAtDescIdDesc(memberId,
-                        PageRequest.of(slice.page() - 1, slice.pageSize()))
-                .stream()
-                .map(n -> view(n, n.getPostId() != null && postLookup.findVisible(n.getPostId(), memberId).isPresent()))
+        List<Notification> found = notifications.findByMemberIdOrderByCreatedAtDescIdDesc(memberId,
+                PageRequest.of(slice.page() - 1, slice.pageSize())).getContent();
+        // 글마당 글은 공개 범위가 없어 아직 있는지만 본다 (한 쪽에 한 번에)
+        Set<Long> boardOpen = boardPosts.existing(found.stream().filter(Notification::isBoard)
+                .map(Notification::getBoardPostId).filter(id -> id != null).distinct().toList());
+        List<NotificationView> items = found.stream()
+                .map(n -> view(n, n.isBoard() ? n.getBoardPostId() != null && boardOpen.contains(n.getBoardPostId())
+                        : n.getPostId() != null && postLookup.findVisible(n.getPostId(), memberId).isPresent()))
                 .toList();
         return new NotificationPage(items, slice.page(), slice.totalPages(), unreadCount(memberId));
     }
@@ -73,6 +84,7 @@ public class NotificationService {
     private static NotificationView view(Notification n, boolean available) {
         // 볼 수 없게 된 글은 번호·제목도 주지 않는다 (비공개로 돌린 글의 제목이 우편함에 남지 않게)
         return new NotificationView(n.getId(), n.getKind(), available ? n.getPostId() : null,
-                available ? n.getPostTitle() : null, n.getActorName(), available, n.getReadAt() != null, n.getCreatedAt());
+                available ? n.getBoardPostId() : null, available ? n.getPostTitle() : null, n.getActorName(), available,
+                n.getReadAt() != null, n.getCreatedAt());
     }
 }
