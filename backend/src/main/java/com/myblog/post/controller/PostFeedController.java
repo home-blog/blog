@@ -4,6 +4,7 @@ import com.myblog.post.service.PostFeedService;
 import com.myblog.post.service.PostFeedService.FeedView;
 import com.myblog.post.service.PostFeedService.PopularView;
 import com.myblog.post.service.PostFeedService.SiteSummary;
+import com.myblog.post.service.PostFeedService.TodayIssueView;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 첫 화면 글 모음: GET /api/v1/posts?topic=여행&amp;page=2, 이번 주 인기 글: GET /api/v1/posts/popular.
+ * 첫 화면 글 모음: GET /api/v1/posts?topic=여행&amp;page=2, 이번 주 인기 글: GET /api/v1/posts/popular,
+ * 오늘의 이슈: GET /api/v1/posts/today-issue.
  * 로그인 없이 부른다 (SecurityConfig의 GET /api/v1/posts, /api/posts/popular).
  * 주제와 페이지 번호는 글자 그대로 받아 서비스가 다듬고 검사한다.
  */
@@ -43,5 +45,13 @@ public class PostFeedController {
     @GetMapping("/api/{version}/posts/popular")
     public PopularView popular(@RequestParam(required = false) String topic) {
         return feedService.popular(topic);
+    }
+
+    /** 오늘의 이슈 (specs/015 US2). GET /api/v1/posts/today-issue */
+    @Operation(summary = "오늘의 이슈", description = "오늘과 어제(한국 날짜) 조회수 합이 큰 공개 글, 블로그마다 하나, "
+            + "`explore.today-issue.size`개. 고른 순서는 몇 분 동안 다시 쓴다.")
+    @GetMapping("/api/{version}/posts/today-issue")
+    public TodayIssueView todayIssue() {
+        return feedService.todayIssue();
     }
 }

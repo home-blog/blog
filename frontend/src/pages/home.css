@@ -508,3 +508,44 @@
     padding: 1.15rem;
   }
 }
+
+/* ── 오늘의 이슈 (specs/015 US2): 빨간 도장 띠와 원고지 칸 순위 ── */
+.feature-label.issue-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border: 1.5px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
+  transform: rotate(-2deg);
+}
+
+.feature-label.issue-stamp::before {
+  content: none;
+}
+
+.issue-rank-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.feature-ranked .feature-mini {
+  position: relative;
+}
+
+.issue-rank {
+  position: absolute;
+  top: -0.55rem;
+  left: -0.55rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--grid-strong);
+  background: var(--paper-raised);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}

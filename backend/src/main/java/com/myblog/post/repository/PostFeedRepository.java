@@ -23,7 +23,7 @@ import org.springframework.stereotype.Repository;
  * <p>
  * 검색(PostSearchRepository)과 같은 조건으로 <b>공개 분류의 공개 글만</b> 읽고, 탈퇴한 회원의 글은 뺀다.
  * 블로그 이름·글쓴이 닉네임·댓글 수·좋아요 수는 표를 SQL로만 읽는다 (다른 모듈의 클래스를 부르지 않는다).
- * 쿼리는 고정된 세 개(세기, 한 페이지, 인기 글)뿐이고 값은 모두 자리표시자로 넘긴다 (헌법 IV).
+ * 쿼리는 고정된 문장(세기, 한 페이지, 인기 글, 오늘의 이슈 등)뿐이고 값은 모두 자리표시자로 넘긴다 (헌법 IV).
  */
 @Repository
 public class PostFeedRepository {
@@ -75,6 +75,26 @@ public class PostFeedRepository {
                        from post_daily_stat s where s.stat_date between ? and ? group by s.post_id) r on r.post_id = p.post_id
             """ + OPEN_POSTS + """
             order by coalesce(r.recent_views, 0) desc, p.views desc, p.created_at desc, p.post_id desc
+            limit ?
+            """;
+
+    /**
+     * 오늘의 이슈 (specs/015 US2): 기간(since ~ until)의 조회수 합이 0보다 큰 공개 글을 블로그마다 하나(그 블로그에서 가장 많이 읽힌 글)만 남겨
+     * 많은 순으로. 같으면 최신 순. 자리표시자는 기간 두 개, OPEN_POSTS 넷, 개수.
+     */
+    private static final String TODAY_ISSUE = """
+            select x.post_id from (
+              select p.post_id, p.created_at, r.recent_views,
+                     row_number() over (partition by c.blog_id
+                                        order by r.recent_views desc, p.created_at desc, p.post_id desc) as blog_rank
+            """ + FROM + """
+              join (select s.post_id, sum(s.views) as recent_views
+                    from post_daily_stat s where s.stat_date between ? and ?
+                    group by s.post_id having sum(s.views) > 0) r on r.post_id = p.post_id
+            """ + OPEN_POSTS + """
+            ) x
+            where x.blog_rank = 1
+            order by x.recent_views desc, x.created_at desc, x.post_id desc
             limit ?
             """;
 
@@ -167,6 +187,18 @@ public class PostFeedRepository {
             statement.setInt(next, limit);
             return statement;
         }, PostFeedRepository::toItem);
+    }
+
+    /** 오늘의 이슈 글 번호 limit개, 고른 순서대로. since~until은 기간의 첫날과 마지막 날(둘 다 포함). */
+    public List<Long> findTodayIssueIds(LocalDate since, LocalDate until, int limit) {
+        return jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(TODAY_ISSUE);
+            statement.setObject(1, since);
+            statement.setObject(2, until);
+            int next = bindOpenPosts(statement, 3, null);
+            statement.setInt(next, limit);
+            return statement;
+        }, (rs, rowNum) -> rs.getLong(1));
     }
 
     private static PreparedStatement prepare(Connection connection, String sql, Long topicId) throws SQLException {

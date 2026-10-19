@@ -10,6 +10,7 @@ import com.myblog.post.repository.PostFeedRepository;
 import com.myblog.post.repository.PostFeedRepository.FeedItem;
 import com.myblog.post.repository.TopicRepository;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -37,6 +38,10 @@ public class PostFeedService {
     private volatile CachedSummary cachedSummary;
     private final Object summaryLock = new Object();
     private final ExploreProperties.Feed settings;
+    private final ExploreProperties.TodayIssue todayIssueSettings;
+    /** 마지막으로 고른 오늘의 이슈 글 번호 (그날, today-issue.ttl 동안 다시 쓴다) */
+    private volatile CachedIssue cachedIssue;
+    private final Object issueLock = new Object();
     private final Clock clock;
 
     public PostFeedService(PostFeedRepository feedRepository, TopicRepository topicRepository, PostPreview preview,
@@ -46,6 +51,7 @@ public class PostFeedService {
         this.preview = preview;
         this.manuscript = manuscript;
         this.settings = properties.feed();
+        this.todayIssueSettings = properties.todayIssue();
         this.clock = clock;
     }
 
@@ -126,6 +132,44 @@ public class PostFeedService {
                 .map(this::toRow)
                 .toList();
         return new PopularView(chosen == null ? null : chosen.getName(), settings.popularDays(), rows);
+    }
+
+    /**
+     * 오늘의 이슈 (specs/015 US2): 오늘을 포함한 최근 today-issue.days일(한국 날짜)의 조회수 합이 큰 공개 글, 블로그마다 하나.
+     * 고른 글 번호는 그날 안에서 ttl 동안 다시 쓰고(S2-3), 카드는 요청마다 다시 읽어 볼 수 없게 된 글은 바로 뺀다(S2-1).
+     */
+    public TodayIssueView todayIssue() {
+        Instant now = clock.instant();
+        LocalDate today = LocalDate.ofInstant(now, settings.dayZone());
+        return new TodayIssueView(today, rowsOf(todayIssueIds(today, now)));
+    }
+
+    private List<Long> todayIssueIds(LocalDate today, Instant now) {
+        CachedIssue hit = cachedIssue;
+        if (hit != null && hit.isFresh(today, now, todayIssueSettings.ttl())) {
+            return hit.postIds();
+        }
+        synchronized (issueLock) {
+            hit = cachedIssue;
+            if (hit != null && hit.isFresh(today, now, todayIssueSettings.ttl())) {
+                return hit.postIds();
+            }
+            List<Long> ids = List.copyOf(feedRepository.findTodayIssueIds(
+                    today.minusDays(todayIssueSettings.days() - 1L), today, todayIssueSettings.size()));
+            cachedIssue = new CachedIssue(today, now, ids);
+            return ids;
+        }
+    }
+
+    /** date는 고른 날(한국 날짜). posts는 많이 읽힌 순, 3개 이하. */
+    public record TodayIssueView(LocalDate date, List<FeedRow> posts) {
+    }
+
+    private record CachedIssue(LocalDate day, Instant pickedAt, List<Long> postIds) {
+
+        boolean isFresh(LocalDate today, Instant now, Duration ttl) {
+            return day.equals(today) && pickedAt.plus(ttl).isAfter(now) && !now.isBefore(pickedAt);
+        }
     }
 
     private static Topic choose(List<Topic> topics, String topic) {

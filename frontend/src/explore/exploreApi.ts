@@ -156,3 +156,14 @@ export interface Trend {
 export function getTrending(signal?: AbortSignal): Promise<{ items: Trend[] }> {
   return api<{ items: Trend[] }>('/api/v1/search/trending', { signal })
 }
+
+/** 오늘의 이슈 (specs/015 US2): 오늘과 어제 많이 읽힌 공개 글, 블로그마다 하나, 3개 이하 */
+export interface TodayIssue {
+  /** 고른 날 (한국 날짜, yyyy-MM-dd) */
+  date: string
+  posts: FeedPost[]
+}
+
+export function getTodayIssue(signal?: AbortSignal): Promise<TodayIssue> {
+  return api<TodayIssue>('/api/v1/posts/today-issue', { signal })
+}

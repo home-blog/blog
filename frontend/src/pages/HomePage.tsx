@@ -1,5 +1,5 @@
 // 첫 화면: 여러 블로그의 공개 글을 한곳에서 (티스토리 첫 화면처럼).
-// 주제 탭(전체·여행·음식·취미·운동·개발), 맨 위 큰 카드(specs/008), 이번 주 인기 글, 지금 많이 찾는 말(specs/015), 최신 글 목록과 페이지 번호. 로그인 없이 본다.
+// 주제 탭(전체·여행·음식·취미·운동·개발), 맨 위 큰 카드(specs/008), 오늘의 이슈·이번 주 인기 글·지금 많이 찾는 말(specs/015), 최신 글 목록과 페이지 번호. 로그인 없이 본다.
 // 주소: /?topic=여행&page=2. 주제는 서버가 정한 다섯 개 이름 그대로 쓴다
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
@@ -9,7 +9,14 @@ import FeaturedPost from '../explore/FeaturedPost'
 import FeedItem from '../explore/FeedItem'
 import TrendingKeywords from '../explore/TrendingKeywords'
 import Pagination from '../explore/Pagination'
-import { getFeed, getPopular, type FeedPage, type PopularPosts } from '../explore/exploreApi'
+import {
+  getFeed,
+  getPopular,
+  getTodayIssue,
+  type FeedPage,
+  type FeedPost,
+  type PopularPosts,
+} from '../explore/exploreApi'
 import { formatDate, pageFrom } from '../explore/rules'
 import HomeCover from './HomeCover'
 import ManuscriptSheet from './ManuscriptSheet'
@@ -39,6 +46,18 @@ export default function HomePage() {
 
   const [feed, setFeed] = useState<Loaded<FeedPage> | null>(null)
   const [popular, setPopular] = useState<Loaded<PopularPosts> | null>(null)
+  // 오늘의 이슈 (specs/015 US2): 모든 주제를 볼 때만 맨 위에. 없거나 못 읽으면 이번 주 인기 글로 대신한다
+  const [todayIssue, setTodayIssue] = useState<FeedPost[] | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getTodayIssue(controller.signal)
+      .then((data) => setTodayIssue(data.posts))
+      .catch(() => {
+        if (!controller.signal.aborted) setTodayIssue([])
+      })
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,6 +83,9 @@ export default function HomePage() {
 
   const shownFeed = feed?.key === feedKey ? feed : null
   const shownPopular = popular?.key === popularKey ? popular : null
+  // 오늘의 이슈를 기다리는 동안은 맨 위를 비워 둔다 (인기 글이 먼저 떴다가 바뀌지 않게)
+  const featuredReady = topic !== null || todayIssue !== null
+  const showIssue = topic === null && todayIssue !== null && todayIssue.length > 0
   const topics = shownFeed && 'data' in shownFeed ? shownFeed.data.topics : DEFAULT_TOPICS
 
   function hrefFor(target: number): string {
@@ -103,8 +125,14 @@ export default function HomePage() {
         ))}
       </nav>
 
-      {/* 첫 페이지에만: 이번 주 인기 글 가운데 사진이 있는 글을 크게 */}
-      {page === 1 && shownPopular && 'data' in shownPopular && <FeaturedPost posts={shownPopular.data.posts} />}
+      {/* 첫 페이지에만: 모든 주제면 오늘의 이슈를 순위대로, 없거나 주제를 골랐으면 이번 주 인기 글 가운데 사진이 있는 글을 크게 */}
+      {page === 1 &&
+        featuredReady &&
+        (showIssue ? (
+          <FeaturedPost posts={todayIssue} label="오늘의 이슈" ranked />
+        ) : (
+          shownPopular && 'data' in shownPopular && <FeaturedPost posts={shownPopular.data.posts} />
+        ))}
 
       <div className="home-columns">
         <section className="home-feed" aria-labelledby="home-feed-title">
