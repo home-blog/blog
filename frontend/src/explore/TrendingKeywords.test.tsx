@@ -67,4 +67,20 @@ describe('지금 많이 찾는 말', () => {
       vi.useRealTimers()
     }
   })
+
+  it('숨겨 둔 창이 다시 보이면 바로 순위를 다시 묻는다', async () => {
+    let calls = 0
+    server.use(
+      http.get('/api/v1/search/trending', () => {
+        calls++
+        return HttpResponse.json({ items: [{ rank: 1, keyword: `말${calls}`, change: 'new', delta: 0 }] })
+      }),
+    )
+    const router = createMemoryRouter([{ path: '/', element: <TrendingKeywords /> }])
+    render(<RouterProvider router={router} />)
+    expect(await screen.findByText('말1')).toBeInTheDocument()
+
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(await screen.findByText('말2')).toBeInTheDocument()
+  })
 })

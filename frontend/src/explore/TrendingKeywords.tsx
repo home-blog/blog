@@ -47,12 +47,17 @@ export default function TrendingKeywords({ className = '' }: { className?: strin
         })
     }
     load()
-    // 순위는 10분마다 바뀐다. 창을 열어 둔 동안 다시 묻되, 보이지 않는 창에서는 묻지 않는다
+    // 순위는 10분마다 바뀐다. 창을 열어 둔 동안 다시 묻되, 보이지 않는 창에서는 묻지 않고 다시 보일 때 바로 묻는다
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') load()
     }, REFRESH_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
       controller.abort()
     }
   }, [])
