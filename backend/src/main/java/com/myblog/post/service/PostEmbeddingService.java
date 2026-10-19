@@ -48,13 +48,8 @@ public class PostEmbeddingService {
     private final TransactionTemplate transaction;
     private final StringRedisTemplate redis;
     private final Clock clock;
-    /** 저장 뒤 임베딩하는 일꾼 한 명. 밀리면 버린다(정리 작업이 채운다). */
-    private final ThreadPoolExecutor worker = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(200), runnable -> {
-                Thread thread = new Thread(runnable, "post-embedding");
-                thread.setDaemon(true);
-                return thread;
-            }, new ThreadPoolExecutor.DiscardPolicy());
+    /** 저장 뒤 임베딩하는 일꾼 한 명. 대기열(related.queue-size)이 넘치면 버린다(정리 작업이 채운다). */
+    private final ThreadPoolExecutor worker;
 
     public PostEmbeddingService(Embedder embedder, PostEmbeddingRepository embeddings, RelatedProperties properties,
             PlatformTransactionManager transactionManager, StringRedisTemplate redis, Clock clock) {
@@ -64,6 +59,12 @@ public class PostEmbeddingService {
         this.transaction = new TransactionTemplate(transactionManager);
         this.redis = redis;
         this.clock = clock;
+        this.worker = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(properties.queueSize()),
+                runnable -> {
+                    Thread thread = new Thread(runnable, "post-embedding");
+                    thread.setDaemon(true);
+                    return thread;
+                }, new ThreadPoolExecutor.DiscardPolicy());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

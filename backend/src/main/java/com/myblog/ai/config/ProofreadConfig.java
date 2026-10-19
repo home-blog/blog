@@ -30,6 +30,7 @@ public class ProofreadConfig {
 
     @Bean
     ProofreadChecker proofreadChecker(ProofreadProperties properties) {
-        return new ProofreadChecker(properties.maxCorrections());
+        return new ProofreadChecker(properties.maxCorrections(), properties.originalMaxLength(),
+                properties.reasonMaxLength());
     }
 }

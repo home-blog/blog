@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Test;
  */
 class ProofreadCheckerTest {
 
-    private final ProofreadChecker checker = new ProofreadChecker(100);
+    private static final int REASON_MAX = 120;
+
+    private final ProofreadChecker checker = new ProofreadChecker(100, 200, REASON_MAX);
 
     private static Suggestion s(String kind, String context, String original, String replacement) {
         return new Suggestion(kind, context, original, replacement, "이유");
@@ -117,7 +119,7 @@ class ProofreadCheckerTest {
 
     @Test
     void 고칠_곳은_정한_수까지만_돌려준다() {
-        ProofreadChecker small = new ProofreadChecker(2);
+        ProofreadChecker small = new ProofreadChecker(2, 200, REASON_MAX);
         String text = "됬다 됬다 됬다";
         List<Correction> found = small.check(text, List.of(
                 s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다")));
@@ -131,7 +133,7 @@ class ProofreadCheckerTest {
         List<Correction> found = checker.check(text,
                 List.of(new Suggestion("spelling", "", "됬다", "됐다", "가".repeat(500))));
 
-        assertThat(found).singleElement().satisfies(c -> assertThat(c.reason()).hasSize(ProofreadChecker.REASON_MAX));
+        assertThat(found).singleElement().satisfies(c -> assertThat(c.reason()).hasSize(REASON_MAX));
     }
 
     @Test
@@ -159,5 +161,17 @@ class ProofreadCheckerTest {
                 s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다")));
 
         assertThat(found).extracting(Correction::start).containsExactly(text.indexOf("밖 됬다") + 2);
+    }
+
+    @Test
+    void 원문이_정한_길이를_넘으면_받지_않는다() {
+        ProofreadChecker narrow = new ProofreadChecker(100, 4, REASON_MAX);
+        String text = "할수있다 그리고 할수있었다";
+        List<Correction> found = narrow.check(text, List.of(
+                s("spacing", "", "할수있다", "할 수 있다"),
+                s("spacing", "", "할수있었다", "할 수 있었다")));
+
+        // 네 글자는 받고, 다섯 글자는 버린다
+        assertThat(found).singleElement().satisfies(c -> assertThat(c.original()).isEqualTo("할수있다"));
     }
 }

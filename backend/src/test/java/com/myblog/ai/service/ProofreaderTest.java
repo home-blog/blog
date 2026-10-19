@@ -16,7 +16,8 @@ class ProofreaderTest {
 
     private static ProofreadProperties properties(String provider, String withoutKey, String apiKey) {
         return new ProofreadProperties(provider, withoutKey, apiKey, "claude-opus-5-5", "low", 16000,
-                Duration.ofSeconds(50), 20, 10000, 100, Duration.ofDays(1), ZoneId.of("Asia/Seoul"));
+                Duration.ofSeconds(50), 20, 10000, 100, 200, 120, Duration.ofDays(1), Duration.ofMinutes(10),
+                ZoneId.of("Asia/Seoul"));
     }
 
     private final ClaudeProofreader claude =
@@ -55,7 +56,7 @@ class ProofreaderTest {
         assertThat(found).extracting(Suggestion::kind).containsExactly("spelling", "spacing", "spelling");
         // 앞 글자는 검사기가 위치를 찾을 수 있게 본문에서 그대로 가져온다
         String text = "몇일 동안 할수있다고 생각했는데 됬다";
-        assertThat(new ProofreadChecker(100).check(text, found)).hasSize(3);
+        assertThat(new ProofreadChecker(100, 200, 120).check(text, found)).hasSize(3);
     }
 
     @Test
@@ -70,6 +71,7 @@ class ProofreaderTest {
     void 모르는_설정값은_서버를_켤_때_막는다() {
         assertThatThrownBy(() -> properties("gpt", "off", "")).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ProofreadProperties("auto", "off", "", "m", "turbo", 1, Duration.ofSeconds(1), 1, 1,
-                1, Duration.ofDays(1), ZoneId.of("Asia/Seoul"))).isInstanceOf(IllegalStateException.class);
+                1, 1, 1, Duration.ofDays(1), Duration.ofMinutes(10), ZoneId.of("Asia/Seoul")))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

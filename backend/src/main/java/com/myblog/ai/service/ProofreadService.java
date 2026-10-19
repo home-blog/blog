@@ -35,9 +35,6 @@ public class ProofreadService {
 
     private static final Logger log = LoggerFactory.getLogger(ProofreadService.class);
 
-    /** 하루 횟수 키는 다음 한국 자정 뒤 이만큼 더 둔다(서버·Redis 시계가 조금 달라도 그날 안에 지워지지 않게). */
-    private static final Duration COUNT_MARGIN = Duration.ofMinutes(10);
-
     private final Proofreader proofreader;
     private final ProofreadChecker checker;
     private final ProofreadProperties properties;
@@ -114,7 +111,7 @@ public class ProofreadService {
         if (used != null && used == 1) {
             Instant now = clock.instant();
             Instant tomorrow = today().plusDays(1).atStartOfDay(properties.zone()).toInstant();
-            redis.expire(countKey, Duration.between(now, tomorrow).plus(COUNT_MARGIN));
+            redis.expire(countKey, Duration.between(now, tomorrow).plus(properties.countMargin()));
         }
         return used == null ? 1 : used;
     }

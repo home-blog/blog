@@ -16,7 +16,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "related")
 public record RelatedProperties(String provider, String withoutKey, String apiKey, String baseUrl, String model,
         int dimensions, int maxChars, Duration timeout, int batchSize, int count, int perBlog, int maxCandidates,
-        Duration cacheTtl) {
+        int tagPoolFactor, int queueSize, Duration cacheTtl) {
 
     private static final Set<String> PROVIDERS = Set.of("auto", "voyage", "fake", "off");
 
@@ -27,7 +27,8 @@ public record RelatedProperties(String provider, String withoutKey, String apiKe
         if (!Set.of("fake", "off").contains(withoutKey)) {
             throw new IllegalStateException("related.without-key는 fake 또는 off여야 합니다");
         }
-        if (dimensions < 1 || maxChars < 1 || batchSize < 1 || count < 1 || perBlog < 1 || maxCandidates < 1) {
+        if (dimensions < 1 || maxChars < 1 || batchSize < 1 || count < 1 || perBlog < 1 || maxCandidates < 1
+                || tagPoolFactor < 1 || queueSize < 1) {
             throw new IllegalStateException("related의 수 값은 1 이상이어야 합니다");
         }
         apiKey = apiKey == null ? "" : apiKey.strip();

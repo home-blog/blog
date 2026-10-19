@@ -20,12 +20,6 @@ import java.util.regex.Pattern;
  */
 public class ProofreadChecker {
 
-    /** 화면에 보이는 이유의 최대 글자 수. 넘으면 자른다. */
-    public static final int REASON_MAX = 120;
-
-    /** 원문 하나의 최대 글자 수. 이보다 길면 문단을 통째로 바꾸자는 것이라 받지 않는다. */
-    static final int ORIGINAL_MAX = 200;
-
     static final Set<String> KINDS = Set.of("spacing", "spelling", "style");
 
     private static final Pattern FENCE = Pattern.compile("^(`{3,}|~{3,})");
@@ -35,9 +29,15 @@ public class ProofreadChecker {
     private static final Pattern BARE_URL = Pattern.compile("https?://[^\\s)>\\]]+");
 
     private final int maxCorrections;
+    /** 원문 하나의 최대 글자 수(proofread.original-max-length). 이보다 길면 받지 않는다. */
+    private final int originalMax;
+    /** 화면에 보이는 이유의 최대 글자 수(proofread.reason-max-length). 넘으면 자른다. */
+    private final int reasonMax;
 
-    public ProofreadChecker(int maxCorrections) {
+    public ProofreadChecker(int maxCorrections, int originalMax, int reasonMax) {
         this.maxCorrections = maxCorrections;
+        this.originalMax = originalMax;
+        this.reasonMax = reasonMax;
     }
 
     /** 고칠 곳 하나. start·end는 보낸 본문의 UTF-16 위치 [start, end). */
@@ -65,10 +65,10 @@ public class ProofreadChecker {
         return accepted;
     }
 
-    private static boolean usable(Suggestion suggestion) {
+    private boolean usable(Suggestion suggestion) {
         String original = suggestion.original();
         return suggestion.kind() != null && KINDS.contains(suggestion.kind())
-                && original != null && !original.isEmpty() && original.length() <= ORIGINAL_MAX
+                && original != null && !original.isEmpty() && original.length() <= originalMax
                 && suggestion.replacement() != null && !original.equals(suggestion.replacement());
     }
 
@@ -106,9 +106,9 @@ public class ProofreadChecker {
         return true;
     }
 
-    private static String reasonOf(String reason) {
+    private String reasonOf(String reason) {
         String trimmed = reason == null ? "" : reason.strip();
-        return trimmed.length() > REASON_MAX ? trimmed.substring(0, REASON_MAX) : trimmed;
+        return trimmed.length() > reasonMax ? trimmed.substring(0, reasonMax) : trimmed;
     }
 
     /** CommonMark의 닫는 줄: 여는 표시와 같은 글자로 같거나 더 길고, 뒤에는 공백만 있다. */

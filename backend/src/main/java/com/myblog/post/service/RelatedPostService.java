@@ -139,7 +139,7 @@ public class RelatedPostService {
     }
 
     private List<Long> byTags(Long postId) {
-        int pool = properties.count() * properties.perBlog() * 4;
+        int pool = properties.count() * properties.perBlog() * properties.tagPoolFactor();
         List<Neighbor> neighbors = embeddings.tagNeighbors(postId, pool);
         return pick(neighbors.stream()
                 .filter(neighbor -> neighbor.shared() > 0 || neighbor.sameTopic())

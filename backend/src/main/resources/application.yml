@@ -165,7 +165,10 @@ proofread:
   daily-limit: 20          # 회원마다 하루 교정 횟수 (한국 날짜)
   max-length: 10000        # 본문 한도 = 글 본문 한도(post.content.max-length)
   max-corrections: 100     # 한 번에 돌려주는 고칠 곳 수
+  original-max-length: 200 # 고칠 곳 원문 하나의 최대 글자 수. 더 길면 문단을 통째로 바꾸자는 것이라 받지 않는다
+  reason-max-length: 120   # 화면에 보이는 이유의 최대 글자 수. 넘으면 자른다
   cache-ttl: 1d            # 같은 본문의 결과를 보관하는 시간
+  count-margin: 10m        # 하루 횟수 키를 다음 한국 자정 뒤 더 두는 시간 (서버·Redis 시계가 조금 달라도 그날 안에 지워지지 않게)
   zone: Asia/Seoul
 
 # 비슷한 글 (specs/014 research D-9 ~ D-13, D-15)
@@ -184,6 +187,8 @@ related:
   count: 4                 # 보여 주는 비슷한 글 수
   per-blog: 2              # 한 블로그의 글은 이만큼까지
   max-candidates: 3000     # 뜻이 가까운지 견주는 공개 글 수 (최신순)
+  tag-pool-factor: 4       # 태그로 대신할 때 고를 글 수(count × per-blog)의 몇 배를 후보로 읽을지
+  queue-size: 200          # 저장 뒤 임베딩 대기열. 넘치면 버리고 정리 작업이 채운다
   cache-ttl: 10m           # 고른 비슷한 글 번호를 Redis에 두는 시간 (그 글의 뜻 정보가 바뀌면 바로 지운다)
 
 # 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
