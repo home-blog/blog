@@ -62,7 +62,7 @@ public class ClaudeProofreader implements Proofreader, AutoCloseable {
         this(AnthropicOkHttpClient.builder()
                 .apiKey(properties.apiKey())
                 .timeout(properties.timeout())
-                .maxRetries(1)
+                .maxRetries(properties.maxRetries())
                 .build(), properties, jsonMapper);
     }
 

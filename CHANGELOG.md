@@ -30,7 +30,7 @@ AI: 글쓰기 화면의 **빨간 펜**이 원고지 위에 교정부호를 긋�
 - API 문서 묶음 "13. AI"
 
 ### 운영
-- 새 모듈 `ai`(회원 모듈만 봄). Claude API는 공식 Java SDK(`anthropic-java`), 모델 `claude-opus-5-5`, 생각 깊이 low, 제한 시간 50초(바깥 Nginx 60초 안). 거절되면 서버 쪽 대체 모델(`fallbacks: "default"`)
+- 새 모듈 `ai`(회원 모듈만 봄). Claude API는 공식 Java SDK(`anthropic-java`), 모델 `claude-opus-5-5`, 생각 깊이 low, 제한 시간 50초(바깥 Nginx 60초 안), 다시 보내지 않음(`proofread.max-retries: 0`). 거절되면 서버 쪽 대체 모델(`fallbacks: "default"`)
 - AI 답은 믿지 않고 검사한다: 위치는 받지 않고 원문과 앞 글자로 본문에서 다시 찾는다. 못 찾거나 겹치거나 같은 말이거나 코드 블록·인라인 코드·링크 주소에 걸치면 버린다. 코드 블록의 닫는 줄은 CommonMark 규칙(같은 표시로 같거나 더 길고 뒤에는 공백만)으로 본다
 - 하루 20번(Redis, 한국 날짜 키), 같은 본문은 결과를 하루 보관(AI를 다시 부르지 않고 횟수도 그대로). 실패하면 503, 횟수는 되돌린다. 결과 보관이 실패해도 받은 교정은 돌려주고, 횟수를 셀 수 없으면 AI를 부르지 않는다(503)
 - Flyway V14: 새 표 `post_embedding`(글마다 한 줄, 벡터는 `real[]` 1024칸). 배포 DB에서 pgvector 확장을 켤 수 없을 수 있어 비슷한 정도는 서버가 계산한다

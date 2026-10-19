@@ -15,7 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "proofread")
 public record ProofreadProperties(String provider, String withoutKey, String apiKey, String model, String effort,
-        long maxTokens, Duration timeout, int dailyLimit, int maxLength, int maxCorrections, int originalMaxLength,
+        long maxTokens, Duration timeout, int maxRetries, int dailyLimit, int maxLength, int maxCorrections, int originalMaxLength,
         int reasonMaxLength, Duration cacheTtl, Duration countMargin, ZoneId zone) {
 
     private static final Set<String> PROVIDERS = Set.of("auto", "claude", "fake", "off");
@@ -32,7 +32,7 @@ public record ProofreadProperties(String provider, String withoutKey, String api
             throw new IllegalStateException("proofread.effort는 low, medium, high, xhigh, max 가운데 하나여야 합니다");
         }
         if (dailyLimit < 1 || maxLength < 1 || maxCorrections < 1 || maxTokens < 1 || originalMaxLength < 1
-                || reasonMaxLength < 1) {
+                || reasonMaxLength < 1 || maxRetries < 0) {
             throw new IllegalStateException("proofread의 횟수·길이 값은 1 이상이어야 합니다");
         }
         apiKey = apiKey == null ? "" : apiKey.strip();

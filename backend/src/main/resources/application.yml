@@ -156,12 +156,13 @@ series:
 # 빨간 펜 교정 (specs/014 research D-1 ~ D-7, D-15)
 proofread:
   provider: ${PROOFREAD_PROVIDER:auto}   # auto: 열쇠가 있으면 claude, 없으면 without-key / claude / fake / off
-  without-key: off                       # 열쇠가 없을 때. 배포는 off(단추 숨김), 개발은 fake(규칙 교정)
+  without-key: "off"                     # 열쇠가 없을 때. 배포는 off(단추 숨김), 개발은 fake(규칙 교정). 따옴표 필수(없으면 YAML이 false로 읽는다)
   api-key: ${ANTHROPIC_API_KEY:}         # 환경 변수로만 (GitHub Secrets → 서버 .env.deploy)
   model: claude-opus-5-5
   effort: low              # 생각 깊이: 교정은 low로 충분하고 빠르다 (바깥 Nginx가 60초에 끊는다)
   max-tokens: 16000
   timeout: 50s             # Claude API 한 번의 제한 시간. 바깥 Nginx 60초보다 짧게
+  max-retries: 0           # 실패하면 다시 보내는 횟수. 한 번이라도 다시 보내면 timeout × 2가 Nginx 60초를 넘을 수 있다
   daily-limit: 20          # 회원마다 하루 교정 횟수 (한국 날짜)
   max-length: 10000        # 본문 한도 = 글 본문 한도(post.content.max-length)
   max-corrections: 100     # 한 번에 돌려주는 고칠 곳 수
@@ -174,7 +175,7 @@ proofread:
 # 비슷한 글 (specs/014 research D-9 ~ D-13, D-15)
 related:
   provider: ${RELATED_PROVIDER:auto}     # auto: 열쇠가 있으면 voyage, 없으면 without-key / voyage / fake / off
-  without-key: off                       # 열쇠가 없을 때. 배포는 off(태그·주제로 대신), 개발은 fake
+  without-key: "off"                     # 열쇠가 없을 때. 배포는 off(태그·주제로 대신), 개발은 fake. 따옴표 필수
   api-key: ${VOYAGE_API_KEY:}            # 환경 변수로만 (GitHub Secrets → 서버 .env.deploy)
   base-url: https://api.voyageai.com/v1
   model: voyage-3.5
