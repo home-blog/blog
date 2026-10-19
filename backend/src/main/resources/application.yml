@@ -288,6 +288,7 @@ stats:
     window-buckets: 6
     dedupe-window: 10m     # 같은 사람·같은 검색어는 10분에 한 번
     size: 10
+    min-count: 2           # 1시간 동안 이만큼 세어진 말만 보인다 (한 사람의 한 번 검색이 그대로 드러나지 않게)
     banned: []             # 들어 있으면 세지 않는 말 (배포에서 늘린다)
 
 # API 문서(Swagger)는 기본으로 끈다. 개발 설정(application-dev.yml)에서만 켠다

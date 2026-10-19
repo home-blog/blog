@@ -26,7 +26,7 @@ public class SearchTrendListener {
     @EventListener
     public void on(PostSearchedEvent event) {
         try {
-            visitorKeys.resolve(event.viewerId()).ifPresent(visitor -> trends.record(event.keyword(), visitor));
+            visitorKeys.resolveExisting(event.viewerId()).ifPresent(visitor -> trends.record(event.keyword(), visitor));
         } catch (RuntimeException e) {
             log.warn("인기 검색어를 세지 못했습니다: {}", e.toString());
         }

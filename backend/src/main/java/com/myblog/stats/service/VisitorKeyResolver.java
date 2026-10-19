@@ -51,6 +51,20 @@ public class VisitorKeyResolver {
         return Optional.of("g:" + visitorToken(attributes.getRequest(), attributes.getResponse()));
     }
 
+    /**
+     * resolve와 같지만 새 방문자 쿠키는 만들지 않는다: 회원이거나, 이 요청이 이미 방문자 쿠키를 들고 왔을 때만 (specs/015 인기 검색어).
+     * 쿠키 없는 요청을 되풀이해 매번 새 사람처럼 세게 하지 못하게 한다.
+     */
+    public Optional<String> resolveExisting(Long memberId) {
+        if (memberId != null) {
+            return Optional.of("m:" + memberId);
+        }
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
+            return Optional.empty();
+        }
+        return readCookie(attributes.getRequest()).map(token -> "g:" + token);
+    }
+
     private String visitorToken(HttpServletRequest request, HttpServletResponse response) {
         Optional<String> existing = readCookie(request);
         if (existing.isPresent()) {

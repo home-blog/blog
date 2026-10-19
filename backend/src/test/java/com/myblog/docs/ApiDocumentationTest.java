@@ -808,8 +808,12 @@ class ApiDocumentationTest {
     void 인기_검색어() throws Exception {
         Member member = members.register("docs");
         writePost(member, "제주 렌터카 여행 후기");
-        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/posts").param("q", "렌터카"))
-                .andExpect(status().isOk());
+        // 쿠키를 가진 방문자 둘이 찾아야 순위에 보인다 (stats.search-trend.min-count)
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/posts").param("q", "렌터카")
+                    .cookie(new jakarta.servlet.http.Cookie("MYBLOG_VISITOR", java.util.UUID.randomUUID().toString().replace("-", ""))))
+                    .andExpect(status().isOk());
+        }
         mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/trending"))
                 .andExpect(status().isOk())
                 .andDo(document("search-trending",

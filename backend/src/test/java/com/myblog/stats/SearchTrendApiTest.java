@@ -34,11 +34,12 @@ import org.springframework.web.context.WebApplicationContext;
 /**
  * 실시간 인기 검색어 (specs/015 US1, S1-1 ~ S1-6). 검색 칸(10분)은 Redis에 있으므로, 테스트마다 시계를 먼 미래의
  * 서로 다른 시각으로 옮겨 다른 실행의 검색과 섞이지 않게 한다. 방문자는 쿠키(MYBLOG_VISITOR)로 가린다.
+ * 여기서는 한 번 센 말도 보이게(min-count=1) 하고, 최소 횟수와 쿠키 없는 검색은 아래 마지막 테스트들에서 따로 본다.
  */
 @SpringBootTest
 @Transactional
 @Import({TestMembers.class, TestClock.Config.class})
-@TestPropertySource(properties = "stats.search-trend.banned=금지말")
+@TestPropertySource(properties = {"stats.search-trend.banned=금지말", "stats.search-trend.min-count=1"})
 class SearchTrendApiTest {
 
     private static final String TRENDING = "/api/v1/search/trending";
@@ -190,6 +191,14 @@ class SearchTrendApiTest {
         search(word + "가", visitor()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalCount").value(1));
         mvc.perform(get(TRENDING)).andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+    }
+
+    @Test
+    void 쿠키_없는_검색은_매번_새_사람이_되므로_세지_않는다() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            mvc.perform(get("/api/v1/search/posts").param("q", word + "가")).andExpect(status().isOk());
+        }
+        mvc.perform(get(TRENDING)).andExpect(jsonPath("$.items").isEmpty());
     }
 
     @Test
