@@ -155,7 +155,13 @@ public enum ErrorCode {
     CLIP_TEXT_INVALID(HttpStatus.BAD_REQUEST, "※ 수집할 문장은 1~%d자로 골라 주세요"),
     CLIP_NOT_IN_POST(HttpStatus.BAD_REQUEST, "※ 글 본문에 있는 문장만 수집할 수 있습니다"),
     CLIP_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 필사 노트에는 문장을 %d개까지 모을 수 있습니다. 다 읽은 문장을 지워 주세요"),
-    CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 필사 노트에 없는 문장입니다");
+    CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 필사 노트에 없는 문장입니다"),
+
+    // 구독·알림 (specs/016)
+    SELF_SUBSCRIBE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "※ 내 블로그는 받아 볼 수 없습니다"),
+    SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 받아 보는 블로그는 %d개까지입니다. 읽지 않는 블로그를 그만 받아 보세요"),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 우편함에 없는 소식입니다"),
+    NEWSLETTER_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "※ 메일의 그만 받기 주소가 올바르지 않습니다");
 
     private final HttpStatus status;
     private final String message;

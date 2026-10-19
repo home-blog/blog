@@ -1,6 +1,7 @@
 package com.myblog.comment.service;
 
 import com.myblog.blog.CommentReadMarks;
+import com.myblog.comment.CommentWrittenEvent;
 import com.myblog.comment.config.CommentProperties;
 import com.myblog.comment.controller.dto.CommentRequests;
 import com.myblog.comment.domain.Comment;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.stereotype.Service;
@@ -51,9 +53,11 @@ public class CommentService {
     private final JdbcTemplate jdbc;
     private final CommentReadMarks readMarks;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     public CommentService(CommentRepository comments, PostLookup postLookup, MemberNames memberNames,
-            CommentProperties properties, Validator validator, JdbcTemplate jdbc, CommentReadMarks readMarks, Clock clock) {
+            CommentProperties properties, Validator validator, JdbcTemplate jdbc, CommentReadMarks readMarks, Clock clock,
+            ApplicationEventPublisher events) {
         this.comments = comments;
         this.postLookup = postLookup;
         this.memberNames = memberNames;
@@ -62,6 +66,7 @@ public class CommentService {
         this.jdbc = jdbc;
         this.readMarks = readMarks;
         this.clock = clock;
+        this.events = events;
     }
 
     /** 글의 댓글, 오래된 순 (contracts 1). viewerId는 로그인하지 않았으면 null. */
@@ -91,6 +96,8 @@ public class CommentService {
             throw new ApiException(ErrorCode.COMMENT_TOO_FREQUENT);
         }
         Comment saved = comments.saveAndFlush(Comment.write(post.postId(), memberId, request.body(), now));
+        // 글 주인의 우편함에 소식 (specs/016 US2). 듣는 쪽은 커밋 뒤에 따로 돈다
+        events.publishEvent(new CommentWrittenEvent(saved.getId(), post.postId(), memberId));
         return view(saved, memberNames.namesOf(List.of(memberId)), post, memberId);
     }
 

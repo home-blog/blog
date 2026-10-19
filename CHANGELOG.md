@@ -14,6 +14,35 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.11.0] - 2026-10-19
+
+구독·알림: 좋아하는 블로그를 **원고 받아 보기**로 구독하고, 새 원고와 내 글의 댓글 소식을 머리글 **우편함**에서 받으며, 원하면 **원고 편지**(메일)로도 받습니다.
+
+### 화면
+- 블로그 머리: 받아 보는 사람 수와 "✉ 원고 받아 보기 / ✓ 받아 보는 중", 받아 보는 중이면 "새 원고를 메일로도 받기". 내 블로그는 수만
+- 머리글 우편함(로그인): 안 읽은 수를 톱니 우표로(9+), 창이 보일 때만 1분마다 다시 묻는다. 소식마다 우표("원고"·"답장"), 읽으면 소인. 누르면 읽음으로 바꾸고 그 글로, 모두 읽음
+- 받아 보는 글(`/subscriptions`, 첫 화면 "✉ 받아 보는 글" 탭·내 메뉴): 받아 보는 블로그의 새 글 카드, 받아 보는 블로그 목록(메일로도·그만 받기)
+- 원고 편지 그만 받기(`/letters/stop?token=`): 메일 링크로 와서 단추를 눌러야 끈다(메일 미리보기 로봇이 링크만 열어도 꺼지지 않게)
+- 공지사항: 0.11.0 업데이트 글(0.10.0 글의 고정을 푼다)
+
+### API (v1 그대로, 깨지지 않는 변경)
+- 새 주소(로그인): `PUT /api/v1/blogs/{blogId}/subscription` `{ emailEnabled }`, `DELETE` 같은 주소 → `{ subscribed, emailEnabled, subscriberCount }`, `GET /api/v1/me/subscriptions`, `GET /api/v1/me/subscriptions/feed?page=`(첫 화면 글 모음과 같은 카드)
+- 새 주소(로그인): `GET /api/v1/me/notifications?page=`(지금 볼 수 없게 된 글의 소식은 `postId`·`postTitle`을 비운다), `GET /api/v1/me/notifications/unread-count`, `POST /api/v1/me/notifications/{id}/read`(204), `POST /api/v1/me/notifications/read-all`(204)
+- 새 주소(누구나): `POST /api/v1/newsletter/unsubscribe` `{ token }` → `{ blogName }`
+- `GET /api/v1/blogs/{blogId}`에 `subscriberCount`, `subscribedByMe`, `subscriptionEmail` 칸을 더했다
+- 새 오류 코드: `SELF_SUBSCRIBE_NOT_ALLOWED`(400), `SUBSCRIPTION_LIMIT_EXCEEDED`(409), `NOTIFICATION_NOT_FOUND`(404), `NEWSLETTER_TOKEN_INVALID`(400)
+- API 문서 묶음 "14. 구독·알림"
+
+### 운영
+- 새 모듈 `subscription`(댓글·글·블로그·회원 모듈의 맨 위 타입과 이벤트만 씀). 블로그 머리의 수(`BlogSubscriptionSummary`)와 받아 보는 글의 블로그 번호(`SubscribedBlogs`)는 아래 모듈의 틀을 이 모듈이 채운다
+- Flyway V19: 새 표 `blog_subscription`(한 사람·한 블로그 한 줄), `notification`(새 글 소식은 한 사람에게 한 글 한 번, 부분 UNIQUE), `post.first_published_at`(이미 공개된 글은 작성 시각으로 채움)
+- 글 모듈 `PostPublishedEvent`: 글이 **처음** 공개 글이 된 순간에 시각을 적고(비어 있을 때만), 그때 분류도 공개면 낸다. 비공개 분류에 있던 글은 나중에 분류를 공개로 바꾸거나 고쳐도 알리지 않는다. 댓글 모듈 `CommentWrittenEvent`. 소식과 메일은 커밋 뒤 따로(소식 일꾼·메일 일꾼을 나눠) 만들어 글 저장·댓글 쓰기를 기다리게 하지 않는다. 만들 때 글을 아직 누구나 볼 수 있는지 다시 보고, 서버를 끌 때는 남은 일을 10초까지 마친다
+- 소식 30일 보관(`subscription.notification-retention`, 매일 새벽 4시 정리), 받아 보기 한 사람 500개(`subscription.max-per-member`)
+- 원고 편지(`subscription.newsletter.*`): 서비스 Gmail로 제목·첫 문단 요약(120자)·링크, 하루 사이트 300통·블로그마다 100통(Redis 날짜 키, 인증번호 메일 몫을 남김, 넘으면 그날은 더 보내지 않음), 그만 받기 링크는 인증번호와 같은 비밀키로 만든 HMAC 서명. 사이트 주소는 배포 기본값, 저장소 Variables `SITE_URL`로 바꿀 수 있다. 실패한 메일은 다시 보내지 않고 기록만(받는 주소는 남기지 않음)
+- 탈퇴하면 받아 보기·우편함을 지우고, 블로그가 닫히면 그 블로그를 받아 보던 줄을 지운다
+- Flyway V20: 0.11.0 업데이트 공지
+- 테스트: 서버 받아 보기 9개, 우편함·원고 편지 11개. 화면 받아 보기·우편함·그만 받기·받아 보는 글 11개
+
 ## [0.10.0] - 2026-10-19
 
 발견: 글을 읽다 마음에 남은 문장을 **필사 노트**에 옮겨 적고(원고지 칸 카드), 첫 화면에서 **오늘의 이슈**와 **지금 많이 찾는 말**을 봅니다.

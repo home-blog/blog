@@ -27,6 +27,8 @@ import SiteFooter from './components/SiteFooter'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import LibraryPage from './community/clip/LibraryPage'
+import LetterStopPage from './subscription/LetterStopPage'
+import SubscribedPage from './subscription/SubscribedPage'
 import HomePage from './pages/HomePage'
 import PostDetailPage from './post/PostDetailPage'
 import PostEditorPage from './post/PostEditorPage'
@@ -135,6 +137,16 @@ const router = createBrowserRouter([
           </RequireLogin>
         ),
       },
+      {
+        path: '/subscriptions',
+        element: (
+          <RequireLogin>
+            <SubscribedPage />
+          </RequireLogin>
+        ),
+      },
+      // 원고 편지의 그만 받기 링크 (specs/016 US3). 로그인 없이
+      { path: '/letters/stop', element: <LetterStopPage /> },
       { path: '/blog/:blogId', element: <BlogHomePage /> },
       { path: '/search', element: <SearchPage /> },
       { path: '/tags/:tagName', element: <TagPostsPage /> },

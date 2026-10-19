@@ -39,6 +39,11 @@ public class BlogDirectoryAdapter implements BlogDirectory {
     }
 
     @Override
+    public List<BlogInfo> blogs(Collection<Long> blogIds) {
+        return blogs.findAllById(blogIds).stream().map(BlogDirectoryAdapter::toInfo).toList();
+    }
+
+    @Override
     public Optional<CategoryInfo> category(Long categoryId) {
         return categories.findById(categoryId).flatMap(category ->
                 blogs.findById(category.getBlogId()).map(blog -> toInfo(category, blog)));

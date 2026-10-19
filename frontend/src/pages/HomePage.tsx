@@ -110,6 +110,12 @@ export default function HomePage() {
       </section>
 
       <nav className="topic-tabs" aria-label="주제">
+        {/* 받아 보는 블로그의 새 글 (specs/016 US1). 로그인했을 때만 */}
+        {member && (
+          <Link to="/subscriptions" className="topic-tab topic-tab-subscribed">
+            ✉ 받아 보는 글
+          </Link>
+        )}
         <Link to="/" className="topic-tab" aria-current={topic === null ? 'page' : undefined}>
           전체
         </Link>

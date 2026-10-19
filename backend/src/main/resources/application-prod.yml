@@ -33,3 +33,8 @@ server:
         secure: ${SESSION_COOKIE_SECURE:true}   # HTTPS에서만 쿠키 전송 (NF-10). HTTPS가 아직 없는 서버에서만 false
         http-only: true
         same-site: lax
+
+# 원고 편지(specs/016) 속 링크의 사이트 주소. 도메인이 바뀌면 저장소 Variables SITE_URL로 덮어쓴다
+subscription:
+  newsletter:
+    site-url: ${SITE_URL:https://geulgyeol.java21.net}
