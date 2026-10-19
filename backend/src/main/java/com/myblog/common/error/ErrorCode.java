@@ -149,7 +149,13 @@ public enum ErrorCode {
     DRAFT_TAGS_TOO_LONG(HttpStatus.BAD_REQUEST, "태그가 너무 깁니다"),
     PUBLISH_AT_REQUIRED(HttpStatus.BAD_REQUEST, "예약 시각을 골라 주세요"),
     PUBLISH_AT_TOO_SOON(HttpStatus.BAD_REQUEST, "예약 시각은 지금부터 1분 뒤부터 고를 수 있습니다"),
-    PUBLISH_AT_TOO_LATE(HttpStatus.BAD_REQUEST, "예약 시각은 지금부터 %d일 안으로 골라 주세요");
+    PUBLISH_AT_TOO_LATE(HttpStatus.BAD_REQUEST, "예약 시각은 지금부터 %d일 안으로 골라 주세요"),
+
+    // 문장 수집·필사 노트 (specs/015 US3)
+    CLIP_TEXT_INVALID(HttpStatus.BAD_REQUEST, "※ 수집할 문장은 1~%d자로 골라 주세요"),
+    CLIP_NOT_IN_POST(HttpStatus.BAD_REQUEST, "※ 글 본문에 있는 문장만 수집할 수 있습니다"),
+    CLIP_LIMIT_EXCEEDED(HttpStatus.CONFLICT, "※ 필사 노트에는 문장을 %d개까지 모을 수 있습니다. 다 읽은 문장을 지워 주세요"),
+    CLIP_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 필사 노트에 없는 문장입니다");
 
     private final HttpStatus status;
     private final String message;

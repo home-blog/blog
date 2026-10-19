@@ -28,4 +28,12 @@ public class PostLookupAdapter implements PostLookup {
                 .filter(category -> visibility.canSee(post.getVisibility(), category, viewerId))
                 .map(category -> new PostRef(post.getId(), category.blogId(), category.ownerId())));
     }
+
+    @Override
+    public Optional<PostText> findVisibleText(Long postId, Long viewerId) {
+        return posts.findById(postId).flatMap(post -> blogDirectory.category(post.getCategoryId())
+                .filter(category -> visibility.canSee(post.getVisibility(), category, viewerId))
+                .map(category -> new PostText(post.getId(), category.ownerId(), post.getTitle(), post.getContent(),
+                        category.blogName())));
+    }
 }

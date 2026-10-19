@@ -110,6 +110,12 @@ export default function UserMenu({ nickname, newCommentCount, onLogout }: Props)
             </span>
             마이페이지
           </Link>
+          <Link to="/mypage/library" role="menuitem" className="user-menu-item" onClick={() => close(false)}>
+            <span className="user-menu-icon" aria-hidden="true">
+              ✎
+            </span>
+            필사 노트
+          </Link>
           <span className="user-menu-sep" role="separator" />
           <button
             type="button"

@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 검색 결과도 글 목록과 같은 페이지 글 수·미리보기 길이를 쓴다 (004 D-3: A, 같은 설정값).
  */
 @ConfigurationProperties(prefix = "explore")
-public record ExploreProperties(ListPage list, Search search, Feed feed) {
+public record ExploreProperties(ListPage list, Search search, Feed feed, TodayIssue todayIssue) {
 
     /** 한 페이지 글 수(10)와 미리보기 길이(100자). */
     public record ListPage(int pageSize, int previewLength) {
@@ -46,6 +46,19 @@ public record ExploreProperties(ListPage list, Search search, Feed feed) {
             }
             if (summaryTtl == null || summaryTtl.isNegative()) {
                 throw new IllegalStateException("explore.feed.summary-ttl은 0 이상이어야 합니다");
+            }
+        }
+    }
+
+    /**
+     * 오늘의 이슈 (specs/015 US2): 오늘을 포함한 최근 days일(2 = 오늘과 어제, 한국 날짜)의 조회수 합이 큰 공개 글 size개,
+     * 블로그마다 하나. 고른 순서는 ttl 동안 다시 쓴다(첫 화면마다 부른다). 카드는 요청마다 다시 읽어 볼 수 없게 된 글은 바로 빠진다.
+     */
+    public record TodayIssue(int size, int days, Duration ttl) {
+
+        public TodayIssue {
+            if (size < 1 || days < 1 || ttl == null || ttl.isNegative()) {
+                throw new IllegalStateException("explore.today-issue의 size, days는 1 이상, ttl은 0 이상이어야 합니다");
             }
         }
     }

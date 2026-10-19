@@ -12,7 +12,8 @@ class ExplorePropertiesTest {
     void 기본값은_된다() {
         assertThatCode(() -> new ExploreProperties(new ExploreProperties.ListPage(10, 100),
                 new ExploreProperties.Search(2, 50),
-                new ExploreProperties.Feed(12, 5, 7, java.time.ZoneId.of("Asia/Seoul"), java.time.Duration.ofMinutes(5)))).doesNotThrowAnyException();
+                new ExploreProperties.Feed(12, 5, 7, java.time.ZoneId.of("Asia/Seoul"), java.time.Duration.ofMinutes(5)),
+                new ExploreProperties.TodayIssue(3, 2, java.time.Duration.ofMinutes(5)))).doesNotThrowAnyException();
     }
 
     @Test
@@ -25,6 +26,9 @@ class ExplorePropertiesTest {
         assertThatThrownBy(() -> new ExploreProperties.Feed(0, 5, 7, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ExploreProperties.Feed(12, 0, 7, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 0, seoul, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.TodayIssue(0, 2, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.TodayIssue(3, 0, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new ExploreProperties.TodayIssue(3, 2, java.time.Duration.ofSeconds(-1))).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 7, null, java.time.Duration.ZERO)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new ExploreProperties.Feed(12, 5, 7, seoul, java.time.Duration.ofSeconds(-1)))
                 .isInstanceOf(IllegalStateException.class);

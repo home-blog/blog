@@ -158,7 +158,7 @@
     grid-template-columns: 1fr;
   }
 
-  .home-popular {
+  .home-side {
     order: -1;
   }
 }
@@ -293,10 +293,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── 이번 주 인기 글: 번호를 원고지 칸에 ── */
-.home-popular {
+/* ── 옆칸: 이번 주 인기 글 + 지금 많이 찾는 말 ── */
+.home-side {
   position: sticky;
   top: 1rem;
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* ── 이번 주 인기 글: 번호를 원고지 칸에 ── */
+.home-popular {
   padding: 1.15rem;
   border: 1px solid var(--grid);
   border-radius: 10px;
@@ -305,7 +312,7 @@
 }
 
 @media (max-width: 60rem) {
-  .home-popular {
+  .home-side {
     position: static;
   }
 }
@@ -500,4 +507,50 @@
     gap: 1rem;
     padding: 1.15rem;
   }
+}
+
+/* ── 오늘의 이슈 (specs/015 US2): 빨간 도장 띠와 원고지 칸 순위 ── */
+.feature-label.issue-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border: 1.5px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
+  transform: rotate(-2deg);
+}
+
+.feature-label.issue-stamp::before {
+  content: none;
+}
+
+.issue-rank-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.feature-ranked .feature-mini {
+  position: relative;
+}
+
+.issue-rank {
+  position: absolute;
+  top: -0.55rem;
+  left: -0.55rem;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--grid-strong);
+  background: var(--paper-raised);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+/* 맨 위 카드가 하나뿐이면 (오늘 읽힌 글이 한 편) 옆 칸을 비우지 않고 넓게 */
+.feature.feature-solo {
+  grid-template-columns: minmax(0, 1fr);
 }
