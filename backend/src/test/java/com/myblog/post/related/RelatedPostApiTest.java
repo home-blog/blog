@@ -294,4 +294,15 @@ class RelatedPostApiTest {
                 .andExpect(jsonPath("$.basis").value("meaning"))
                 .andExpect(jsonPath("$.posts[0].postId").value(near));
     }
+
+    @Test
+    void 보관_값이_깨져_있으면_새로_고른다() throws Exception {
+        Member a = members.register("rel");
+        Long source = post(a, "깨진 보관", repeat("깨진 보관 시험"), "public");
+        embeddings.refresh(List.of(source));
+        redis.opsForValue().set("related:" + source, "meaning|1,x");
+
+        mvc.perform(get("/api/v1/posts/" + source + "/related")).andExpect(status().isOk());
+        assertThat(redis.opsForValue().get("related:" + source)).doesNotContain("x");
+    }
 }

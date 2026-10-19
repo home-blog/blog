@@ -1,7 +1,12 @@
 package com.myblog.ai;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,6 +22,7 @@ import com.myblog.ai.service.Proofreader.Suggestion;
 import com.myblog.support.TestClock;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +32,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -59,6 +69,9 @@ class ProofreadApiTest {
 
     @MockitoBean
     private Proofreader proofreader;
+
+    @MockitoSpyBean
+    private StringRedisTemplate redis;
 
     private MockMvc mvc;
     private Member member;
@@ -195,5 +208,44 @@ class ProofreadApiTest {
                 .andExpect(jsonPath("$.dailyLimit").value(3))
                 .andExpect(jsonPath("$.remaining").value(3))
                 .andExpect(jsonPath("$.maxLength").value(100));
+    }
+
+    /** Redis 값 연산을 엿보는 대역. 정한 연산만 실패하게 한다. */
+    private ValueOperations<String, String> spyValueOps() {
+        ValueOperations<String, String> ops = spy(redis.opsForValue());
+        doReturn(ops).when(redis).opsForValue();
+        return ops;
+    }
+
+    @Test
+    void 결과를_보관하지_못해도_받은_교정은_돌려주고_횟수는_하나_쓴다() throws Exception {
+        String content = unique("됬다");
+        when(proofreader.proofread(content)).thenReturn(List.of(new Suggestion("spelling", "", "됬다", "됐다", "맞춤법")));
+        ValueOperations<String, String> ops = spyValueOps();
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(ops).set(anyString(), anyString(), any(Duration.class));
+
+        proofread(content).andExpect(status().isOk())
+                .andExpect(jsonPath("$.corrections[0].replacement").value("됐다"))
+                .andExpect(jsonPath("$.remaining").value(2));
+    }
+
+    @Test
+    void 횟수를_셀_수_없으면_AI를_부르지_않고_503() throws Exception {
+        ValueOperations<String, String> ops = spyValueOps();
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(ops).increment(anyString());
+
+        proofread(unique("글")).andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("PROOFREAD_UNAVAILABLE"));
+        verify(proofreader, never()).proofread(anyString());
+    }
+
+    @Test
+    void 횟수_키에_수명을_주지_못하면_올린_것을_되돌리고_503() throws Exception {
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(redis).expire(anyString(), any(Duration.class));
+
+        proofread(unique("글")).andExpect(status().isServiceUnavailable());
+        verify(proofreader, never()).proofread(anyString());
+        reset(redis);
+        mvc.perform(get(PROOFREAD).session(session)).andExpect(jsonPath("$.remaining").value(3));
     }
 }

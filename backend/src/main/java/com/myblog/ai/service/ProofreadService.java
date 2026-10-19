@@ -81,7 +81,14 @@ public class ProofreadService {
             return new Result(cached, remaining(memberId), true);
         }
         String countKey = countKey(memberId);
-        long used = take(countKey);
+        long used;
+        try {
+            used = take(countKey);
+        } catch (RuntimeException e) {
+            // 횟수를 셀 수 없으면 AI를 부르지 않는다 (하루 한도를 지킬 수 없다)
+            log.warn("빨간 펜 횟수를 세지 못했습니다: {}", e.toString());
+            throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
         if (used > properties.dailyLimit()) {
             redis.opsForValue().decrement(countKey);
             throw new ApiException(ErrorCode.PROOFREAD_LIMIT_EXCEEDED,
@@ -105,13 +112,21 @@ public class ProofreadService {
         return (int) Math.max(0, properties.dailyLimit() - used);
     }
 
-    /** 오늘 횟수를 하나 올리고 올린 값을 돌려준다. 처음 만든 키에는 다음 한국 자정 + 여유까지의 수명을 준다. */
+    /**
+     * 오늘 횟수를 하나 올리고 올린 값을 돌려준다. 처음 만든 키에는 다음 한국 자정 + 여유까지의 수명을 준다.
+     * 수명을 주지 못하면 올린 것을 되돌린다(수명 없는 키가 남지 않게).
+     */
     private long take(String countKey) {
         Long used = redis.opsForValue().increment(countKey);
         if (used != null && used == 1) {
-            Instant now = clock.instant();
-            Instant tomorrow = today().plusDays(1).atStartOfDay(properties.zone()).toInstant();
-            redis.expire(countKey, Duration.between(now, tomorrow).plus(properties.countMargin()));
+            try {
+                Instant now = clock.instant();
+                Instant tomorrow = today().plusDays(1).atStartOfDay(properties.zone()).toInstant();
+                redis.expire(countKey, Duration.between(now, tomorrow).plus(properties.countMargin()));
+            } catch (RuntimeException e) {
+                redis.delete(countKey);
+                throw e;
+            }
         }
         return used == null ? 1 : used;
     }
@@ -124,8 +139,15 @@ public class ProofreadService {
         return LocalDate.ofInstant(clock.instant(), properties.zone());
     }
 
+    /** 보관한 결과. 없거나 Redis를 읽지 못하면 null(AI를 부른다). */
     private List<Correction> readCached(String key) {
-        String json = redis.opsForValue().get(key);
+        String json;
+        try {
+            json = redis.opsForValue().get(key);
+        } catch (RuntimeException e) {
+            log.warn("빨간 펜 결과 보관을 읽지 못했습니다: {}", e.toString());
+            return null;
+        }
         if (json == null) {
             return null;
         }
@@ -137,8 +159,13 @@ public class ProofreadService {
         }
     }
 
+    /** 결과를 보관한다. 실패해도 이미 받은 교정은 돌려준다(보관은 잃어도 되는 값). */
     private void writeCached(String key, List<Correction> corrections) {
-        redis.opsForValue().set(key, jsonMapper.writeValueAsString(corrections), properties.cacheTtl());
+        try {
+            redis.opsForValue().set(key, jsonMapper.writeValueAsString(corrections), properties.cacheTtl());
+        } catch (RuntimeException e) {
+            log.warn("빨간 펜 결과를 보관하지 못했습니다: {}", e.toString());
+        }
     }
 
     private static String sha256(String content) {

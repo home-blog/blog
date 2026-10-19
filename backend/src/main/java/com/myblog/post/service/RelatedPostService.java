@@ -108,8 +108,13 @@ public class RelatedPostService {
             return null;
         }
         String[] parts = value.split("\\|", 2);
-        List<Long> ids = parts[1].isEmpty() ? List.of()
-                : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
+        List<Long> ids;
+        try {
+            ids = parts[1].isEmpty() ? List.of() : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
+        } catch (NumberFormatException e) {
+            log.warn("비슷한 글 보관 값이 올바르지 않습니다 (글 {}): {}", postId, value);
+            return null;
+        }
         return new RelatedView(parts[0], feedService.rowsOf(ids));
     }
 
