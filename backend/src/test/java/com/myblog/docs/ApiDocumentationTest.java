@@ -24,7 +24,10 @@ import com.myblog.ai.service.Proofreader.Suggestion;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -760,7 +763,9 @@ class ApiDocumentationTest {
         when(proofreader.proofread(anyString())).thenReturn(List.of(
                 new Suggestion("spacing", "오늘은 ", "할수있다고", "할 수 있다고", "의존 명사 '수'는 띄어 씁니다"),
                 new Suggestion("spelling", "믿었다. ", "몇일", "며칠", "'며칠'이 표준어입니다")));
-        redis.delete(redis.keys("proofread:result:*")); // 같은 본문의 앞 결과를 지워 예시가 늘 같게
+        // 이 예시 본문의 앞 결과만 지워 예시가 늘 같게 한다 (다른 본문의 보관 결과는 건드리지 않는다)
+        redis.delete("proofread:result:" + HexFormat.of().formatHex(
+                MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8))));
         mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/proofread"), session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json("content", content)))

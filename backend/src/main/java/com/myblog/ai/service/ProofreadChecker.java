@@ -111,6 +111,16 @@ public class ProofreadChecker {
         return trimmed.length() > REASON_MAX ? trimmed.substring(0, REASON_MAX) : trimmed;
     }
 
+    /** CommonMark의 닫는 줄: 여는 표시와 같은 글자로 같거나 더 길고, 뒤에는 공백만 있다. */
+    private static boolean closes(String line, String fence) {
+        char mark = fence.charAt(0);
+        int run = 0;
+        while (run < line.length() && line.charAt(run) == mark) {
+            run++;
+        }
+        return run >= fence.length() && line.substring(run).isBlank();
+    }
+
     /** 고치지 않는 구간: 코드 블록(``` ~~~), 인라인 코드, 링크·이미지 주소 (…), 자동 링크 <…>, 맨 주소. */
     static List<int[]> protectedRanges(String text) {
         List<int[]> ranges = new ArrayList<>();
@@ -125,7 +135,7 @@ public class ProofreadChecker {
             if (fence == null && marker.find()) {
                 fence = marker.group(1);
                 fenceStart = lineStart;
-            } else if (fence != null && line.startsWith(fence)) {
+            } else if (fence != null && closes(line, fence)) {
                 ranges.add(new int[] {fenceStart, end});
                 fence = null;
             }

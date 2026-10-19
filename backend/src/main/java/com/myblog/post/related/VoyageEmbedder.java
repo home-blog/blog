@@ -36,9 +36,10 @@ public class VoyageEmbedder implements Embedder {
         this.jsonMapper = jsonMapper;
     }
 
+    /** 모델 이름 + 차원 (예: voyage-3.5@1024). 차원만 바꿔도 모두 다시 만든다. */
     @Override
     public String model() {
-        return properties.model();
+        return properties.model() + "@" + properties.dimensions();
     }
 
     @Override

@@ -12,10 +12,12 @@ import com.myblog.post.repository.PostEmbeddingRepository.Neighbor;
 import com.myblog.post.repository.PostRepository;
 import com.myblog.post.service.PostFeedService.FeedRow;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>뜻 정보가 있으면 뜻이 가까운 순(코사인 유사도, basis meaning). 없거나 AI가 꺼져 있으면 겹치는 태그 수 → 같은 주제 → 최신 순(basis tags)</li>
  *   <li>그 글 자신과 볼 수 없는 글은 뺀다. 한 블로그의 글은 per-blog개까지 섞는다(S2-2, S2-3)</li>
  *   <li>그 글을 볼 수 없으면 글 읽기와 같은 404(S2-1)</li>
+ *   <li>고른 글 번호는 Redis에 cache-ttl 동안 둔다(요청마다 후보 벡터를 다 읽지 않게). 그 글의 뜻 정보가 바뀌면 지운다.
+ *       번호만 두고 카드는 매번 공개 규칙으로 다시 읽으므로, 그사이 비공개가 된 글은 나오지 않는다</li>
  * </ul>
  */
 @Service
@@ -38,9 +42,11 @@ public class RelatedPostService {
     private final Embedder embedder;
     private final PostFeedService feedService;
     private final RelatedProperties properties;
+    private final StringRedisTemplate redis;
 
     public RelatedPostService(PostRepository posts, BlogDirectory blogDirectory, PostVisibility visibility,
-            PostEmbeddingRepository embeddings, Embedder embedder, PostFeedService feedService, RelatedProperties properties) {
+            PostEmbeddingRepository embeddings, Embedder embedder, PostFeedService feedService, RelatedProperties properties,
+            StringRedisTemplate redis) {
         this.posts = posts;
         this.blogDirectory = blogDirectory;
         this.visibility = visibility;
@@ -48,6 +54,12 @@ public class RelatedPostService {
         this.embedder = embedder;
         this.feedService = feedService;
         this.properties = properties;
+        this.redis = redis;
+    }
+
+    /** 이 글의 비슷한 글 번호를 두는 Redis 키. 값은 "basis|번호,번호". */
+    public static String cacheKey(long postId) {
+        return "related:" + postId;
     }
 
     /** basis: meaning(뜻) 또는 tags(태그·주제 대체). */
@@ -64,11 +76,22 @@ public class RelatedPostService {
         if (!visibility.canSee(post.getVisibility(), category, viewerId)) {
             throw PostReadService.notFound();
         }
-        List<Long> chosen = byMeaning(postId);
-        if (!chosen.isEmpty()) {
-            return new RelatedView("meaning", feedService.rowsOf(chosen));
+        String cached = redis.opsForValue().get(cacheKey(postId));
+        if (cached != null && cached.contains("|")) {
+            String[] parts = cached.split("\\|", 2);
+            List<Long> ids = parts[1].isEmpty() ? List.of()
+                    : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
+            return new RelatedView(parts[0], feedService.rowsOf(ids));
         }
-        return new RelatedView("tags", feedService.rowsOf(byTags(postId)));
+        List<Long> chosen = byMeaning(postId);
+        String basis = "meaning";
+        if (chosen.isEmpty()) {
+            chosen = byTags(postId);
+            basis = "tags";
+        }
+        redis.opsForValue().set(cacheKey(postId),
+                basis + "|" + String.join(",", chosen.stream().map(String::valueOf).toList()), properties.cacheTtl());
+        return new RelatedView(basis, feedService.rowsOf(chosen));
     }
 
     private List<Long> byMeaning(Long postId) {

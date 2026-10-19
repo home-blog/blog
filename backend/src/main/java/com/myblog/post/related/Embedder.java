@@ -8,7 +8,7 @@ import java.util.List;
  */
 public interface Embedder {
 
-    /** 저장할 때 함께 적는 모델 이름. 모델이 바뀌면 다시 만든다. */
+    /** 저장할 때 함께 적는 모델 이름(차원 포함, 50자 이하). 이것이 바뀌면 다시 만든다. */
     String model();
 
     boolean available();

@@ -184,6 +184,7 @@ related:
   count: 4                 # 보여 주는 비슷한 글 수
   per-blog: 2              # 한 블로그의 글은 이만큼까지
   max-candidates: 3000     # 뜻이 가까운지 견주는 공개 글 수 (최신순)
+  cache-ttl: 10m           # 고른 비슷한 글 번호를 Redis에 두는 시간 (그 글의 뜻 정보가 바뀌면 바로 지운다)
 
 # 로봇이 읽는 주소: RSS, 사이트 지도 (specs/007 US5·US6, 가안)
 share:

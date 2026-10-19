@@ -15,7 +15,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "related")
 public record RelatedProperties(String provider, String withoutKey, String apiKey, String baseUrl, String model,
-        int dimensions, int maxChars, Duration timeout, int batchSize, int count, int perBlog, int maxCandidates) {
+        int dimensions, int maxChars, Duration timeout, int batchSize, int count, int perBlog, int maxCandidates,
+        Duration cacheTtl) {
 
     private static final Set<String> PROVIDERS = Set.of("auto", "voyage", "fake", "off");
 

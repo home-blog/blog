@@ -133,4 +133,31 @@ class ProofreadCheckerTest {
 
         assertThat(found).singleElement().satisfies(c -> assertThat(c.reason()).hasSize(ProofreadChecker.REASON_MAX));
     }
+
+    @Test
+    void 코드_블록_안의_언어_표시_줄은_블록을_닫지_않는다() {
+        // CommonMark: 닫는 줄은 여는 표시와 같은 글자로 같거나 더 길고, 뒤에는 공백만 있어야 한다
+        String text = """
+                ````
+                ```js
+                됬다
+                ```
+                됬다
+                ````
+                바깥 됬다
+                """;
+        List<Correction> found = checker.check(text, List.of(
+                s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다")));
+
+        assertThat(found).extracting(Correction::start).containsExactly(text.indexOf("바깥 됬다") + 3);
+    }
+
+    @Test
+    void 닫는_표시_뒤에_글자가_있으면_닫지_않는다() {
+        String text = "```\n됬다\n``` 아님\n됬다\n```\n밖 됬다";
+        List<Correction> found = checker.check(text, List.of(
+                s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다"), s("spelling", "", "됬다", "됐다")));
+
+        assertThat(found).extracting(Correction::start).containsExactly(text.indexOf("밖 됬다") + 2);
+    }
 }

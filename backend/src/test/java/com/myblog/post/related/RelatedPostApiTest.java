@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -56,6 +58,9 @@ class RelatedPostApiTest {
 
     @MockitoSpyBean
     private Embedder embedder;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     private MockMvc mvc;
     private Long topicId;
@@ -220,5 +225,53 @@ class RelatedPostApiTest {
 
     private int count(Long postId) {
         return jdbc.queryForObject("select count(*) from post_embedding where post_id = ?", Integer.class, postId);
+    }
+
+    @Test
+    void 묶음이_실패하면_한_글씩_다시_보내_실패한_글만_건너뛴다() {
+        Member a = members.register("rel");
+        Long bad = post(a, "거절될 글", "본문 " + word, "public");
+        Long ok = post(a, "괜찮은 글", "본문 " + word, "public");
+        doAnswer(call -> {
+            List<String> texts = call.getArgument(0);
+            if (texts.size() > 1 || texts.get(0).startsWith("거절될 글")) { // 거절되는 글이 앞에 와도 뒤 글은 저장된다
+                throw new Embedder.UnavailableException("이 글은 받지 않음");
+            }
+            return call.callRealMethod();
+        }).when(embedder).embed(anyList());
+
+        int saved = embeddings.refresh(List.of(bad, ok));
+
+        assertThat(saved).isOne();
+        assertThat(count(ok)).isOne();
+        assertThat(count(bad)).isZero();
+    }
+
+    @Test
+    void 한_글씩_보낸_글이_연달아_두_번_실패하면_장애로_보고_멈춘다() {
+        Member a = members.register("rel");
+        List<Long> ids = List.of(post(a, "하나", "본문 " + word, "public"), post(a, "둘", "본문 " + word, "public"),
+                post(a, "셋", "본문 " + word, "public"));
+        clearInvocations(embedder);
+        doThrow(new Embedder.UnavailableException("장애")).when(embedder).embed(anyList());
+
+        assertThat(embeddings.refresh(ids)).isZero();
+        // 묶음 한 번 + 한 글씩 두 번 (세 번째 글은 보내지 않는다)
+        verify(embedder, times(3)).embed(anyList());
+    }
+
+    @Test
+    void 비슷한_글은_잠깐_보관하고_그_글의_뜻_정보가_바뀌면_지운다() throws Exception {
+        Member a = members.register("rel");
+        Long source = post(a, "보관할 글", repeat("보관 시험"), "public");
+        embeddings.refresh(List.of(source));
+        String key = "related:" + source;
+
+        mvc.perform(get("/api/v1/posts/" + source + "/related")).andExpect(status().isOk());
+        assertThat(redis.hasKey(key)).isTrue();
+
+        jdbc.update("update post set content = ?, updated_at = now() where post_id = ?", repeat("바뀐 본문"), source);
+        embeddings.refresh(List.of(source));
+        assertThat(redis.hasKey(key)).isFalse();
     }
 }

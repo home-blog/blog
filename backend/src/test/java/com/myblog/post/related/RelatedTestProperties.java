@@ -11,6 +11,6 @@ final class RelatedTestProperties {
 
     static RelatedProperties with(String provider, String apiKey, int dimensions) {
         return new RelatedProperties(provider, "off", apiKey, "https://api.voyageai.com/v1", "voyage-3.5", dimensions,
-                4000, Duration.ofSeconds(20), 32, 4, 2, 3000);
+                4000, Duration.ofSeconds(20), 32, 4, 2, 3000, Duration.ofMinutes(10));
     }
 }

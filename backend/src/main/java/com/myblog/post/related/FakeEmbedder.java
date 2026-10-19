@@ -16,7 +16,7 @@ public class FakeEmbedder implements Embedder {
 
     @Override
     public String model() {
-        return "fake";
+        return "fake@" + dimensions;
     }
 
     @Override
