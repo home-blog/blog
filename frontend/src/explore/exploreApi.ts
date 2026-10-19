@@ -143,3 +143,16 @@ export interface SiteSummary {
 export function getSiteSummary(signal?: AbortSignal): Promise<SiteSummary> {
   return api<SiteSummary>('/api/v1/posts/summary', { signal })
 }
+
+/** 실시간 인기 검색어 한 줄 (specs/015 US1). change: 10분 전 순위와 견준 변화 */
+export interface Trend {
+  rank: number
+  keyword: string
+  change: 'up' | 'down' | 'new' | 'same'
+  /** 올라가거나 내려간 칸 수 (new·same이면 0) */
+  delta: number
+}
+
+export function getTrending(signal?: AbortSignal): Promise<{ items: Trend[] }> {
+  return api<{ items: Trend[] }>('/api/v1/search/trending', { signal })
+}

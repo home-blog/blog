@@ -158,7 +158,7 @@
     grid-template-columns: 1fr;
   }
 
-  .home-popular {
+  .home-side {
     order: -1;
   }
 }
@@ -293,10 +293,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── 이번 주 인기 글: 번호를 원고지 칸에 ── */
-.home-popular {
+/* ── 옆칸: 이번 주 인기 글 + 지금 많이 찾는 말 ── */
+.home-side {
   position: sticky;
   top: 1rem;
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* ── 이번 주 인기 글: 번호를 원고지 칸에 ── */
+.home-popular {
   padding: 1.15rem;
   border: 1px solid var(--grid);
   border-radius: 10px;
@@ -305,7 +312,7 @@
 }
 
 @media (max-width: 60rem) {
-  .home-popular {
+  .home-side {
     position: static;
   }
 }

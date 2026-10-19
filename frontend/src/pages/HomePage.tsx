@@ -1,5 +1,5 @@
 // 첫 화면: 여러 블로그의 공개 글을 한곳에서 (티스토리 첫 화면처럼).
-// 주제 탭(전체·여행·음식·취미·운동·개발), 맨 위 큰 카드(specs/008), 이번 주 인기 글, 최신 글 목록과 페이지 번호. 로그인 없이 본다.
+// 주제 탭(전체·여행·음식·취미·운동·개발), 맨 위 큰 카드(specs/008), 이번 주 인기 글, 지금 많이 찾는 말(specs/015), 최신 글 목록과 페이지 번호. 로그인 없이 본다.
 // 주소: /?topic=여행&page=2. 주제는 서버가 정한 다섯 개 이름 그대로 쓴다
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
@@ -7,6 +7,7 @@ import { ApiError } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import FeaturedPost from '../explore/FeaturedPost'
 import FeedItem from '../explore/FeedItem'
+import TrendingKeywords from '../explore/TrendingKeywords'
 import Pagination from '../explore/Pagination'
 import { getFeed, getPopular, type FeedPage, type PopularPosts } from '../explore/exploreApi'
 import { formatDate, pageFrom } from '../explore/rules'
@@ -134,37 +135,40 @@ export default function HomePage() {
           )}
         </section>
 
-        <aside className="home-popular" aria-labelledby="home-popular-title">
-          <h2 id="home-popular-title" className="home-section-title">
-            <span className="ink-highlight">이번 주 인기 글</span>
-          </h2>
-          {!shownPopular ? (
-            <p className="hint">불러오는 중</p>
-          ) : 'error' in shownPopular ? (
-            <p className="hint">인기 글을 불러오지 못했습니다.</p>
-          ) : shownPopular.data.posts.length === 0 ? (
-            <p className="hint">아직 인기 글이 없습니다.</p>
-          ) : (
-            <ol className="popular-list rise-list">
-              {shownPopular.data.posts.map((post, index) => (
-                <li key={post.postId} className={index === 0 ? 'popular-item popular-first' : 'popular-item'}>
-                  <span className="popular-rank" aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span className="popular-body">
-                    <Link to={`/posts/${post.postId}`} className="popular-title">
-                      {post.title}
-                    </Link>
-                    <span className="popular-meta">
-                      <Link to={`/blog/${post.blogId}`}>{post.blogName}</Link>
-                      <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
+        <div className="home-side">
+          <aside className="home-popular" aria-labelledby="home-popular-title">
+            <h2 id="home-popular-title" className="home-section-title">
+              <span className="ink-highlight">이번 주 인기 글</span>
+            </h2>
+            {!shownPopular ? (
+              <p className="hint">불러오는 중</p>
+            ) : 'error' in shownPopular ? (
+              <p className="hint">인기 글을 불러오지 못했습니다.</p>
+            ) : shownPopular.data.posts.length === 0 ? (
+              <p className="hint">아직 인기 글이 없습니다.</p>
+            ) : (
+              <ol className="popular-list rise-list">
+                {shownPopular.data.posts.map((post, index) => (
+                  <li key={post.postId} className={index === 0 ? 'popular-item popular-first' : 'popular-item'}>
+                    <span className="popular-rank" aria-hidden="true">
+                      {index + 1}
                     </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </aside>
+                    <span className="popular-body">
+                      <Link to={`/posts/${post.postId}`} className="popular-title">
+                        {post.title}
+                      </Link>
+                      <span className="popular-meta">
+                        <Link to={`/blog/${post.blogId}`}>{post.blogName}</Link>
+                        <time dateTime={post.createdAt}>{formatDate(post.createdAt)}</time>
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </aside>
+          <TrendingKeywords />
+        </div>
       </div>
     </div>
   )
