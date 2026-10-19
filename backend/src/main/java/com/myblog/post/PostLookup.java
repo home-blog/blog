@@ -12,11 +12,18 @@ public interface PostLookup {
     /** viewerId는 로그인하지 않았으면 null. */
     Optional<PostRef> findVisible(Long postId, Long viewerId);
 
+    /** 볼 수 있는 글의 제목·본문·블로그 이름까지 (문장 수집이 본문에 있는 문장인지 견준다, specs/015 US3). */
+    Optional<PostText> findVisibleText(Long postId, Long viewerId);
+
     /** 글과 그 블로그, 블로그 주인(= 글 작성자). */
     record PostRef(Long postId, Long blogId, Long ownerId) {
 
         public boolean isOwnedBy(Long memberId) {
             return memberId != null && memberId.equals(ownerId);
         }
+    }
+
+    /** 글 번호, 블로그 주인, 제목, 마크다운 본문, 블로그 이름. */
+    record PostText(Long postId, Long ownerId, String title, String content, String blogName) {
     }
 }

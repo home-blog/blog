@@ -247,6 +247,10 @@ community:
       secret-key: ${IMAGE_S3_SECRET_KEY:}
     disk:
       directory: ${IMAGE_DISK_DIRECTORY:./data/images}
+  clip:                    # 문장 수집·필사 노트 (specs/015 US3)
+    max-length: 300        # 한 문장 (sentence_clip.text 칸(300)보다 길게 정하면 서버가 켜지지 않는다)
+    max-per-member: 1000   # 한 사람이 모을 수 있는 문장 수
+    page-size: 20          # 필사 노트 한 쪽
 
 # 공지사항 (specs/012 research D-5, D-10). 글자는 코드 포인트로 센다. 릴리스 링크는 번호만 저장하고 이 틀로 만든다
 notice:
