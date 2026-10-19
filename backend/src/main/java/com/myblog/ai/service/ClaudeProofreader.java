@@ -77,6 +77,11 @@ public class ClaudeProofreader implements Proofreader, AutoCloseable {
     }
 
     @Override
+    public String mode() {
+        return "ai";
+    }
+
+    @Override
     public boolean available() {
         return true;
     }

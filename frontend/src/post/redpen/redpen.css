@@ -228,3 +228,9 @@
     background: var(--seal);
   }
 }
+
+/* 무엇으로 찾았는지 알리는 한 줄 (규칙 교정) */
+.redpen-source {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}

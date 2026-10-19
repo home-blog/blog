@@ -10,13 +10,16 @@ interface Props {
   base: string
   corrections: Correction[]
   decisions: Decision[]
-  remaining: number
+  /** 오늘 남은 횟수. 횟수를 세지 않는 규칙 교정이면 null(보이지 않는다) */
+  remaining: number | null
+  /** 교정지 아래에 붙이는 한 줄 (규칙 교정이면 무엇으로 찾았는지) */
+  note?: string
   onDecide: (index: number, decision: Decision) => void
   onAcceptAll: () => void
   onClose: () => void
 }
 
-export default function RedPenSheet({ base, corrections, decisions, remaining, onDecide, onAcceptAll, onClose }: Props) {
+export default function RedPenSheet({ base, corrections, decisions, remaining, note, onDecide, onAcceptAll, onClose }: Props) {
   const [selected, setSelected] = useState<number | null>(() => (corrections.length > 0 ? 0 : null))
   const left = pendingCount(decisions)
   const current = selected === null ? null : corrections[selected]
@@ -41,7 +44,7 @@ export default function RedPenSheet({ base, corrections, decisions, remaining, o
         {corrections.length > 0 && left === 0 && <Seal text="퇴고" small stampOnView label="퇴고 완료" />}
         <span className="redpen-count" role="status" aria-live="polite">
           {corrections.length === 0 ? '고칠 곳이 없습니다' : left > 0 ? `고칠 곳 ${left}개 남음` : '모두 정했습니다'}
-          <span className="hint"> · 오늘 {remaining}번 남음</span>
+          {remaining !== null && <span className="hint"> · 오늘 {remaining}번 남음</span>}
         </span>
         <span className="redpen-head-actions">
           {left > 0 && (
@@ -87,6 +90,7 @@ export default function RedPenSheet({ base, corrections, decisions, remaining, o
           })}
         </p>
       </article>
+      {note && <p className="redpen-source hint">{note}</p>}
 
       {current && decisions[selected!] === 'pending' && (
         <div className="redpen-note" role="region" aria-label="고칠 곳">

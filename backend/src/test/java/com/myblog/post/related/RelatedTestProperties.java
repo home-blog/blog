@@ -10,7 +10,12 @@ final class RelatedTestProperties {
     }
 
     static RelatedProperties with(String provider, String apiKey, int dimensions) {
-        return new RelatedProperties(provider, "off", apiKey, "https://api.voyageai.com/v1", "voyage-3.5", dimensions,
-                4000, Duration.ofSeconds(20), 32, 4, 2, 3000, 4, 200, Duration.ofMinutes(10));
+        return with(provider, apiKey, "", dimensions);
+    }
+
+    static RelatedProperties with(String provider, String apiKey, String ollamaUrl, int dimensions) {
+        return new RelatedProperties(provider, "local", apiKey, "https://api.voyageai.com/v1", "voyage-3.5", ollamaUrl,
+                "bge-m3", Duration.ofSeconds(120), dimensions, 4000, Duration.ofSeconds(20), 32, 4, 2, 3000, 4, 200,
+                Duration.ofMinutes(10));
     }
 }

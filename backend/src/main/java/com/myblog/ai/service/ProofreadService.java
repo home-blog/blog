@@ -53,7 +53,7 @@ public class ProofreadService {
     }
 
     /** 글쓰기 화면이 단추를 그릴지 정하는 값 (contracts 1). */
-    public record Status(boolean enabled, int dailyLimit, int remaining, int maxLength) {
+    public record Status(boolean enabled, String mode, int dailyLimit, int remaining, int maxLength) {
     }
 
     /** 교정 결과. remaining은 오늘 남은 횟수, cached는 같은 본문의 앞 결과를 다시 쓴 것. */
@@ -61,10 +61,12 @@ public class ProofreadService {
     }
 
     public Status status(Long memberId) {
-        return new Status(proofreader.available(), properties.dailyLimit(), remaining(memberId), properties.maxLength());
+        int remaining = countsUse() ? remaining(memberId) : properties.dailyLimit();
+        return new Status(proofreader.available(), proofreader.mode(), properties.dailyLimit(), remaining,
+                properties.maxLength());
     }
 
-    public Result proofread(Long memberId, String content) {
+    public Result proofread(Long memberId, String content, boolean aiConsent) {
         if (content == null || content.isBlank()) {
             throw new ApiException(ErrorCode.PROOFREAD_EMPTY);
         }
@@ -74,6 +76,14 @@ public class ProofreadService {
         }
         if (!proofreader.available()) {
             throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
+        if (countsUse() && !aiConsent) {
+            // 화면이 연 뒤 서버의 교정기가 규칙에서 AI로 바뀌어도, 동의 없이 본문을 밖으로 보내지 않는다
+            throw new ApiException(ErrorCode.PROOFREAD_CONSENT_REQUIRED);
+        }
+        if (!countsUse()) {
+            // 규칙 교정은 서버 안에서 바로 끝나고 돈이 들지 않으므로 횟수를 세지도, 결과를 보관하지도 않는다
+            return new Result(check(content), properties.dailyLimit(), false);
         }
         String resultKey = "proofread:result:" + sha256(content);
         List<Correction> cached = readCached(resultKey);
@@ -96,14 +106,27 @@ public class ProofreadService {
         }
         List<Correction> corrections;
         try {
-            corrections = checker.check(content, proofreader.proofread(content));
-        } catch (RuntimeException e) {
+            corrections = check(content);
+        } catch (ApiException e) {
             release(countKey);
-            log.warn("빨간 펜을 쓰지 못했습니다: {}", e.getMessage());
-            throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+            throw e;
         }
         writeCached(resultKey, corrections);
         return new Result(corrections, (int) Math.max(0, properties.dailyLimit() - used), false);
+    }
+
+    /** 밖의 AI처럼 돈이 드는 교정기만 하루 횟수를 세고 결과를 보관한다. */
+    private boolean countsUse() {
+        return "ai".equals(proofreader.mode());
+    }
+
+    private List<Correction> check(String content) {
+        try {
+            return checker.check(content, proofreader.proofread(content));
+        } catch (RuntimeException e) {
+            log.warn("빨간 펜을 쓰지 못했습니다: {}", e.getMessage());
+            throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
     }
 
     /** 오늘 남은 횟수. Redis를 읽지 못하거나 값이 숫자가 아니면 503(화면은 단추를 숨긴다). */

@@ -13,9 +13,11 @@
 #                            DB_ADDRESS, DB_PORT, DB_NAME, DB_SCHEMA, DB_USERNAME, DB_PASSWORD (실습 DB)
 #                 있으면 씀:  MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD (인증 메일. 없으면 가입이 안 된다)
 #                             SOCIAL_{GITHUB|GOOGLE|KAKAO|NAVER}_CLIENT_ID, ..._CLIENT_SECRET (소셜 로그인. 없는 회사는 버튼이 안 보인다)
-#                             ANTHROPIC_API_KEY (빨간 펜 교정, Claude API. 없으면 빨간 펜 단추가 안 보인다)
-#                             VOYAGE_API_KEY (비슷한 글 임베딩, Voyage AI. 없으면 태그·주제가 겹치는 글로 대신한다)
+#                             ANTHROPIC_API_KEY (빨간 펜 AI 교정, Claude API, 유료. 없으면 무료 규칙 교정)
+#                             VOYAGE_API_KEY (비슷한 글 임베딩, Voyage AI, 유료. 없으면 Ollama, 그것도 없으면 태그·주제로 대신)
 #           (Repository variables, 있으면 씀): SESSION_COOKIE_SECURE (HTTPS가 붙으면 true. 없으면 false)
+#                             OLLAMA_ENABLED (true면 서버에 무료 AI Ollama(bge-m3)를 켜 비슷한 글을 뜻으로 고른다.
+#                                             메모리·디스크가 모자라면 remote-deploy.sh가 켜지 않는다. specs/014 D-17)
 # 서버에는 ~/<DEPLOY_NAME> 폴더 하나만 쓴다. 화면 입구는 127.0.0.1:<WEB_PORT>(a)·<WEB_PORT_B>(b), 도메인 연결은 deploy/README.md 참고
 # 앱 두 벌을 한 벌씩 바꾸므로(롤링) 배포 중에도 사이트가 끊기지 않는다 (specs/011)
 name: 배포
@@ -171,6 +173,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
           SESSION_COOKIE_SECURE: ${{ vars.SESSION_COOKIE_SECURE || 'false' }}
+          OLLAMA_ENABLED: ${{ vars.OLLAMA_ENABLED || 'false' }}
         run: |
           # 비밀번호는 명령줄이 아닌 환경 변수(SSHPASS)로 넘긴다
           remote() { sshpass -e ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$SSH_ID@$SSH_ADDRESS" "$@"; }
@@ -184,7 +187,7 @@ jobs:
                    MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE \
                    SOCIAL_GITHUB_CLIENT_ID SOCIAL_GITHUB_CLIENT_SECRET SOCIAL_GOOGLE_CLIENT_ID SOCIAL_GOOGLE_CLIENT_SECRET \
                    SOCIAL_KAKAO_CLIENT_ID SOCIAL_KAKAO_CLIENT_SECRET SOCIAL_NAVER_CLIENT_ID SOCIAL_NAVER_CLIENT_SECRET \
-                   ANTHROPIC_API_KEY VOYAGE_API_KEY; do
+                   ANTHROPIC_API_KEY VOYAGE_API_KEY OLLAMA_ENABLED; do
             if [ -n "${!k}" ]; then printf '%s=%q\n' "$k" "${!k}"; fi
           done | remote "umask 077 && cat > $dir/.env.deploy"
 
