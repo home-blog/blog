@@ -20,6 +20,8 @@ create temporary table demo_posts on commit drop as
     where c.blog_id in (select blog_id from demo_blogs);
 
 delete from post_like where post_id in (select post_id from demo_posts) or users_id in (select users_id from demo_users);
+-- 0.14.0 답글: 예시 회원의 댓글에 남이 단 답글을 먼저 지운다 (답글이 원댓글을 가리킨다)
+delete from comment where parent_id in (select comment_id from comment where users_id in (select users_id from demo_users));
 delete from comment where post_id in (select post_id from demo_posts) or users_id in (select users_id from demo_users);
 delete from post_tag where post_id in (select post_id from demo_posts);
 delete from post_daily_stat where post_id in (select post_id from demo_posts);

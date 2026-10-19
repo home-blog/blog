@@ -9,7 +9,7 @@ export const commentMessages = {
   tooLong: `※ 댓글은 ${COMMENT_MAX_LENGTH}자 이하로 입력해 주세요`,
   loginRequired: '로그인한 회원만 댓글을 쓸 수 있습니다',
   withdrawn: '탈퇴한 사용자',
-  sealed: '봉한 쪽지입니다. 쓴 사람과 블로그 주인만 읽어요',
+  sealed: '봉한 쪽지입니다. 주고받는 사람만 읽어요',
   erased: '지운 댓글입니다',
   failed: '※ 잠시 뒤 다시 시도해 주세요',
 } as const

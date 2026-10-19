@@ -58,8 +58,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     /* 019 답글: 원댓글 줄을 잠가 "답글 수를 센 뒤 지운다"와 "부모를 확인한 뒤 답글을 넣는다"를 한 줄로 세운다 (research D-2) */
 
-    /** 답글 쓰기: 부모 줄을 FOR SHARE로 잡는다 (지우기의 FOR UPDATE와 엇갈린다). 지워졌으면 비어 있다. */
-    @Query(value = "select comment_id from comment where comment_id = :id for share", nativeQuery = true)
+    /**
+     * 답글 쓰기: 부모 줄을 FOR SHARE로 잡는다 (지우기의 FOR UPDATE와 엇갈린다). 지워졌거나 지운 칸이면 비어 있다.
+     * 잠금을 기다린 뒤 PostgreSQL은 WHERE를 새 줄로 다시 보므로, 기다리는 사이 지운 칸이 되어도 여기서 걸린다.
+     */
+    @Query(value = "select comment_id from comment where comment_id = :id and deleted_at is null for share",
+            nativeQuery = true)
     Optional<Long> lockShared(@Param("id") Long id);
 
     /** 지우기: 원댓글 줄을 FOR UPDATE로 잡는다. */

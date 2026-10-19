@@ -135,6 +135,8 @@ export default function CommentSection({ postId, initialCount }: Props) {
   async function remove() {
     const commentId = deleteTarget
     setDeleteTarget(null)
+    // 지우는 댓글에 열어 둔 답글 칸은 닫는다
+    setReplyTo((current) => (current === commentId ? null : current))
     if (commentId === null || deletingId !== null) return
     setDeletingId(commentId)
     setDeleteError(null)
@@ -153,11 +155,20 @@ export default function CommentSection({ postId, initialCount }: Props) {
   /** 카드의 단추들. 답글 단추는 늘 원댓글에 단다 */
   function cardActions(rootId: number) {
     return {
+      rootId,
       deleting: deletingId,
       onDelete: (id: number) => setDeleteTarget(id),
       onReply: () => setReplyTo((current) => (current === rootId ? null : rootId)),
       replying: replyTo === rootId,
     }
+  }
+
+  /** 답글 칸을 닫고, 키보드 자리를 그 원댓글의 답글 단추로 돌려준다 */
+  function closeReply(rootId: number) {
+    setReplyTo(null)
+    requestAnimationFrame(() =>
+      sectionRef.current?.querySelector<HTMLButtonElement>(`[data-reply-root="${rootId}"]`)?.focus(),
+    )
   }
 
   return (
@@ -193,13 +204,20 @@ export default function CommentSection({ postId, initialCount }: Props) {
                   ))}
                 </ol>
               )}
-              {replyTo === root.id && member && (
+              {/* 지운 칸이 되었거나 보는 사람이 바뀌어 답글을 달 수 없으면 열려 있던 칸도 닫힌다 */}
+              {replyTo === root.id && member && root.canReply && !root.deleted && (
                 <ReplyForm
                   root={root}
-                  onCancel={() => setReplyTo(null)}
+                  onCancel={() => closeReply(root.id)}
                   onSend={async (text, wantSecret) => {
-                    const created = await send(text, { parentId: root.id, secret: wantSecret })
-                    if (created) setReplyTo(null)
+                    try {
+                      const created = await send(text, { parentId: root.id, secret: wantSecret })
+                      if (created) closeReply(root.id)
+                    } catch (err) {
+                      // 그사이 원댓글이 지워졌다: 목록을 다시 읽어 지금 모습을 보여 준다
+                      if (err instanceof ApiError && err.status === 404) load(key)
+                      throw err
+                    }
                   }}
                 />
               )}
@@ -273,6 +291,7 @@ export default function CommentSection({ postId, initialCount }: Props) {
 
 interface CardProps {
   comment: CommentItem
+  rootId: number
   deleting: number | null
   replying: boolean
   onDelete: (id: number) => void
@@ -280,7 +299,7 @@ interface CardProps {
 }
 
 /** 댓글 한 장: 지운 칸, 봉한 쪽지, 보통 댓글 */
-function CommentCard({ comment, deleting, replying, onDelete, onReply }: CardProps) {
+function CommentCard({ comment, rootId, deleting, replying, onDelete, onReply }: CardProps) {
   const reply = comment.parentId !== null
   if (comment.deleted) {
     return (
@@ -316,7 +335,13 @@ function CommentCard({ comment, deleting, replying, onDelete, onReply }: CardPro
         </time>
         <span className="comment-actions">
           {comment.canReply && (
-            <button type="button" className="btn btn-quiet btn-small" aria-expanded={replying} onClick={onReply}>
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              aria-expanded={replying}
+              data-reply-root={rootId}
+              onClick={onReply}
+            >
               답글
             </button>
           )}
@@ -380,7 +405,7 @@ function ReplyForm({ root, onSend, onCancel }: ReplyFormProps) {
         autoFocus
         placeholder="답글을 남겨 주세요"
         aria-invalid={error !== null}
-        aria-describedby={error ? `${inputId}-error` : undefined}
+        aria-describedby={`${inputId}-count${error ? ` ${inputId}-error` : ''}`}
         onChange={(e) => {
           setBody(e.target.value)
           setError(null)
@@ -406,7 +431,7 @@ function ReplyForm({ root, onSend, onCancel }: ReplyFormProps) {
         ) : (
           <span />
         )}
-        <span className={`comment-length${length > COMMENT_MAX_LENGTH ? ' is-over' : ''}`}>
+        <span id={`${inputId}-count`} className={`comment-length${length > COMMENT_MAX_LENGTH ? ' is-over' : ''}`}>
           {length} / {COMMENT_MAX_LENGTH}
         </span>
         <button type="button" className="btn btn-quiet btn-small" onClick={onCancel}>

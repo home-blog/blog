@@ -34,6 +34,8 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
@@ -57,6 +59,9 @@ class CommentReplyTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     private MockMvc mvc;
     private final List<Member> created = new ArrayList<>();
@@ -296,6 +301,41 @@ class CommentReplyTest {
                 pool.shutdown();
             }
         }
+    }
+
+    @Test
+    void S1_4_답글이_잠금을_기다리는_사이_원댓글이_지운_칸이_되면_404다() throws Exception {
+        Long parent = writeOk(askerSession, asker);
+        writeOk(ownerSession, owner, "parentId", parent);
+        testComments.rewind(other.id());
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            // 지우는 쪽: 원댓글 줄을 잡고 지운 칸으로 만든 뒤, 답글 요청이 잠금에 걸릴 때까지 커밋하지 않는다
+            Future<?> eraser = pool.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(s -> {
+                jdbc.queryForList("select comment_id from comment where comment_id = ? for update", parent);
+                jdbc.update("update comment set body = '', deleted_at = now() where comment_id = ?", parent);
+                locked.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }));
+            locked.await();
+            Future<Integer> reply = pool.submit(() ->
+                    write(otherSession, postId, "parentId", parent).andReturn().getResponse().getStatus());
+            Thread.sleep(500);
+            release.countDown();
+            eraser.get();
+            assertThat(reply.get()).isEqualTo(404);
+        } finally {
+            release.countDown();
+            pool.shutdown();
+        }
+        assertThat(jdbc.queryForObject("select count(*) from comment where parent_id = ?", Long.class, parent))
+                .isEqualTo(1);
     }
 
     @Test

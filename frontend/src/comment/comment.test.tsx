@@ -167,4 +167,34 @@ describe('댓글 영역', () => {
     expect(await screen.findByText('지운 댓글입니다')).toBeInTheDocument()
     expect(screen.getByText('남는 답글')).toBeInTheDocument()
   })
+
+  it('답글을 다는 사이 원댓글이 지워졌으면 목록을 다시 읽고 답글 칸도 닫힌다', async () => {
+    loggedIn()
+    const stored = [item({ id: 1, body: '곧 지워질 댓글' })]
+    server.use(
+      http.post('/api/v1/posts/1/comments', () => {
+        stored.splice(0, stored.length)
+        return HttpResponse.json({ code: 'COMMENT_NOT_FOUND', message: '※ 댓글을 찾을 수 없습니다' }, { status: 404 })
+      }),
+    )
+    renderSection(stored)
+    const root = (await screen.findByText('곧 지워질 댓글')).closest('li') as HTMLElement
+    fireEvent.click(within(root).getByRole('button', { name: '답글' }))
+    fireEvent.change(within(root).getByLabelText('답글 내용'), { target: { value: '늦은 답글' } })
+    fireEvent.click(within(root).getByRole('button', { name: '답글 등록' }))
+    await waitFor(() => expect(screen.queryByText('곧 지워질 댓글')).not.toBeInTheDocument())
+    expect(screen.queryByLabelText('답글 내용')).not.toBeInTheDocument()
+  })
+
+  it('답글 칸을 취소하면 키보드 자리가 답글 단추로 돌아간다', async () => {
+    loggedIn()
+    renderSection([item({ id: 1, body: '첫 댓글' })])
+    const root = (await screen.findByText('첫 댓글')).closest('li') as HTMLElement
+    const button = within(root).getByRole('button', { name: '답글' })
+    fireEvent.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(within(root).getByRole('button', { name: '취소' }))
+    await waitFor(() => expect(button).toHaveFocus())
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+  })
 })
