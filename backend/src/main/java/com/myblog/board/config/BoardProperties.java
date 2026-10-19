@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "board")
 public record BoardProperties(int pageSize, int recentSize, int titleMaxLength, int contentMaxLength,
-        int commentMaxLength, Duration postInterval, Duration commentInterval) {
+        int commentMaxLength, Duration postInterval, Duration commentInterval, int keywordMaxLength) {
 
     /** board_post.title VARCHAR(100). */
     public static final int TITLE_COLUMN_LENGTH = 100;
@@ -17,8 +17,9 @@ public record BoardProperties(int pageSize, int recentSize, int titleMaxLength, 
     public static final int COMMENT_COLUMN_LENGTH = 1000;
 
     public BoardProperties {
-        if (pageSize < 1 || recentSize < 1 || contentMaxLength < 1) {
-            throw new IllegalStateException("board.page-size, recent-size, content-max-length는 1 이상이어야 합니다");
+        if (pageSize < 1 || recentSize < 1 || contentMaxLength < 1 || keywordMaxLength < 1) {
+            throw new IllegalStateException(
+                    "board.page-size, recent-size, content-max-length, keyword-max-length는 1 이상이어야 합니다");
         }
         if (titleMaxLength < 1 || titleMaxLength > TITLE_COLUMN_LENGTH) {
             throw new IllegalStateException("board.title-max-length는 1 이상 %d 이하여야 합니다".formatted(TITLE_COLUMN_LENGTH));

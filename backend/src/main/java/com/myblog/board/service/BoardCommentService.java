@@ -12,6 +12,7 @@ import com.myblog.common.error.ErrorCode;
 import com.myblog.user.LoggedInMember;
 import com.myblog.user.MemberNames;
 import com.myblog.user.MemberNames.MemberName;
+import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,6 +40,10 @@ public class BoardCommentService {
 
     private static final String MEMBER_LOCK_SQL = "select pg_advisory_xact_lock(hashtextextended(?, 0))";
     private static final String POST_LOCK_SQL = "select board_post_id from board_post where board_post_id = ? for update";
+    /** 댓글 쓰기용: 글이 지워지지 않게 붙잡고, 같은 글의 댓글 쓰기끼리 줄을 세운다(댓글 수를 바로 고치므로) */
+    private static final String POST_WRITE_LOCK_SQL =
+            "select board_post_id from board_post where board_post_id = ? for no key update";
+    private static final String POST_OF_COMMENT_SQL = "select board_post_id from board_comment where board_comment_id = ?";
     private static final ResultSetExtractor<Void> IGNORE = rs -> null;
 
     private final BoardPostRepository posts;
@@ -87,6 +92,10 @@ public class BoardCommentService {
 
     @Transactional
     public CommentView write(Long memberId, Long boardPostId, String content) {
+        // 글을 먼저 붙잡는다: 그사이 글이 지워지면 외래 키 오류(500) 대신 없는 글(404)
+        if (!Boolean.TRUE.equals(jdbc.query(POST_WRITE_LOCK_SQL, ResultSet::next, boardPostId))) {
+            throw new ApiException(ErrorCode.BOARD_POST_NOT_FOUND);
+        }
         BoardPost post = findPost(boardPostId);
         String body = content == null ? "" : content.replace("\r\n", "\n").replace('\r', '\n').strip();
         if (body.isEmpty()) {
@@ -114,13 +123,18 @@ public class BoardCommentService {
 
     @Transactional
     public void delete(Long memberId, Long boardCommentId) {
+        // 글 줄을 잠근 뒤에 댓글을 읽는다: 같은 댓글을 두 번 지우거나 채택과 겹쳐도 옛 값으로 판단하지 않는다
+        Long boardPostId = jdbc.query(POST_OF_COMMENT_SQL, rs -> rs.next() ? rs.getLong(1) : null, boardCommentId);
+        if (boardPostId == null) {
+            throw new ApiException(ErrorCode.BOARD_COMMENT_NOT_FOUND);
+        }
+        jdbc.query(POST_LOCK_SQL, IGNORE, boardPostId);
         BoardComment comment = comments.findById(boardCommentId)
                 .orElseThrow(() -> new ApiException(ErrorCode.BOARD_COMMENT_NOT_FOUND));
         boolean admin = loggedInMember.isAdmin(memberId);
         if (!comment.isWrittenBy(memberId) && !admin) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
-        jdbc.query(POST_LOCK_SQL, IGNORE, comment.getBoardPostId());
         BoardPost post = findPost(comment.getBoardPostId());
         if (comment.getId().equals(post.getAcceptedCommentId())) {
             if (!admin) {

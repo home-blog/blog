@@ -32,16 +32,18 @@ export default function BoardListPage() {
   const topic = searchParams.get('topic')
   const kind = kindFrom(searchParams.get('kind'))
   const unsolved = kind === 'question' && searchParams.get('unsolved') === 'true'
+  // 검색 결과의 "글마당에서 더 보기"로 오면 검색어가 붙어 있다. 탭·고르기를 바꿔도 검색어는 남긴다
+  const q = searchParams.get('q')?.trim() || null
   const page = pageFrom(searchParams.get('page'))
-  const query: BoardQuery = { topic, kind, unsolved, page }
+  const query: BoardQuery = { topic, kind, unsolved, q, page }
   const key = boardQueryString(query)
   const [result, setResult] = useState<Result | null>(null)
   const [topics, setTopics] = useState<string[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
-    const requestKey = boardQueryString({ topic, kind, unsolved, page })
-    getBoardPosts({ topic, kind, unsolved, page }, controller.signal)
+    const requestKey = boardQueryString({ topic, kind, unsolved, q, page })
+    getBoardPosts({ topic, kind, unsolved, q, page }, controller.signal)
       .then((data) => {
         setResult({ key: requestKey, data })
         setTopics(data.topics)
@@ -50,7 +52,7 @@ export default function BoardListPage() {
         if (!controller.signal.aborted) setResult({ key: requestKey, error: messageOf(err) })
       })
     return () => controller.abort()
-  }, [topic, kind, unsolved, page])
+  }, [topic, kind, unsolved, q, page])
 
   const current = result?.key === key ? result : null
 
@@ -74,7 +76,7 @@ export default function BoardListPage() {
         {[null, ...topics].map((name) => (
           <Link
             key={name ?? '전체'}
-            to={`/board${boardQueryString({ topic: name, kind, unsolved })}`}
+            to={`/board${boardQueryString({ topic: name, kind, unsolved, q })}`}
             className="board-tab"
             aria-current={name === topic ? 'page' : undefined}
           >
@@ -86,7 +88,7 @@ export default function BoardListPage() {
         {KINDS.map((item) => (
           <Link
             key={item.label}
-            to={`/board${boardQueryString({ topic, kind: item.kind, unsolved: item.unsolved })}`}
+            to={`/board${boardQueryString({ topic, kind: item.kind, unsolved: item.unsolved, q })}`}
             className="board-kind-link"
             aria-current={item.kind === kind && Boolean(item.unsolved) === unsolved ? 'page' : undefined}
           >
@@ -94,6 +96,12 @@ export default function BoardListPage() {
           </Link>
         ))}
       </nav>
+      {q && (
+        <p className="board-keyword">
+          <strong>{q}</strong> 검색 결과 ·{' '}
+          <Link to={`/board${boardQueryString({ topic, kind, unsolved })}`}>검색 지우기</Link>
+        </p>
+      )}
       {!current ? (
         <p className="hint">불러오는 중</p>
       ) : 'error' in current ? (
@@ -109,7 +117,7 @@ export default function BoardListPage() {
             <Pagination
               page={current.data.page}
               totalPages={current.data.totalPages}
-              hrefFor={(p) => `/board${boardQueryString({ topic, kind, unsolved, page: p })}`}
+              hrefFor={(p) => `/board${boardQueryString({ topic, kind, unsolved, q, page: p })}`}
             />
           )}
         </>

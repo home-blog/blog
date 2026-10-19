@@ -277,6 +277,7 @@ board:
   comment-max-length: 1000    # board_comment.content 칸(1000)보다 길게 정하면 서버가 켜지지 않는다
   post-interval: 1m        # 같은 회원의 글 사이 최소 간격 (S2-3)
   comment-interval: 5s     # 같은 회원의 댓글 사이 최소 간격 (S3-3, 블로그 댓글과 같음)
+  keyword-max-length: ${explore.search.keyword-max-length}   # 검색어 한도 = 블로그 글 검색 한도
 
 notice:
   title:

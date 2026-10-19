@@ -9,6 +9,8 @@ import com.myblog.board.service.BoardService.BoardDetail;
 import com.myblog.board.service.BoardService.BoardInput;
 import com.myblog.board.service.BoardService.BoardPage;
 import com.myblog.board.service.BoardService.BoardRow;
+import com.myblog.common.error.ApiException;
+import com.myblog.common.error.ErrorCode;
 import com.myblog.user.LoggedInMember;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -120,8 +122,12 @@ public class BoardController {
     @PutMapping("/api/{version}/board/posts/{boardPostId:\\d+}/accepted")
     public AcceptedResponse accept(@PathVariable Long boardPostId, @RequestBody AcceptInput input,
             @Parameter(hidden = true) Authentication authentication) {
-        return new AcceptedResponse(commentService.accept(loggedInMember.requireIdOf(authentication), boardPostId,
-                input.commentId()));
+        Long memberId = loggedInMember.requireIdOf(authentication);
+        // 거두기는 DELETE다. 댓글 번호 없이 PUT으로 거두지 않는다
+        if (input == null || input.commentId() == null) {
+            throw new ApiException(ErrorCode.BOARD_ACCEPT_INVALID);
+        }
+        return new AcceptedResponse(commentService.accept(memberId, boardPostId, input.commentId()));
     }
 
     @Operation(summary = "채택 거두기", description = "물음을 쓴 사람만.")
@@ -140,7 +146,7 @@ public class BoardController {
     public record CommentInput(String content) {
     }
 
-    /** commentId가 없으면 400 (거두기는 DELETE). */
+    /** commentId가 없으면 400 BOARD_ACCEPT_INVALID (거두기는 DELETE). */
     public record AcceptInput(Long commentId) {
     }
 

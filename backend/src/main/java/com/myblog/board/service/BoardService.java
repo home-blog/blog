@@ -45,10 +45,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class BoardService {
 
     private static final String MEMBER_LOCK_SQL = "select pg_advisory_xact_lock(hashtextextended(?, 0))";
+    /** 고치기·채택·댓글 지우기가 같은 글 줄을 잠그고 차례로 한다(채택 칸을 옛 값으로 덮어쓰지 않게) */
+    private static final String POST_LOCK_SQL = "select board_post_id from board_post where board_post_id = ? for update";
     private static final ResultSetExtractor<Void> IGNORE = rs -> null;
     private static final Pattern BLANKS = Pattern.compile("\\p{javaWhitespace}+");
-    /** 검색어 길이 한도 (글 검색과 같은 50자). */
-    static final int KEYWORD_MAX_LENGTH = 50;
 
     private final BoardPostRepository posts;
     private final BoardListRepository lists;
@@ -112,9 +112,9 @@ public class BoardService {
             chosenKind = BoardKind.from(kind).orElseThrow(() -> new ApiException(ErrorCode.BOARD_KIND_INVALID));
         }
         String keyword = q == null ? "" : q.strip();
-        if (keyword.codePointCount(0, keyword.length()) > KEYWORD_MAX_LENGTH) {
+        if (keyword.codePointCount(0, keyword.length()) > properties.keywordMaxLength()) {
             throw new ApiException(ErrorCode.SEARCH_KEYWORD_TOO_LONG,
-                    ErrorCode.SEARCH_KEYWORD_TOO_LONG.message().formatted(KEYWORD_MAX_LENGTH));
+                    ErrorCode.SEARCH_KEYWORD_TOO_LONG.message().formatted(properties.keywordMaxLength()));
         }
         Filter filter = new Filter(chosenTopic == null ? null : chosenTopic.id(),
                 chosenKind == null ? null : chosenKind.value(), unsolved, patternsOf(keyword));
@@ -170,6 +170,7 @@ public class BoardService {
     /** 고치기 (S2-2, S2-5). 남의 글은 입력을 보기 전에 403. */
     @Transactional
     public Long change(Long memberId, Long boardPostId, BoardInput input) {
+        jdbc.query(POST_LOCK_SQL, IGNORE, boardPostId);
         BoardPost post = find(boardPostId);
         if (!post.isWrittenBy(memberId)) {
             throw new ApiException(ErrorCode.FORBIDDEN);

@@ -126,6 +126,21 @@ describe('글마당 목록', () => {
     expect(screen.getByRole('link', { name: '해결 전' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('검색어가 붙어 오면 검색어로 묻고, 탭을 바꿔도 검색어를 남긴다', async () => {
+    const asked: string[] = []
+    server.use(
+      http.get('/api/v1/board/posts', ({ request }) => {
+        asked.push(new URL(request.url).searchParams.get('q') ?? '')
+        return HttpResponse.json(page([row()], { keyword: '단풍' }))
+      }),
+    )
+    renderAt([{ path: '/board', element: <BoardListPage /> }], '/board?q=단풍')
+    await screen.findByRole('table')
+    expect(screen.getByText('단풍')).toBeInTheDocument()
+    expect(asked[0]).toBe('단풍')
+    expect(screen.getByRole('link', { name: '여행' }).getAttribute('href')).toContain('q=%EB%8B%A8%ED%92%8D')
+  })
+
   it('로그인하지 않고 글쓰기를 누르면 글쓰기 화면으로 가지 않는다', async () => {
     server.use(http.get('/api/v1/board/posts', () => HttpResponse.json(page([]))))
     const router = renderAt([

@@ -403,6 +403,28 @@ class BoardTest {
                 .andExpect(jsonPath("$.commentCount").value(0));
     }
 
+    @Test
+    void 경쟁과_잘못된_요청은_500이_아니라_알맞은_코드로_답한다() throws Exception {
+        Long question = write(writerSession, "개발", "question", "경계 물음");
+        Long answer = comment(readerSession, question, "답");
+        // 댓글 번호 없이 PUT으로 채택을 거두지 않는다 (거두기는 DELETE)
+        mvc.perform(put("/api/v1/board/posts/{id}/accepted", question).with(csrf()).session(writerSession)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("BOARD_ACCEPT_INVALID"));
+        // 같은 댓글을 두 번 지우면 두 번째는 404
+        mvc.perform(delete("/api/v1/board/comments/{id}", answer).with(csrf()).session(readerSession))
+                .andExpect(status().isNoContent());
+        mvc.perform(delete("/api/v1/board/comments/{id}", answer).with(csrf()).session(readerSession))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("BOARD_COMMENT_NOT_FOUND"));
+        // 지운 글에 댓글을 달면 404
+        mvc.perform(delete("/api/v1/board/posts/{id}", question).with(csrf()).session(writerSession))
+                .andExpect(status().isNoContent());
+        later();
+        mvc.perform(post("/api/v1/board/posts/{id}/comments", question).with(csrf()).session(readerSession)
+                        .contentType(MediaType.APPLICATION_JSON).content(TestJson.of("content", "늦은 댓글")))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("BOARD_POST_NOT_FOUND"));
+    }
+
     // US5 첫 화면과 검색
 
     @Test

@@ -27,7 +27,6 @@ import '../post/post-detail.css'
 import './board.css'
 
 const MarkdownView = lazy(() => import('../post/MarkdownView'))
-const COMMENT_MAX = 1000
 
 type Loaded = { post: BoardDetail } | { error: string; notFound: boolean }
 type Confirm = { type: 'post' } | { type: 'comment'; commentId: number } | null
@@ -57,7 +56,8 @@ export default function BoardPostPage() {
         setLoaded({ error: messageOf(err), notFound: err instanceof ApiError && err.status === 404 })
       })
     return () => controller.abort()
-  }, [id, validId])
+    // 로그인·로그아웃하면 다시 읽어 수정·삭제 단추를 맞춘다
+  }, [id, validId, member])
 
   useEffect(() => {
     if (!validId) return
@@ -224,7 +224,6 @@ export default function BoardPostPage() {
           <textarea
             id="board-comment-input"
             value={draft}
-            maxLength={COMMENT_MAX}
             rows={3}
             placeholder={member ? '댓글을 남겨 주세요' : '로그인하면 댓글을 남길 수 있어요'}
             onChange={(e) => setDraft(e.target.value)}

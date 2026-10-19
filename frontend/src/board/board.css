@@ -360,3 +360,12 @@
 .board-editor .field textarea[aria-invalid='true'] {
   border-color: var(--error);
 }
+
+.board-keyword {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.board-keyword strong {
+  color: var(--ink);
+}
