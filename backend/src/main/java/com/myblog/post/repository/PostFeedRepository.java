@@ -28,14 +28,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class PostFeedRepository {
 
-    private static final String COLUMNS = """
+    static final String COLUMNS = """
             select p.post_id, c.blog_id, b.name as blog_name, u.nickname, p.title, t.topic_name,
                    p.category_id, c.name as category_name, p.created_at, p.content,
                    (select count(*) from comment m where m.post_id = p.post_id) as comment_count,
                    (select count(*) from post_like l where l.post_id = p.post_id) as like_count
             """;
 
-    private static final String FROM = """
+    static final String FROM = """
             from post p
             join category c on c.category_id = p.category_id
             join blog b on b.blog_id = c.blog_id
@@ -44,7 +44,7 @@ public class PostFeedRepository {
             """;
 
     /** 자리표시자 4개: 글 공개, 분류 공개, 주제 번호(없으면 null) 두 번. */
-    private static final String OPEN_POSTS = """
+    static final String OPEN_POSTS = """
             where p.visibility = ? and c.visibility = ? and u.deleted_at is null
               and (cast(? as bigint) is null or p.topic_id = cast(? as bigint))
             """;
@@ -133,6 +133,19 @@ public class PostFeedRepository {
         }, (RowCallbackHandler) rs -> consumer.accept(rs.getTimestamp(1).toInstant(), rs.getString(2)));
     }
 
+    /** 정해진 글 번호들 가운데 공개 글만 (비슷한 글, specs/014). 순서는 부르는 쪽이 맞춘다. */
+    public List<FeedItem> findOpenByIds(List<Long> postIds) {
+        if (postIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(COLUMNS + FROM + OPEN_POSTS + " and p.post_id = any(?)");
+            int next = bindOpenPosts(statement, 1, null);
+            statement.setArray(next, connection.createArrayOf("bigint", postIds.toArray()));
+            return statement;
+        }, PostFeedRepository::toItem);
+    }
+
     /** 최신순으로 offset부터 limit개. */
     public List<FeedItem> find(Long topicId, long offset, int limit) {
         return jdbc.query(connection -> {
@@ -163,7 +176,7 @@ public class PostFeedRepository {
     }
 
     /** OPEN_POSTS의 자리표시자 4개를 from 번째부터 채우고, 다음 자리 번호를 돌려준다. */
-    private static int bindOpenPosts(PreparedStatement statement, int from, Long topicId) throws SQLException {
+    static int bindOpenPosts(PreparedStatement statement, int from, Long topicId) throws SQLException {
         statement.setString(from, Visibility.PUBLIC.value());
         statement.setString(from + 1, Visibility.PUBLIC.value());
         if (topicId == null) {
@@ -176,7 +189,7 @@ public class PostFeedRepository {
         return from + 4;
     }
 
-    private static FeedItem toItem(ResultSet rs, int rowNum) throws SQLException {
+    static FeedItem toItem(ResultSet rs, int rowNum) throws SQLException {
         return new FeedItem(rs.getLong("post_id"), rs.getLong("blog_id"), rs.getString("blog_name"),
                 rs.getString("nickname"), rs.getString("title"), rs.getString("topic_name"),
                 rs.getLong("category_id"), rs.getString("category_name"), rs.getTimestamp("created_at").toInstant(),

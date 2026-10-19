@@ -19,6 +19,7 @@ import { usePostSeries } from '../series/usePostSeries'
 import { deletePost, getPost, type PostDetail, type SavedState } from './postApi'
 import './post-detail.css'
 import PostEnd from './PostEnd'
+import RelatedPosts from './related/RelatedPosts'
 import ReadingProgress from './ReadingProgress'
 import SavedToast from './SavedToast'
 import TableOfContents from './TableOfContents'
@@ -236,6 +237,9 @@ export default function PostDetailPage() {
           <span />
         )}
       </nav>
+
+      {/* 이 글과 비슷한 글 (specs/014 US2) */}
+      <RelatedPosts postId={post.postId} />
 
       {/* 댓글 (specs/005 US1). 글이 바뀌면 입력 중이던 내용도 비운다 */}
       <CommentSection key={post.postId} postId={post.postId} initialCount={post.commentCount} />

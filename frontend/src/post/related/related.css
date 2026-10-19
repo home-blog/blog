@@ -1,0 +1,29 @@
+/* 이 글과 비슷한 글 (specs/014 US2): 글 화면 너비 안에서 두 줄 */
+.related {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--grid);
+}
+
+.related-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+  text-wrap: balance;
+}
+
+.related-basis {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  font-weight: 400;
+}
+
+.related-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+}

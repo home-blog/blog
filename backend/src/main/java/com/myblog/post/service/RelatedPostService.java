@@ -1,0 +1,116 @@
+package com.myblog.post.service;
+
+import com.myblog.blog.BlogDirectory;
+import com.myblog.blog.BlogDirectory.CategoryInfo;
+import com.myblog.post.config.RelatedProperties;
+import com.myblog.post.domain.Post;
+import com.myblog.post.related.Embedder;
+import com.myblog.post.related.Vectors;
+import com.myblog.post.repository.PostEmbeddingRepository;
+import com.myblog.post.repository.PostEmbeddingRepository.Candidate;
+import com.myblog.post.repository.PostEmbeddingRepository.Neighbor;
+import com.myblog.post.repository.PostRepository;
+import com.myblog.post.service.PostFeedService.FeedRow;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 이 글과 비슷한 글 (specs/014 US2, contracts 3).
+ *
+ * <ul>
+ *   <li>뜻 정보가 있으면 뜻이 가까운 순(코사인 유사도, basis meaning). 없거나 AI가 꺼져 있으면 겹치는 태그 수 → 같은 주제 → 최신 순(basis tags)</li>
+ *   <li>그 글 자신과 볼 수 없는 글은 뺀다. 한 블로그의 글은 per-blog개까지 섞는다(S2-2, S2-3)</li>
+ *   <li>그 글을 볼 수 없으면 글 읽기와 같은 404(S2-1)</li>
+ * </ul>
+ */
+@Service
+public class RelatedPostService {
+
+    private final PostRepository posts;
+    private final BlogDirectory blogDirectory;
+    private final PostVisibility visibility;
+    private final PostEmbeddingRepository embeddings;
+    private final Embedder embedder;
+    private final PostFeedService feedService;
+    private final RelatedProperties properties;
+
+    public RelatedPostService(PostRepository posts, BlogDirectory blogDirectory, PostVisibility visibility,
+            PostEmbeddingRepository embeddings, Embedder embedder, PostFeedService feedService, RelatedProperties properties) {
+        this.posts = posts;
+        this.blogDirectory = blogDirectory;
+        this.visibility = visibility;
+        this.embeddings = embeddings;
+        this.embedder = embedder;
+        this.feedService = feedService;
+        this.properties = properties;
+    }
+
+    /** basis: meaning(뜻) 또는 tags(태그·주제 대체). */
+    public record RelatedView(String basis, List<FeedRow> posts) {
+    }
+
+    private record Pick(long postId, long blogId) {
+    }
+
+    @Transactional(readOnly = true)
+    public RelatedView related(Long postId, Long viewerId) {
+        Post post = posts.findById(postId).orElseThrow(PostReadService::notFound);
+        CategoryInfo category = blogDirectory.category(post.getCategoryId()).orElseThrow(PostReadService::notFound);
+        if (!visibility.canSee(post.getVisibility(), category, viewerId)) {
+            throw PostReadService.notFound();
+        }
+        List<Long> chosen = byMeaning(postId);
+        if (!chosen.isEmpty()) {
+            return new RelatedView("meaning", feedService.rowsOf(chosen));
+        }
+        return new RelatedView("tags", feedService.rowsOf(byTags(postId)));
+    }
+
+    private List<Long> byMeaning(Long postId) {
+        if (!embedder.available()) {
+            return List.of();
+        }
+        float[] source = embeddings.vectorOf(postId, embedder.model()).orElse(null);
+        if (source == null) {
+            return List.of();
+        }
+        List<Candidate> candidates = new ArrayList<>(
+                embeddings.openCandidates(embedder.model(), postId, properties.maxCandidates()));
+        Map<Long, Float> scores = new HashMap<>();
+        candidates.forEach(candidate -> scores.put(candidate.postId(), Vectors.dot(source, candidate.embedding())));
+        candidates.sort(Comparator.comparing((Candidate candidate) -> scores.get(candidate.postId())).reversed());
+        return pick(candidates.stream().map(candidate -> new Pick(candidate.postId(), candidate.blogId())).toList());
+    }
+
+    private List<Long> byTags(Long postId) {
+        int pool = properties.count() * properties.perBlog() * 4;
+        List<Neighbor> neighbors = embeddings.tagNeighbors(postId, pool);
+        return pick(neighbors.stream()
+                .filter(neighbor -> neighbor.shared() > 0 || neighbor.sameTopic())
+                .map(neighbor -> new Pick(neighbor.postId(), neighbor.blogId()))
+                .toList());
+    }
+
+    /** 앞에서부터 count개, 한 블로그는 per-blog개까지. */
+    private List<Long> pick(List<Pick> ordered) {
+        Map<Long, Integer> perBlog = new HashMap<>();
+        List<Long> chosen = new ArrayList<>();
+        for (Pick pick : ordered) {
+            if (chosen.size() >= properties.count()) {
+                break;
+            }
+            int taken = perBlog.getOrDefault(pick.blogId(), 0);
+            if (taken >= properties.perBlog()) {
+                continue;
+            }
+            perBlog.put(pick.blogId(), taken + 1);
+            chosen.add(pick.postId());
+        }
+        return chosen;
+    }
+}
