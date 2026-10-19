@@ -252,6 +252,17 @@ community:
     max-per-member: 1000   # 한 사람이 모을 수 있는 문장 수
     page-size: 20          # 필사 노트 한 쪽
 
+# 구독·알림 (specs/016 research D-1 ~ D-7)
+subscription:
+  max-per-member: 500             # 한 사람이 받아 볼 수 있는 블로그 수
+  notification-retention: 30d     # 우편함 소식 보관 (매일 새벽 4시 정리)
+  notification-page-size: 20
+  newsletter:                     # 원고 편지: 새 공개 글을 메일로 (서비스 메일 계정 spring.mail.*)
+    enabled: ${NEWSLETTER_ENABLED:true}
+    daily-limit: 400              # 하루에 보내는 메일 수 (서비스 Gmail 한도 안). 넘으면 그날은 보내지 않는다
+    site-url: ${SITE_URL:}        # 메일 속 링크의 사이트 주소. 비어 있으면 메일을 보내지 않는다
+    summary-length: 120           # 메일의 첫 문단 요약 글자 수
+
 # 공지사항 (specs/012 research D-5, D-10). 글자는 코드 포인트로 센다. 릴리스 링크는 번호만 저장하고 이 틀로 만든다
 notice:
   title:

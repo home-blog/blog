@@ -4,6 +4,7 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.paging.PageNumbers;
 import com.myblog.common.paging.PageNumbers.PageSlice;
+import com.myblog.post.SubscribedBlogs;
 import com.myblog.post.config.ExploreProperties;
 import com.myblog.post.domain.Topic;
 import com.myblog.post.repository.PostFeedRepository;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,9 +45,11 @@ public class PostFeedService {
     private volatile CachedIssue cachedIssue;
     private final Object issueLock = new Object();
     private final Clock clock;
+    private final ObjectProvider<SubscribedBlogs> subscribedBlogs;
 
     public PostFeedService(PostFeedRepository feedRepository, TopicRepository topicRepository, PostPreview preview,
-            ManuscriptMeasure manuscript, ExploreProperties properties, Clock clock) {
+            ManuscriptMeasure manuscript, ExploreProperties properties, Clock clock,
+            ObjectProvider<SubscribedBlogs> subscribedBlogs) {
         this.feedRepository = feedRepository;
         this.topicRepository = topicRepository;
         this.preview = preview;
@@ -53,6 +57,7 @@ public class PostFeedService {
         this.settings = properties.feed();
         this.todayIssueSettings = properties.todayIssue();
         this.clock = clock;
+        this.subscribedBlogs = subscribedBlogs;
     }
 
     /**
@@ -132,6 +137,22 @@ public class PostFeedService {
                 .map(this::toRow)
                 .toList();
         return new PopularView(chosen == null ? null : chosen.getName(), settings.popularDays(), rows);
+    }
+
+    /**
+     * 받아 보는 글 (specs/016 US1, S1-4): 내가 받아 보는 블로그의 공개 글, 첫 화면 글 모음과 같은 카드·페이지.
+     * 받아 보는 블로그가 없으면 빈 목록.
+     */
+    public SubscribedFeedView subscribedFeed(Long memberId, String page) {
+        List<Long> blogIds = subscribedBlogs.getIfAvailable(() -> id -> List.of()).blogIdsOf(memberId);
+        long totalCount = blogIds.isEmpty() ? 0 : feedRepository.countInBlogs(blogIds);
+        PageSlice slice = PageNumbers.of(page, totalCount, settings.pageSize());
+        List<FeedRow> rows = totalCount == 0 ? List.of()
+                : feedRepository.findInBlogs(blogIds, slice.offset(), slice.pageSize()).stream().map(this::toRow).toList();
+        return new SubscribedFeedView(totalCount, slice.page(), slice.totalPages(), slice.pageSize(), rows);
+    }
+
+    public record SubscribedFeedView(long totalCount, int page, int totalPages, int pageSize, List<FeedRow> posts) {
     }
 
     /**
