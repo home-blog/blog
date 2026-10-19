@@ -57,6 +57,13 @@ public class Post {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    /** 편집실이 내린 시각 (specs/018 D-2). 잠그고 푸는 일은 PostModeration이 DB에서 바로 한다. */
+    @Column(name = "locked_at", insertable = false, updatable = false)
+    private Instant lockedAt;
+
+    @Column(name = "lock_reason", length = 200, insertable = false, updatable = false)
+    private String lockReason;
+
     protected Post() {
     }
 
@@ -153,5 +160,13 @@ public class Post {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public boolean isLocked() {
+        return lockedAt != null;
+    }
+
+    public String getLockReason() {
+        return lockReason;
     }
 }

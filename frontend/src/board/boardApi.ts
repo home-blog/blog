@@ -143,6 +143,11 @@ export function unacceptComment(id: number): Promise<{ acceptedCommentId: number
   return api<{ acceptedCommentId: number | null }>(`/api/v1/board/posts/${id}/accepted`, { method: 'DELETE' })
 }
 
+/** 글마당 글 신고 (specs/018 US2). 사유는 블로그 글 신고와 같다 */
+export function reportBoardPost(id: number, reason: string, detail: string): Promise<{ message: string }> {
+  return api<{ message: string }>(`/api/v1/board/posts/${id}/reports`, { method: 'POST', body: { reason, detail } })
+}
+
 export const KIND_LABEL: Record<BoardKind, string> = { talk: '이야기', question: '물음' }
 
 /** 탈퇴한 회원은 "탈퇴한 회원" */

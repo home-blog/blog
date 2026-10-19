@@ -40,6 +40,10 @@ public class Notification {
     @Column(name = "actor_name", nullable = false, length = 30, updatable = false)
     private String actorName;
 
+    /** 편집실 소식의 사유 (specs/018). 다른 소식은 비어 있다. */
+    @Column(name = "note", length = 200, updatable = false)
+    private String note;
+
     @Column(name = "read_at")
     private Instant readAt;
 
@@ -67,6 +71,14 @@ public class Notification {
 
     public Long getBoardPostId() {
         return boardPostId;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public boolean isEditorial() {
+        return "editorial".equals(kind);
     }
 
     public boolean isBoard() {

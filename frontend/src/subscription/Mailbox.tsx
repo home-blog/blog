@@ -16,7 +16,13 @@ import './subscription.css'
 
 const POLL_MS = 60_000
 /** 소식마다 우표 글자: 새 원고, 댓글은 답장, 글마당 채택은 채택 */
-const STAMP: Record<Notice['kind'], string> = { post: '원고', comment: '답장', board: '답장', accepted: '채택' }
+const STAMP: Record<Notice['kind'], string> = {
+  post: '원고',
+  comment: '답장',
+  board: '답장',
+  accepted: '채택',
+  editorial: '편집실',
+}
 
 export default function Mailbox() {
   const [unread, setUnread] = useState(0)
@@ -174,6 +180,11 @@ export default function Mailbox() {
                           <>
                             <strong>{notice.actorName}</strong>에 새 원고
                           </>
+                        ) : notice.kind === 'editorial' ? (
+                          <>
+                            <strong>편집실</strong>이 신고된 내 글을{' '}
+                            {notice.postId === null ? '살펴보았어요' : '내렸어요'}
+                          </>
                         ) : notice.kind === 'accepted' ? (
                           <>
                             <strong>{notice.actorName}</strong>님이 내 댓글을 채택했어요
@@ -186,7 +197,10 @@ export default function Mailbox() {
                         )}
                         {!notice.read && <span className="visually-hidden"> (안 읽음)</span>}
                       </span>
-                      <span className="mailbox-title">{notice.available ? notice.postTitle : '볼 수 없는 글'}</span>
+                      <span className="mailbox-title">
+                        {notice.available || notice.kind === 'editorial' ? notice.postTitle : '볼 수 없는 글'}
+                      </span>
+                      {notice.note && <span className="mailbox-note">사유: {notice.note}</span>}
                       <time className="mailbox-time" dateTime={notice.createdAt}>
                         {formatDate(notice.createdAt)}
                       </time>

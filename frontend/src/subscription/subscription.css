@@ -193,7 +193,8 @@
 
 .stamp-comment,
 .stamp-board,
-.stamp-accepted {
+.stamp-accepted,
+.stamp-editorial {
   border-color: var(--seal);
   outline-color: var(--seal);
   color: var(--seal);
@@ -257,4 +258,10 @@
     bottom: max(16px, env(safe-area-inset-bottom, 0px));
     width: auto;
   }
+}
+
+.mailbox-note {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }

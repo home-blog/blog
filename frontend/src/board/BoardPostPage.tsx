@@ -7,6 +7,7 @@ import { useLoginPrompt } from '../auth/loginPrompt'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ProofNotFound from '../components/ProofNotFound'
 import Seal from '../components/Seal'
+import ReportDialog from '../community/ReportDialog'
 import { formatDate } from '../explore/rules'
 import { ApiError } from '../api/client'
 import {
@@ -16,6 +17,7 @@ import {
   getBoardComments,
   getBoardPost,
   KIND_LABEL,
+  reportBoardPost,
   messageOf,
   unacceptComment,
   writeBoardComment,
@@ -147,6 +149,14 @@ export default function BoardPostPage() {
       <Suspense fallback={<p className="hint">불러오는 중</p>}>
         <MarkdownView source={post.content} />
       </Suspense>
+      {!post.mine && (
+        <p className="board-report">
+          <ReportDialog
+            postId={post.boardPostId}
+            send={(reason, detail) => reportBoardPost(post.boardPostId, reason, detail)}
+          />
+        </p>
+      )}
       {(post.mine || post.canDelete) && (
         <p className="board-actions">
           {post.mine && (

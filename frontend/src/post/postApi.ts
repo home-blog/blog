@@ -93,6 +93,9 @@ export interface PostEdit {
   tags: string[]
   categories: CategoryOption[]
   topics: TopicOption[]
+  /** 편집실이 내린 글이면 참과 그 사유 (specs/018). 잠긴 글은 공개로 바꿀 수 없다 */
+  locked?: boolean
+  lockReason?: string | null
 }
 
 export interface PostUpdated {

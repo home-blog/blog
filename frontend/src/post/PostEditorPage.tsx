@@ -110,6 +110,8 @@ export default function PostEditorPage() {
   const editingId = postIdParam === undefined ? null : Number(postIdParam)
   const [form, setForm] = useState<EditorOptions | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  /** 편집실이 내린 글이면 그 사유("" 가능), 아니면 null (specs/018 S1-3) */
+  const [lockReason, setLockReason] = useState<string | null>(null)
   const [initial, setInitial] = useState<PostInput>(EMPTY)
   const [input, setInput] = useState<PostInput>(EMPTY)
   // 연재 (specs/013 US2): 글과 따로 저장한다. 저장한 뒤 바뀌었으면 연재에 넣거나 뺀다
@@ -183,6 +185,7 @@ export default function PostEditorPage() {
             setPublishAt(draft?.publishAt ?? null)
             return {
               options: loaded as EditorOptions,
+              lockReason: null as string | null,
               seriesId: draft?.seriesId ?? null,
               start: draft
                 ? {
@@ -208,6 +211,7 @@ export default function PostEditorPage() {
           ]).then(
             ([post, defaults, series]) => ({
               options: { categories: post.categories, topics: post.topics, limits: defaults.limits, series: defaults.series },
+              lockReason: post.locked ? (post.lockReason ?? '') : null,
               seriesId: series?.seriesId ?? null,
               start: {
                 title: post.title,
@@ -220,8 +224,9 @@ export default function PostEditorPage() {
             }),
           )
     load
-      .then(({ options, start, seriesId: startSeriesId }) => {
+      .then(({ options, start, seriesId: startSeriesId, lockReason: startLock }) => {
         setForm(options)
+        setLockReason(startLock)
         setInitial(start)
         setInput(start)
         setInitialSeriesId(startSeriesId)
@@ -640,11 +645,18 @@ export default function PostEditorPage() {
                   name="visibility"
                   value={value}
                   checked={input.visibility === value}
+                  disabled={lockReason !== null && value === 'public'}
                   onChange={() => update('visibility', value)}
                 />
                 {value === 'public' ? '공개' : '비공개'}
               </label>
             ))}
+            {lockReason !== null && (
+              <p className="msg msg-error editor-locked">
+                편집실이 신고를 살펴보고 이 글을 내렸어요{lockReason ? ` (사유: ${lockReason})` : ''}. 비공개로 두고 고칠
+                수 있어요.
+              </p>
+            )}
             {errors.visibility && <p className="msg msg-error">{errors.visibility}</p>}
           </fieldset>
         </div>

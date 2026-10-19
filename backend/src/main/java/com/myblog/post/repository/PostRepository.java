@@ -15,6 +15,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByRequestKey(String requestKey);
 
+    /** 편집실 내림 (specs/018 D-2): 비공개로 돌리고 잠근다. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "update post set visibility = 'private', locked_at = coalesce(locked_at, :now), lock_reason = :reason"
+            + " where post_id = :postId", nativeQuery = true)
+    int lock(@Param("postId") Long postId, @Param("reason") String reason, @Param("now") Instant now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "update post set locked_at = null, lock_reason = null where post_id = :postId", nativeQuery = true)
+    int unlock(@Param("postId") Long postId);
+
     List<Post> findByCategoryIdIn(Collection<Long> categoryIds);
 
     /** 이 분류들 중 가장 늦게 쓴 글 (같은 시각이면 번호가 큰 글). 글쓰기 기본 분류·주제에 쓴다 (research B-6). */
