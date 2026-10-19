@@ -17,6 +17,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,11 +31,14 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>그 글 자신과 볼 수 없는 글은 뺀다. 한 블로그의 글은 per-blog개까지 섞는다(S2-2, S2-3)</li>
  *   <li>그 글을 볼 수 없으면 글 읽기와 같은 404(S2-1)</li>
  *   <li>고른 글 번호는 Redis에 cache-ttl 동안 둔다(요청마다 후보 벡터를 다 읽지 않게). 그 글의 뜻 정보가 바뀌면 지운다.
- *       번호만 두고 카드는 매번 공개 규칙으로 다시 읽으므로, 그사이 비공개가 된 글은 나오지 않는다</li>
+ *       번호만 두고 카드는 매번 공개 규칙으로 다시 읽으므로, 그사이 비공개가 된 글은 나오지 않는다.
+ *       Redis가 멈춰도 보관만 건너뛰고 DB에서 골라 돌려준다(잃어도 되는 값, 헌법 1.1.0)</li>
  * </ul>
  */
 @Service
 public class RelatedPostService {
+
+    private static final Logger log = LoggerFactory.getLogger(RelatedPostService.class);
 
     private final PostRepository posts;
     private final BlogDirectory blogDirectory;
@@ -76,12 +81,9 @@ public class RelatedPostService {
         if (!visibility.canSee(post.getVisibility(), category, viewerId)) {
             throw PostReadService.notFound();
         }
-        String cached = redis.opsForValue().get(cacheKey(postId));
-        if (cached != null && cached.contains("|")) {
-            String[] parts = cached.split("\\|", 2);
-            List<Long> ids = parts[1].isEmpty() ? List.of()
-                    : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
-            return new RelatedView(parts[0], feedService.rowsOf(ids));
+        RelatedView cached = cached(postId);
+        if (cached != null) {
+            return cached;
         }
         List<Long> chosen = byMeaning(postId);
         String basis = "meaning";
@@ -89,9 +91,35 @@ public class RelatedPostService {
             chosen = byTags(postId);
             basis = "tags";
         }
-        redis.opsForValue().set(cacheKey(postId),
-                basis + "|" + String.join(",", chosen.stream().map(String::valueOf).toList()), properties.cacheTtl());
+        keep(postId, basis, chosen);
         return new RelatedView(basis, feedService.rowsOf(chosen));
+    }
+
+    /** 보관한 번호로 카드를 읽는다. 없거나 Redis를 읽지 못하면 null(새로 고른다). */
+    private RelatedView cached(Long postId) {
+        String value;
+        try {
+            value = redis.opsForValue().get(cacheKey(postId));
+        } catch (RuntimeException e) {
+            log.warn("비슷한 글 보관을 읽지 못했습니다 (글 {}): {}", postId, e.toString());
+            return null;
+        }
+        if (value == null || !value.contains("|")) {
+            return null;
+        }
+        String[] parts = value.split("\\|", 2);
+        List<Long> ids = parts[1].isEmpty() ? List.of()
+                : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();
+        return new RelatedView(parts[0], feedService.rowsOf(ids));
+    }
+
+    private void keep(Long postId, String basis, List<Long> chosen) {
+        try {
+            redis.opsForValue().set(cacheKey(postId),
+                    basis + "|" + String.join(",", chosen.stream().map(String::valueOf).toList()), properties.cacheTtl());
+        } catch (RuntimeException e) {
+            log.warn("비슷한 글 보관을 쓰지 못했습니다 (글 {}): {}", postId, e.toString());
+        }
     }
 
     private List<Long> byMeaning(Long postId) {

@@ -168,10 +168,14 @@ public class PostEmbeddingService {
         return saved;
     }
 
-    /** 저장하고, 그 글의 비슷한 글 보관을 지운다(다음 요청이 새 뜻 정보로 고르게). */
+    /** 저장하고, 그 글의 비슷한 글 보관을 지운다(다음 요청이 새 뜻 정보로 고르게). Redis가 멈추면 보관은 cache-ttl 뒤 저절로 사라진다. */
     private void save(long postId, String hash, float[] vector) {
         embeddings.upsert(postId, embedder.model(), hash, vector, clock.instant());
-        redis.delete(RelatedPostService.cacheKey(postId));
+        try {
+            redis.delete(RelatedPostService.cacheKey(postId));
+        } catch (RuntimeException e) {
+            log.warn("비슷한 글: 글 {}의 보관을 지우지 못했습니다 ({})", postId, e.toString());
+        }
     }
 
     /** 임베딩할 글: 제목 + 본문 앞 max-chars자 (D-12). */

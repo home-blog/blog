@@ -3,6 +3,7 @@ package com.myblog.post.related;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
@@ -59,7 +61,7 @@ class RelatedPostApiTest {
     @MockitoSpyBean
     private Embedder embedder;
 
-    @Autowired
+    @MockitoSpyBean
     private StringRedisTemplate redis;
 
     private MockMvc mvc;
@@ -273,5 +275,23 @@ class RelatedPostApiTest {
         jdbc.update("update post set content = ?, updated_at = now() where post_id = ?", repeat("바뀐 본문"), source);
         embeddings.refresh(List.of(source));
         assertThat(redis.hasKey(key)).isFalse();
+    }
+
+    @Test
+    void Redis가_멈춰도_보관만_건너뛰고_비슷한_글을_돌려준다() throws Exception {
+        Member a = members.register("rel");
+        Member b = members.register("rel");
+        Long source = post(a, "장마철 빨래", repeat("장마 빨래 제습"), "public");
+        Long near = post(b, "장마철 빨래 말리기", repeat("장마 빨래 제습 건조"), "public");
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(redis).opsForValue();
+        doThrow(new RedisConnectionFailureException("Redis 멈춤")).when(redis).delete(anyString());
+
+        // 뜻 정보를 저장한 뒤 보관 지우기가 실패해도 저장은 남는다
+        assertThat(embeddings.refresh(List.of(source, near))).isEqualTo(2);
+
+        mvc.perform(get("/api/v1/posts/" + source + "/related"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.basis").value("meaning"))
+                .andExpect(jsonPath("$.posts[0].postId").value(near));
     }
 }
