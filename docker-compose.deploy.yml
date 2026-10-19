@@ -37,9 +37,10 @@ x-server-env: &server-env
   SOCIAL_NAVER_CLIENT_ID: ${SOCIAL_NAVER_CLIENT_ID:-}
   SOCIAL_NAVER_CLIENT_SECRET: ${SOCIAL_NAVER_CLIENT_SECRET:-}
   SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
-  # AI (specs/014). 비어 있으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다
+  # AI (specs/014). 열쇠(유료)가 비어 있으면 빨간 펜은 무료 규칙 교정, 비슷한 글은 Ollama(무료, 켰을 때) 또는 태그로 대신한다
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
+  RELATED_OLLAMA_URL: ${RELATED_OLLAMA_URL:-}   # remote-deploy.sh가 Ollama를 켰을 때만 넣는다
 
 x-server: &server
   depends_on:
@@ -135,6 +136,25 @@ services:
       retries: 20
     restart: unless-stopped
 
+  # 비슷한 글의 무료 AI (specs/014 D-17): 내 서버에서 도는 Ollama + bge-m3. 저장소 Variables의 OLLAMA_ENABLED=true이고
+  # 서버 메모리·디스크가 넉넉할 때만 remote-deploy.sh가 켠다(프로필 ollama). 컨테이너끼리만 통하고 포트를 열지 않는다
+  ollama:
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.12.6}
+    profiles: [ollama]
+    environment:
+      OLLAMA_KEEP_ALIVE: 24h        # 모델을 메모리에 둔다 (부를 때마다 다시 읽지 않게)
+      OLLAMA_NUM_PARALLEL: "1"      # 여럿이 쓰는 서버라 한 번에 하나만
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    volumes:
+      - ollama-models:/root/.ollama
+    mem_limit: ${OLLAMA_MEMORY:-2g}  # bge-m3(약 1.2GB)가 들어가는 만큼만
+    cpus: ${OLLAMA_CPUS:-2}
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      retries: 30
+    restart: unless-stopped
+
 networks:
   default: {}
   slot-a: {}
@@ -142,3 +162,4 @@ networks:
 
 volumes:
   minio-data:
+  ollama-models:

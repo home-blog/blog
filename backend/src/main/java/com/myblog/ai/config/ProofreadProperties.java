@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 빨간 펜 설정 (application.yml의 proofread.*, specs/014 research D-1 ~ D-7, D-15).
  *
  * <ul>
- *   <li>provider: {@code auto}(열쇠가 있으면 claude, 없으면 without-key), {@code claude}, {@code fake}(개발용 규칙 교정), {@code off}</li>
+ *   <li>provider: {@code auto}(열쇠가 있으면 claude, 없으면 without-key), {@code claude}, {@code rules}(서버 안의 규칙 교정, 무료), {@code off}</li>
  *   <li>열쇠(api-key)는 환경 변수 ANTHROPIC_API_KEY로만 받는다. 저장소에 적지 않는다</li>
  * </ul>
  */
@@ -18,15 +18,15 @@ public record ProofreadProperties(String provider, String withoutKey, String api
         long maxTokens, Duration timeout, int maxRetries, int dailyLimit, int maxLength, int maxCorrections, int originalMaxLength,
         int reasonMaxLength, Duration cacheTtl, Duration countMargin, ZoneId zone) {
 
-    private static final Set<String> PROVIDERS = Set.of("auto", "claude", "fake", "off");
+    private static final Set<String> PROVIDERS = Set.of("auto", "claude", "rules", "off");
     private static final Set<String> EFFORTS = Set.of("low", "medium", "high", "xhigh", "max");
 
     public ProofreadProperties {
         if (!PROVIDERS.contains(provider)) {
-            throw new IllegalStateException("proofread.provider는 auto, claude, fake, off 가운데 하나여야 합니다");
+            throw new IllegalStateException("proofread.provider는 auto, claude, rules, off 가운데 하나여야 합니다");
         }
-        if (!Set.of("fake", "off").contains(withoutKey)) {
-            throw new IllegalStateException("proofread.without-key는 fake 또는 off여야 합니다");
+        if (!Set.of("rules", "off").contains(withoutKey)) {
+            throw new IllegalStateException("proofread.without-key는 rules 또는 off여야 합니다");
         }
         if (!EFFORTS.contains(effort)) {
             throw new IllegalStateException("proofread.effort는 low, medium, high, xhigh, max 가운데 하나여야 합니다");

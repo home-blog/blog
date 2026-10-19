@@ -760,6 +760,7 @@ class ApiDocumentationTest {
         MockHttpSession session = login(member);
         String content = "오늘은 할수있다고 믿었다. 몇일 동안 연습했다.";
         when(proofreader.available()).thenReturn(true);
+        when(proofreader.mode()).thenReturn("ai");
         when(proofreader.proofread(anyString())).thenReturn(List.of(
                 new Suggestion("spacing", "오늘은 ", "할수있다고", "할 수 있다고", "의존 명사 '수'는 띄어 씁니다"),
                 new Suggestion("spelling", "믿었다. ", "몇일", "며칠", "'며칠'이 표준어입니다")));
@@ -768,11 +769,13 @@ class ApiDocumentationTest {
                 MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8))));
         mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/proofread"), session)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json("content", content)))
+                        .content("{\"content\":\"" + content + "\",\"aiConsent\":true}"))
                 .andExpect(status().isOk())
                 .andDo(document("proofread",
                         requestHeaders(csrfHeader()),
-                        requestFields(fieldWithPath("content").description("교정받을 마크다운 본문 (1~10,000자)")),
+                        requestFields(fieldWithPath("content").description("교정받을 마크다운 본문 (1~10,000자)"),
+                                fieldWithPath("aiConsent").description("본문이 바깥 AI로 보내진다는 안내에 동의했는지."
+                                        + " 상태의 mode가 ai인데 참이 아니면 본문을 보내지 않고 409 `PROOFREAD_CONSENT_REQUIRED` (규칙 교정은 보지 않는다)")),
                         responseFields(
                                 fieldWithPath("corrections[]").description("고칠 곳. 본문 앞에서부터, 겹치지 않는다"),
                                 fieldWithPath("corrections[].start").description("본문에서 시작 위치 (UTF-16, 자바스크립트 문자열 위치)"),
@@ -781,8 +784,8 @@ class ApiDocumentationTest {
                                 fieldWithPath("corrections[].original").description("본문의 원문 (start~end 그대로)"),
                                 fieldWithPath("corrections[].replacement").description("고친 말"),
                                 fieldWithPath("corrections[].reason").description("고친 까닭"),
-                                fieldWithPath("remaining").description("오늘(한국 날짜) 남은 횟수"),
-                                fieldWithPath("cached").description("같은 본문의 앞 결과를 다시 썼는지 (횟수에 넣지 않음)"))));
+                                fieldWithPath("remaining").description("오늘(한국 날짜) 남은 횟수. 규칙 교정(`rules`)은 횟수를 세지 않아 늘 하루 한도"),
+                                fieldWithPath("cached").description("같은 본문의 앞 결과를 다시 썼는지 (횟수에 넣지 않음. 규칙 교정은 늘 false)"))));
     }
 
     @Test

@@ -20,10 +20,6 @@ myblog:
   mail:
     sender: ${MAIL_SENDER:log}
 
-# 빨간 펜 (specs/014 D-15): 개발에서 열쇠(ANTHROPIC_API_KEY)가 없으면 규칙으로 고치는 가짜 교정기를 쓴다
-proofread:
-  without-key: fake
-
-# 비슷한 글 (specs/014 D-15): 개발에서 열쇠(VOYAGE_API_KEY)가 없으면 글자 조각을 세는 가짜 임베딩을 쓴다
+# 비슷한 글 (specs/014 D-17): 개발에서 열쇠·Ollama가 없으면 글자 조각 임베딩으로 뜻 경로를 돌려 본다 (배포는 태그·주제로 대신)
 related:
-  without-key: fake
+  without-key: local

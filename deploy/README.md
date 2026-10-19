@@ -22,10 +22,15 @@
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
 | `SOCIAL_GITHUB_CLIENT_ID`, `SOCIAL_GITHUB_CLIENT_SECRET` (GOOGLE, KAKAO, NAVER도 같은 모양) | 소셜 로그인 앱 열쇠 (아래 "소셜 로그인 앱 등록") | 없는 회사는 버튼이 안 보인다 |
-| `ANTHROPIC_API_KEY` | 빨간 펜 교정(Claude API) 열쇠, specs/014 | 없으면 빨간 펜 단추가 안 보인다 |
-| `VOYAGE_API_KEY` | 비슷한 글 임베딩(Voyage AI) 열쇠, specs/014 | 없으면 태그·주제가 겹치는 글로 대신한다 |
+| `ANTHROPIC_API_KEY` | 빨간 펜 AI 교정(Claude API, 유료) 열쇠, specs/014 | 없으면 무료 규칙 교정 |
+| `VOYAGE_API_KEY` | 비슷한 글 임베딩(Voyage AI, 유료) 열쇠, specs/014 | 없으면 Ollama(켰을 때), 그것도 없으면 태그·주제가 겹치는 글 |
 
-**AI 열쇠** (specs/014). Secrets에 넣은 뒤 Actions → `배포`를 번호 없이 한 번 돌려 다시 배포하면(이미지를 다시 만들고 두 벌을 차례로 바꿔 켠다. 설정만 바뀌는 것이 아니다) 켜진다. 비슷한 글의 뜻 정보는 켜진 뒤 10분마다 공개 글 32개씩 채워진다.
+**AI 열쇠** (specs/014, 유료라 넣지 않아도 된다). Secrets에 넣은 뒤 Actions → `배포`를 번호 없이 한 번 돌려 다시 배포하면(이미지를 다시 만들고 두 벌을 차례로 바꿔 켠다. 설정만 바뀌는 것이 아니다) 켜진다. 비슷한 글의 뜻 정보는 켜진 뒤 10분마다 공개 글 32개씩 채워진다.
+
+**무료 AI: Ollama** (specs/014 D-17, 비슷한 글을 뜻으로 고른다). 저장소 Settings → Secrets and variables → Actions → **Variables**에 `OLLAMA_ENABLED` = `true`를 넣고 배포를 다시 돌린다.
+- 여럿이 쓰는 서버라 배포가 먼저 남은 메모리(3GB 이상)와 디스크(10GB 이상)를 본다. 모자라면 켜지 않고 배포 기록에 "Ollama를 켜지 않습니다: 남은 메모리 …"를 남긴다(비슷한 글은 태그·주제로 대신, 다른 건 그대로 배포된다).
+- 켜면 `ollama/ollama` 이미지(약 2GB 받기, 풀면 5GB)와 모델 `bge-m3`(약 1.2GB)를 서버에 받는다. 컨테이너는 메모리 2GB·CPU 2개로 묶고 포트를 열지 않는다. 모델은 뒤에서 받으므로 처음 몇 분은 태그로 대신하다가, 10분마다 공개 글 32개씩 뜻 정보가 채워진다.
+- 켜기 전에 서버에서 `free -h`, `df -h ~`로 여유를 보고, 강사님께 AI 컨테이너를 띄워도 되는지 여쭤보면 좋다. 끄려면 `OLLAMA_ENABLED`를 지우거나 `false`로 바꾸고 배포를 다시 돌린다(받은 모델은 남는다).
 
 **소셜 로그인 앱 등록** (specs/010). 회사마다 개발자 사이트에 앱을 만들고, 받은 Client ID·Secret을 위 Secrets(배포)와 저장소 맨 위 `.env`(로컬)에 넣는다. 콜백(Redirect) 주소는 로컬 `http://localhost:5173/login/oauth2/code/{회사}`, 배포 `http://<내 도메인>/login/oauth2/code/{회사}` (HTTPS가 붙으면 `https://`로 바꾼다).
 

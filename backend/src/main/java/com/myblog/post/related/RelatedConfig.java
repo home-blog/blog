@@ -19,7 +19,8 @@ public class RelatedConfig {
         log.info("비슷한 글 임베딩: {}", provider);
         return switch (provider) {
             case "voyage" -> new VoyageEmbedder(properties, jsonMapper);
-            case "fake" -> new FakeEmbedder(properties.dimensions());
+            case "ollama" -> new OllamaEmbedder(properties, jsonMapper);
+            case "local" -> new LocalEmbedder(properties.dimensions());
             default -> new OffEmbedder();
         };
     }

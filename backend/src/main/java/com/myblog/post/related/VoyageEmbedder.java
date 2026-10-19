@@ -92,11 +92,11 @@ public class VoyageEmbedder implements Embedder {
             if (item.embedding() == null || item.embedding().size() != properties.dimensions()) {
                 throw new UnavailableException("Voyage 임베딩 차원이 설정과 다릅니다");
             }
-            float[] vector = new float[item.embedding().size()];
-            for (int i = 0; i < vector.length; i++) {
-                vector[i] = item.embedding().get(i).floatValue();
+            float[] vector = Vectors.usable(item.embedding());
+            if (vector == null) {
+                throw new UnavailableException("Voyage 임베딩 답에 쓸 수 없는 숫자(빈 값·무한대·모두 0)가 있습니다");
             }
-            vectors.add(Vectors.normalize(vector));
+            vectors.add(vector);
         }
         return vectors;
     }

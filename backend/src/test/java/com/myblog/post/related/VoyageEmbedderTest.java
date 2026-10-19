@@ -57,23 +57,22 @@ class VoyageEmbedderTest {
     }
 
     @Test
+    void float을_넘는_값이나_0_벡터는_받지_않는다() {
+        for (String vector : List.of("[1.0e300,1.0,0.0]", "[0.0,0.0,0.0]")) {
+            voyage.reset();
+            voyage.expect(requestTo("https://api.voyageai.com/v1/embeddings")).andRespond(withSuccess(
+                    "{\"data\":[{\"embedding\":" + vector + ",\"index\":0}]}", MediaType.APPLICATION_JSON));
+
+            assertThatThrownBy(() -> embedder.embed(List.of("글"))).as(vector).isInstanceOf(Embedder.UnavailableException.class);
+        }
+    }
+
+    @Test
     void 차원이_다른_답은_받지_않는다() {
         voyage.expect(requestTo("https://api.voyageai.com/v1/embeddings")).andRespond(withSuccess("""
                 {"data":[{"embedding":[1.0,0.0],"index":0}]}
                 """, MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(() -> embedder.embed(List.of("글"))).isInstanceOf(Embedder.UnavailableException.class);
-    }
-
-    @Test
-    void 가짜_임베딩은_같은_글이면_같고_비슷한_글이_더_가깝다() {
-        FakeEmbedder fake = new FakeEmbedder(64);
-        float[] jeju = fake.embed(List.of("제주 렌터카 여행 후기")).get(0);
-        float[] bus = fake.embed(List.of("제주 버스 여행 팁")).get(0);
-        float[] java = fake.embed(List.of("자바 스프링 트랜잭션")).get(0);
-
-        assertThat(fake.embed(List.of("제주 렌터카 여행 후기")).get(0)).containsExactly(jeju);
-        assertThat(Vectors.dot(jeju, bus)).isGreaterThan(Vectors.dot(jeju, java));
-        assertThat(Vectors.dot(jeju, jeju)).isCloseTo(1f, org.assertj.core.data.Offset.offset(1e-5f));
     }
 }

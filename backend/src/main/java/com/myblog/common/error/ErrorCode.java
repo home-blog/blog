@@ -115,6 +115,8 @@ public enum ErrorCode {
     PROOFREAD_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 본문이 너무 깁니다. %d자 이하로 나눠 교정받아 주세요"),
     PROOFREAD_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "※ 오늘은 빨간 펜을 %d번 모두 썼습니다. 내일 다시 써 주세요"),
     /** AI가 꺼져 있거나 늦거나 실패했다. 글쓰기는 그대로 할 수 있다 (S1-5, S1-6). */
+    /** 바깥 AI로 보내는데 화면에서 동의하지 않았다(서버 교정기가 그사이 AI로 바뀐 경우 등). 화면은 동의를 묻고 다시 보낸다 */
+    PROOFREAD_CONSENT_REQUIRED(HttpStatus.CONFLICT, "※ 본문을 AI로 보내려면 먼저 동의해 주세요"),
     PROOFREAD_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "※ 지금은 빨간 펜을 쓸 수 없습니다. 잠시 뒤 다시 시도해 주세요"),
 
     // 소셜 로그인 (specs/010 contracts)

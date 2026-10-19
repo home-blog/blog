@@ -38,13 +38,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
- * 비슷한 글 (specs/014 US2, S2-1 ~ S2-6). 뜻 정보는 가짜 임베딩(글자 두 개씩 묶어 센 벡터)으로 만든다.
+ * 비슷한 글 (specs/014 US2, S2-1 ~ S2-6). 뜻 정보는 글자 조각 임베딩(LocalEmbedder, 낱말과 글자 두 개 조각을 센 벡터)으로 만든다.
  * 개발 DB에는 다른 글과 그 임베딩이 있을 수 있어, 이 테스트의 글에는 다른 글에 없는 낱말을 넣어 서로 가장 가깝게 한다.
  */
 @SpringBootTest
 @Transactional
 @Import(TestMembers.class)
-@TestPropertySource(properties = "related.provider=fake")
+@TestPropertySource(properties = "related.provider=local")
 class RelatedPostApiTest {
 
     @Autowired
@@ -73,7 +73,7 @@ class RelatedPostApiTest {
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         topicId = jdbc.queryForObject("select min(topic_id) from topic", Long.class);
-        // 이 테스트에만 있는 낱말 (가짜 임베딩에서 이 낱말을 나눠 가진 글끼리 가깝다)
+        // 이 테스트에만 있는 낱말 (글자 조각 임베딩에서 이 낱말을 나눠 가진 글끼리 가깝다)
         word = "쿼르탄" + UUID.randomUUID().toString().substring(0, 6);
     }
 

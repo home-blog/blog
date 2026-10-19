@@ -117,6 +117,33 @@ done
 # 두 벌이 같이 쓰는 것 (바뀐 게 없으면 그대로 둔다)
 "${compose[@]}" up -d --no-build --wait redis minio
 
+# 비슷한 글의 무료 AI (specs/014 D-17): OLLAMA_ENABLED=true이고 서버에 여유가 있을 때만 Ollama를 켠다.
+# 여럿이 쓰는 서버라 남은 메모리·디스크를 먼저 본다. 켜지 못하면 비슷한 글은 지금처럼 태그·주제로 대신한다
+export RELATED_OLLAMA_URL=""
+ollama=("${compose[@]}" --profile ollama)
+ollama_model="${OLLAMA_MODEL:-bge-m3}"
+ollama_running() { [ -n "$("${ollama[@]}" ps -q --status running ollama 2>/dev/null)" ]; }
+if [ "${OLLAMA_ENABLED:-false}" = true ]; then
+  mem_mb="$(awk '/^MemAvailable:/ {print int($2 / 1024)}' /proc/meminfo)"
+  disk_gb="$(df -Pk "$(docker info -f '{{.DockerRootDir}}' 2>/dev/null || echo .)" 2>/dev/null | awk 'NR == 2 {print int($4 / 1024 / 1024)}')"
+  need_mb="${OLLAMA_MIN_MEMORY_MB:-3072}" need_gb="${OLLAMA_MIN_DISK_GB:-10}"
+  if ollama_running || { [ "${mem_mb:-0}" -ge "$need_mb" ] && [ "${disk_gb:-0}" -ge "$need_gb" ]; }; then
+    "${ollama[@]}" up -d --no-build --wait --wait-timeout 600 ollama
+    if ! "${ollama[@]}" exec -T ollama ollama list | awk 'NR > 1 {print $1}' | grep -q "^${ollama_model}"; then
+      # 모델(약 1.2GB)은 뒤에서 받는다. 받는 동안 임베딩이 실패하면 정리 작업이 멈췄다가 10분 뒤 다시 해 본다
+      echo "Ollama 모델 ${ollama_model}을 뒤에서 받습니다"
+      "${ollama[@]}" exec -d -T ollama ollama pull "$ollama_model"
+    fi
+    export RELATED_OLLAMA_URL="http://ollama:11434"
+    echo "Ollama 켜짐: 비슷한 글을 ${ollama_model}로 고릅니다"
+  else
+    echo "Ollama를 켜지 않습니다: 남은 메모리 ${mem_mb:-?}MB(필요 ${need_mb}MB), 디스크 ${disk_gb:-?}GB(필요 ${need_gb}GB). 비슷한 글은 태그·주제로 대신합니다"
+  fi
+elif ollama_running; then
+  echo "OLLAMA_ENABLED가 꺼져 있어 Ollama를 끕니다 (받은 모델은 남는다)"
+  "${ollama[@]}" stop ollama
+fi
+
 # 차례: 두 벌 이전 구성이면 비어 있는 b부터 (a의 포트를 옛 화면 컨테이너가 쓰고 있다). 꺼져 있는 벌이 있으면 그 벌부터
 if exists "$legacy_web" || exists "$legacy_server"; then order=(b a)
 elif ! running a; then order=(a b)

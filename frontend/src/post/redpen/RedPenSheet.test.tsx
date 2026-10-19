@@ -71,4 +71,21 @@ describe('빨간 펜 교정지', () => {
     )
     expect(screen.getByRole('status')).toHaveTextContent('고칠 곳이 없습니다')
   })
+
+  it('규칙 교정이면 남은 횟수 대신 무엇으로 찾았는지 알린다', () => {
+    render(
+      <RedPenSheet
+        base={BASE}
+        corrections={CORRECTIONS}
+        decisions={['pending', 'pending']}
+        remaining={null}
+        note="맞춤법 규칙으로 찾았습니다"
+        onDecide={vi.fn()}
+        onAcceptAll={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('status')).not.toHaveTextContent('번 남음')
+    expect(screen.getByText('맞춤법 규칙으로 찾았습니다')).toBeInTheDocument()
+  })
 })
