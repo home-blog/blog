@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 원고 편지 (specs/016 US3, S3-1 ~ S3-4): 새 공개 글이 올라오면 메일 받기를 켠 사람(탈퇴하지 않은)에게 한 통씩.
- * 하루 한도(daily-limit)는 Redis 날짜 키로 센다. 넘으면 그날은 더 보내지 않고 다음 날로 미루지 않는다(오래된 새 글 소식은 뜻이 없다).
+ * 하루 한도(사이트 daily-limit, 블로그마다 per-blog-daily-limit)는 Redis 날짜 키로 센다. 넘으면 그날은 더 보내지 않고 다음 날로 미루지 않는다(오래된 새 글 소식은 뜻이 없다).
  * 보내다 실패하면 다시 보내지 않고 기록만 남긴다. 받는 주소는 기록에 남기지 않는다.
  */
 @Service
@@ -78,9 +78,9 @@ public class Newsletter {
         String subject = "[글결] " + event.blogName() + "에 새 원고: " + event.title();
         int sent = 0;
         for (Recipient recipient : recipients) {
-            if (!takeDailySlot()) {
-                log.warn("원고 편지: 오늘 한도({}통)를 다 써서 글 {}의 나머지 {}통은 보내지 않습니다", settings.dailyLimit(),
-                        event.postId(), recipients.size() - sent);
+            if (!takeDailySlot(event.blogId())) {
+                log.warn("원고 편지: 오늘 한도(사이트 {}통·블로그 {}통)를 다 써서 글 {}의 나머지 {}통은 보내지 않습니다",
+                        settings.dailyLimit(), settings.perBlogDailyLimit(), event.postId(), recipients.size() - sent);
                 break;
             }
             try {
@@ -104,6 +104,14 @@ public class Newsletter {
                     return blogDirectory.blog(subscription.getBlogId()).map(BlogDirectory.BlogInfo::name).orElse(null);
                 })
                 .orElse(null);
+    }
+
+    private boolean take(String key, int limit) {
+        Long count = redis.opsForValue().increment(key);
+        if (count != null && count == 1) {
+            redis.expire(key, Duration.ofDays(2));
+        }
+        return count != null && count <= limit;
     }
 
     String body(PostPublishedEvent event, long subscriptionId) {
@@ -137,15 +145,12 @@ public class Newsletter {
         return text.substring(0, text.offsetByCodePoints(0, limit)) + "…";
     }
 
-    /** 오늘(한국 날짜) 한 통 더 보낼 수 있으면 센다. Redis가 멈추면 보내지 않는다(한도를 지키는 쪽). */
-    private boolean takeDailySlot() {
+    /** 오늘(한국 날짜) 이 블로그와 사이트 모두 한 통 더 보낼 수 있으면 센다. Redis가 멈추면 보내지 않는다(한도를 지키는 쪽). */
+    private boolean takeDailySlot(Long blogId) {
         try {
-            String key = "newsletter:sent:" + LocalDate.ofInstant(clock.instant(), dayZone);
-            Long count = redis.opsForValue().increment(key);
-            if (count != null && count == 1) {
-                redis.expire(key, Duration.ofDays(2));
-            }
-            return count != null && count <= settings.dailyLimit();
+            String day = LocalDate.ofInstant(clock.instant(), dayZone).toString();
+            return take("newsletter:sent:" + day + ":blog:" + blogId, settings.perBlogDailyLimit())
+                    && take("newsletter:sent:" + day, settings.dailyLimit());
         } catch (RuntimeException e) {
             log.warn("원고 편지 한도를 셀 수 없어 보내지 않습니다: {}", e.getClass().getSimpleName());
             return false;

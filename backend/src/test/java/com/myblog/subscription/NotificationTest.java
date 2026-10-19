@@ -55,7 +55,7 @@ import org.springframework.web.context.WebApplicationContext;
 @SpringBootTest
 @Import({TestMembers.class, TestComments.class, TestClock.Config.class})
 @TestPropertySource(properties = {"subscription.newsletter.site-url=https://example.test/",
-        "subscription.newsletter.daily-limit=2"})
+        "subscription.newsletter.daily-limit=3", "subscription.newsletter.per-blog-daily-limit=2"})
 class NotificationTest {
 
     private static final long WAIT_MS = 5000;
@@ -134,9 +134,13 @@ class NotificationTest {
     }
 
     private void edit(Long postId, String title, String visibility) throws Exception {
+        edit(postId, writer.defaultCategoryId(), title, visibility);
+    }
+
+    private void edit(Long postId, Long categoryId, String title, String visibility) throws Exception {
         mvc.perform(put("/api/v1/posts/{id}", postId).with(csrf()).session(writerSession)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestJson.of("title", title, "content", "본문", "categoryId", writer.defaultCategoryId(),
+                        .content(TestJson.of("title", title, "content", "본문", "categoryId", categoryId,
                                 "topicId", topicId, "visibility", visibility)))
                 .andExpect(status().isOk());
     }
@@ -202,6 +206,18 @@ class NotificationTest {
     }
 
     @Test
+    void 비공개_분류에_올린_공개_글은_분류를_공개로_바꾼_뒤_고쳐도_새_원고로_알리지_않는다() throws Exception {
+        subscribe(readerSession, writer, false);
+        Long hiddenCategory = members.addCategory(writer.blogId(), "숨긴 분류", "private", 9);
+        Long postId = write(hiddenCategory, "오래전에 쓴 글", "public");
+        jdbc.update("update category set visibility = 'public' where category_id = ?", hiddenCategory);
+
+        edit(postId, hiddenCategory, "오래전에 쓴 글 (오타 고침)", "public");
+        settle();
+        assertThat(notices(reader, "post")).isZero();
+    }
+
+    @Test
     void 내_글에_남이_댓글을_달면_소식이_오고_내가_단_댓글은_오지_않는다() throws Exception {
         Long postId = write(writer.defaultCategoryId(), "댓글 받을 글", "public");
         mvc.perform(post("/api/v1/posts/{id}/comments", postId).with(csrf()).session(readerSession)
@@ -251,8 +267,12 @@ class NotificationTest {
                 .andExpect(status().is2xxSuccessful());
 
         mvc.perform(get("/api/v1/me/notifications").session(readerSession))
-                .andExpect(jsonPath("$.items[0].postTitle").value("곧 지울 글"))
+                .andExpect(jsonPath("$.items[0].postTitle").doesNotExist())
+                .andExpect(jsonPath("$.items[0].postId").doesNotExist())
                 .andExpect(jsonPath("$.items[0].available").value(false));
+        // 표에는 그때의 제목이 남지만 볼 수 없게 된 글이라 주지 않는다
+        assertThat(jdbc.queryForObject("select post_title from notification where users_id = ?", String.class,
+                reader.id())).isEqualTo("곧 지울 글");
     }
 
     @Test
@@ -298,19 +318,32 @@ class NotificationTest {
     }
 
     @Test
-    void S3_2_하루_한도를_넘으면_그날은_더_보내지_않고_우편함_소식은_간다() throws Exception {
+    void S3_2_블로그마다와_사이트_전체의_하루_한도를_넘으면_그날은_더_보내지_않고_우편함_소식은_간다() throws Exception {
         Member second = register("n2");
         Member third = register("n3");
+        Member otherWriter = register("no");
+        MockHttpSession secondSession = members.login(mvc, second);
         subscribe(readerSession, writer, true);
-        subscribe(members.login(mvc, second), writer, true);
+        subscribe(secondSession, writer, true);
         subscribe(members.login(mvc, third), writer, true);
 
         write(writer.defaultCategoryId(), "한도 시험", "public");
-
         awaitNotices(third, "post", 1);
-        settle();
+        // 이 블로그는 하루 2통까지
         verify(mailer, timeout(WAIT_MS).times(2)).send(anyString(), anyString(), anyString());
-        assertThat(org.mockito.Mockito.mockingDetails(mailer).getInvocations()).hasSize(2);
+
+        // 다른 블로그는 따로 세지만 사이트 전체 3통 가운데 1통만 남았다
+        subscribe(readerSession, otherWriter, true);
+        subscribe(secondSession, otherWriter, true);
+        MockHttpSession otherSession = members.login(mvc, otherWriter);
+        mvc.perform(post("/api/v1/posts").with(csrf()).session(otherSession).contentType(MediaType.APPLICATION_JSON)
+                        .content(TestJson.of("title", "다른 블로그 글", "content", "본문", "categoryId",
+                                otherWriter.defaultCategoryId(), "topicId", topicId, "visibility", "public")))
+                .andExpect(status().isCreated());
+        awaitNotices(second, "post", 2);
+        verify(mailer, timeout(WAIT_MS).times(3)).send(anyString(), anyString(), anyString());
+        Thread.sleep(300);
+        assertThat(org.mockito.Mockito.mockingDetails(mailer).getInvocations()).hasSize(3);
     }
 
     @Test

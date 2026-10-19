@@ -14,7 +14,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,16 +80,17 @@ public class SubscriptionService {
     @Transactional(readOnly = true)
     public List<MySubscription> mine(Long memberId) {
         List<BlogSubscription> list = subscriptions.findByMemberIdOrderByCreatedAtDescIdDesc(memberId);
-        List<Optional<BlogInfo>> blogs = list.stream().map(s -> blogDirectory.blog(s.getBlogId())).toList();
-        Map<Long, MemberName> names = memberNames.namesOf(
-                blogs.stream().flatMap(Optional::stream).map(BlogInfo::ownerId).toList());
-        return java.util.stream.IntStream.range(0, list.size())
-                .filter(i -> blogs.get(i).isPresent())
-                .mapToObj(i -> {
-                    BlogInfo blog = blogs.get(i).get();
+        // 블로그와 주인 이름을 한 번에 읽는다 (500개까지라 줄마다 묻지 않는다)
+        Map<Long, BlogInfo> blogById = blogDirectory.blogs(list.stream().map(BlogSubscription::getBlogId).toList())
+                .stream().collect(Collectors.toMap(BlogInfo::blogId, Function.identity()));
+        Map<Long, MemberName> names = memberNames.namesOf(blogById.values().stream().map(BlogInfo::ownerId).toList());
+        return list.stream()
+                .filter(subscription -> blogById.containsKey(subscription.getBlogId()))
+                .map(subscription -> {
+                    BlogInfo blog = blogById.get(subscription.getBlogId());
                     MemberName owner = names.get(blog.ownerId());
                     return new MySubscription(blog.blogId(), blog.name(), owner == null ? "" : owner.nickname(),
-                            list.get(i).isEmailEnabled(), list.get(i).getCreatedAt());
+                            subscription.isEmailEnabled(), subscription.getCreatedAt());
                 })
                 .toList();
     }

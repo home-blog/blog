@@ -118,7 +118,7 @@ describe('우편함', () => {
           items: [
             notice(),
             notice({ notificationId: 2, kind: 'comment', actorName: '파도', read: true }),
-            notice({ notificationId: 3, available: false, postId: null, postTitle: '지운 글' }),
+            notice({ notificationId: 3, available: false, postId: null, postTitle: null }),
           ],
           page: 1,
           totalPages: 1,

@@ -41,12 +41,12 @@ export function getSubscribedFeed(page: number, signal?: AbortSignal): Promise<S
   return api<SubscribedFeed>(`/api/v1/me/subscriptions/feed${page > 1 ? `?page=${page}` : ''}`, { signal })
 }
 
-/** kind: post(받아 보는 블로그의 새 원고) · comment(내 글에 달린 댓글). available: 지금 그 글을 볼 수 있는가 */
+/** kind: post(받아 보는 블로그의 새 원고) · comment(내 글에 달린 댓글). available: 지금 그 글을 볼 수 있는가 (아니면 글 번호·제목은 null) */
 export interface Notice {
   notificationId: number
   kind: 'post' | 'comment'
   postId: number | null
-  postTitle: string
+  postTitle: string | null
   actorName: string
   available: boolean
   read: boolean

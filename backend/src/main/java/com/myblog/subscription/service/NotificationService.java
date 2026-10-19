@@ -33,7 +33,7 @@ public class NotificationService {
         this.clock = clock;
     }
 
-    /** available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false). */
+    /** available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false, 그때 postId·postTitle은 null). */
     public record NotificationView(Long notificationId, String kind, Long postId, String postTitle, String actorName,
             boolean available, boolean read, Instant createdAt) {
     }
@@ -71,7 +71,8 @@ public class NotificationService {
     }
 
     private static NotificationView view(Notification n, boolean available) {
-        return new NotificationView(n.getId(), n.getKind(), n.getPostId(), n.getPostTitle(), n.getActorName(),
-                available, n.getReadAt() != null, n.getCreatedAt());
+        // 볼 수 없게 된 글은 번호·제목도 주지 않는다 (비공개로 돌린 글의 제목이 우편함에 남지 않게)
+        return new NotificationView(n.getId(), n.getKind(), available ? n.getPostId() : null,
+                available ? n.getPostTitle() : null, n.getActorName(), available, n.getReadAt() != null, n.getCreatedAt());
     }
 }
