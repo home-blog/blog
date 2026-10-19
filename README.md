@@ -15,8 +15,8 @@
 | 회원 | 이메일 인증 가입, 로그인(5번 틀리면 잠금), 소셜 로그인(GitHub·카카오·네이버·Google), 마이페이지, 비밀번호 변경, 탈퇴 |
 | 블로그와 글 | 블로그 하나씩, 분류(비공개 가능), 마크다운 글쓰기와 나란히 미리보기, 공개 범위, 태그, 이미지 |
 | 글쓰기 도구 | 임시 저장(30초마다 저절로), 예약 발행, 연재(1화·2화, 이전·다음 화), 글쓰기 잔디(지난 1년) |
-| 둘러보기 | 첫 화면 주제별 글 모음, 이번 주 인기 글, 검색, 원고지 매수·읽는 시간 |
-| 소통 | 댓글, 좋아요, 신고 |
+| 둘러보기 | 첫 화면 주제별 글 모음, 오늘의 이슈(오늘·어제 많이 읽힌 글), 이번 주 인기 글, 검색, 지금 많이 찾는 말(실시간 인기 검색어), 원고지 매수·읽는 시간 |
+| 소통 | 댓글, 좋아요, 신고, 문장 수집과 필사 노트(본문에서 고른 문장을 원고지 칸 카드로 모아 둠, 나만 봄) |
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
 | 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
@@ -42,7 +42,7 @@
 
 | 폴더 | 내용 |
 |---|---|
-| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그)·`image`, `notice`(공지사항), `ai`(빨간 펜 교정), `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
+| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그·필사 노트)·`image`, `notice`(공지사항), `ai`(빨간 펜 교정), `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
 | `backend/src/main/resources/db/migration` | 표는 Flyway로만 만든다 |
 | `backend/src/docs/asciidoc` | Spring REST Docs 원고 |
 | `frontend/` | 화면. 기능별 폴더(`auth`, `post`, `explore` …), 디자인 토큰은 `src/index.css` 한곳 |
@@ -81,7 +81,7 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 ```bash
 # 저장소 맨 위에서. 괄호는 그 폴더에 들어갔다가 돌아온다
-(cd backend && mvn verify)                  # 서버 테스트 690여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
+(cd backend && mvn verify)                  # 서버 테스트 810여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
 (cd frontend && npm test)                   # 화면 테스트 (Vitest)
 (cd frontend && npm run test:coverage)      # 화면 커버리지 (coverage/lcov.info)
 ```

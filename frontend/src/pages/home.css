@@ -549,3 +549,8 @@
   color: var(--accent);
   box-shadow: var(--shadow);
 }
+
+/* 맨 위 카드가 하나뿐이면 (오늘 읽힌 글이 한 편) 옆 칸을 비우지 않고 넓게 */
+.feature.feature-solo {
+  grid-template-columns: minmax(0, 1fr);
+}

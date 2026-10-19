@@ -142,6 +142,18 @@ class SearchTrendApiTest {
     }
 
     @Test
+    void 글자나_숫자_없이_기호뿐인_검색어는_세지_않는다() throws Exception {
+        jdbc.update("update post set title = title || ' -- ((' where title like ?", word + "가%");
+        search("--", visitor()).andExpect(status().isOk()).andExpect(jsonPath("$.totalCount").isNotEmpty());
+        search("((", visitor()).andExpect(status().isOk());
+        search(word + "가 --", visitor()).andExpect(status().isOk());
+
+        mvc.perform(get(TRENDING))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].keyword").value(word + "가 --"));
+    }
+
+    @Test
     void S1_5_순위와_10분_전과의_변화() throws Exception {
         for (int i = 0; i < 3; i++) {
             search(word + "나", visitor());

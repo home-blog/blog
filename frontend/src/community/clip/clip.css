@@ -58,6 +58,9 @@
 
 /* 필사 노트 */
 .library-page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 2.5rem var(--page-gutter) 4rem;
   display: grid;
   gap: 1rem;
 }
@@ -98,8 +101,8 @@
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  border-top: 1px solid var(--grid);
-  border-left: 1px solid var(--grid);
+  /* 칸마다 테두리를 두고 1px씩 겹쳐, 줄이 덜 차도 칸 밖으로 선이 나가지 않게 */
+  padding: 0 1px 1px 0;
 }
 
 .clip-cell {
@@ -107,8 +110,8 @@
   place-items: center;
   width: var(--clip-cell);
   height: var(--clip-cell);
-  border-right: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
+  margin: 0 -1px -1px 0;
+  border: 1px solid var(--grid);
   font-family: var(--font-letter);
   font-size: 1rem;
   color: var(--ink);

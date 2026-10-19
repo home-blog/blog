@@ -28,7 +28,10 @@ export default function FeaturedPost({ posts, label = '이번 주 눈여겨볼 �
   const { main, side } = pick(posts, ranked)
   if (!main) return null
   return (
-    <section className={ranked ? 'feature feature-ranked' : 'feature'} aria-label={label}>
+    <section
+      className={['feature', ranked && 'feature-ranked', side.length === 0 && 'feature-solo'].filter(Boolean).join(' ')}
+      aria-label={label}
+    >
       <MainCard post={main} label={label} rank={ranked ? 1 : undefined} />
       {side.length > 0 && (
         <ul className="feature-side">

@@ -251,6 +251,28 @@ operation::proofread[snippets='request-headers,request-fields,http-request,http-
 
 operation::related-posts[snippets='path-parameters,http-request,http-response,response-fields']
 
+== 발견
+실시간 인기 검색어, 오늘의 이슈, 문장 수집(필사 노트)입니다 (0.10.0).
+
+[[search-trending]]
+=== 지금 많이 찾는 말
+결과가 있는 검색만 검색어별로 셉니다(사람마다의 검색 기록은 남기지 않음). 같은 사람이 10분 안에 같은 말을 다시 찾으면 한 번만 세고, 금지어가 든 말은 넣지 않습니다. Redis가 멈추면 빈 목록입니다.
+
+operation::search-trending[snippets='http-request,http-response,response-fields']
+
+[[today-issue]]
+=== 오늘의 이슈
+고른 순서는 5분 동안 다시 쓰지만, 카드는 요청마다 다시 읽어 비공개로 바뀐 글은 바로 빠집니다.
+
+operation::today-issue[snippets='http-request,http-response,response-fields']
+
+[[clip-collect]]
+=== 문장 수집
+로그인이 필요합니다. 새로 모으면 201, 이미 모은 문장이면 200입니다. 한 사람 1,000개까지(넘으면 409 `CLIP_LIMIT_EXCEEDED`).
+필사 노트는 `GET /api/v1/me/clips?page=`(나만, 최근 순 20개씩), 지우기는 `DELETE /api/v1/me/clips/{clipId}`(남의 것은 404), 글 주인은 `GET /api/v1/posts/{postId}/clips/collectors`로 모은 사람 수만 봅니다.
+
+operation::clip-collect[snippets='request-headers,request-fields,http-request,http-response,response-fields']
+
 [[errors]]
 == 오류 예시
 

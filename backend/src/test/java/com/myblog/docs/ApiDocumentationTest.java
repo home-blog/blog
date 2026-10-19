@@ -802,6 +802,61 @@ class ApiDocumentationTest {
                                 subsectionWithPath("posts[]").description("비슷한 글 4개까지. 첫 화면 글 모음과 같은 카드 한 줄"))));
     }
 
+    // ── 10. 발견 (specs/015) ──
+
+    @Test
+    void 인기_검색어() throws Exception {
+        Member member = members.register("docs");
+        writePost(member, "제주 렌터카 여행 후기");
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/posts").param("q", "렌터카"))
+                .andExpect(status().isOk());
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/search/trending"))
+                .andExpect(status().isOk())
+                .andDo(document("search-trending",
+                        responseFields(
+                                fieldWithPath("items[]").description("최근 1시간 순위, 10개까지. 모인 검색어가 없으면 빈 목록"),
+                                fieldWithPath("items[].rank").description("순위 (1부터)"),
+                                fieldWithPath("items[].keyword").description("검색어 (앞뒤 공백을 지우고 공백은 한 칸, 영문은 소문자)"),
+                                fieldWithPath("items[].change").description("10분 전과 견준 변화: `up` · `down` · `new` · `same`"),
+                                fieldWithPath("items[].delta").description("오르거나 내린 칸 수 (`new`·`same`이면 0)"))));
+    }
+
+    @Test
+    void 오늘의_이슈() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/posts/today-issue"))
+                .andExpect(status().isOk())
+                .andDo(document("today-issue",
+                        responseFields(
+                                fieldWithPath("date").description("고른 날 (한국 날짜)"),
+                                subsectionWithPath("posts[]").optional()
+                                        .description("오늘과 어제 많이 읽힌 공개 글, 블로그마다 하나, 3개까지. 첫 화면 글 모음과 같은 카드 한 줄"))));
+    }
+
+    @Test
+    void 문장_수집() throws Exception {
+        Member member = members.register("docs");
+        Long postId = writePost(member, "바닷가 산책");
+        Member reader = members.register("docs");
+        MockHttpSession session = login(reader);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/clips"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"postId\":" + postId + ",\"text\":\"바다를 보며 3시간 걸었다.\"}"))
+                .andExpect(status().isCreated())
+                .andDo(document("clip-collect",
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("postId").description("문장을 고른 글 번호 (볼 수 없는 글이면 404)"),
+                                fieldWithPath("text").description("고른 문장 1~300자. 본문에 실제로 있어야 한다"
+                                        + " (마크다운 기호·링크 주소·띄어쓰기는 걷어 내고 견준다, 아니면 400 `CLIP_NOT_IN_POST`)")),
+                        responseFields(
+                                fieldWithPath("clipId").description("모은 문장 번호. 같은 글의 같은 문장을 다시 보내면 앞의 것(200)"),
+                                fieldWithPath("text").description("옮겨 적은 문장 (공백을 한 칸으로)"),
+                                fieldWithPath("createdAt").description("모은 시각"),
+                                fieldWithPath("post.postId").description("원문 글 번호 (글이 지워지면 null)"),
+                                fieldWithPath("post.title").description("모을 때의 글 제목"),
+                                fieldWithPath("post.blogName").description("모을 때의 블로그 이름"),
+                                fieldWithPath("post.available").description("지금 원문을 볼 수 있는지 (비공개가 되거나 지워지면 false)"))));
+    }
+
     private Long writePost(Member member, String title) {
         return jdbc.queryForObject("insert into post (category_id, topic_id, title, content, visibility, created_at)"
                 + " values (?, (select min(topic_id) from topic), ?, ?, 'public', ?) returning post_id", Long.class,
