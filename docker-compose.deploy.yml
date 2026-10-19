@@ -37,6 +37,9 @@ x-server-env: &server-env
   SOCIAL_NAVER_CLIENT_ID: ${SOCIAL_NAVER_CLIENT_ID:-}
   SOCIAL_NAVER_CLIENT_SECRET: ${SOCIAL_NAVER_CLIENT_SECRET:-}
   SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+  # AI (specs/014). 비어 있으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  VOYAGE_API_KEY: ${VOYAGE_API_KEY:-}
 
 x-server: &server
   depends_on:

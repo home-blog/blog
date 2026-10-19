@@ -20,6 +20,7 @@
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
 | 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
+| AI | 빨간 펜 교정(Claude: 띄어쓰기·맞춤법·다듬기를 원고지 위 교정부호로, 받아들일지 고름), 이 글과 비슷한 글(Voyage 임베딩, 없으면 태그로 대신) |
 
 ## 기술
 
@@ -27,6 +28,7 @@
 |---|---|
 | 서버 | Java 21, Spring Boot 4.1, Maven, Spring Security(세션 + CSRF), Spring Session JDBC, Spring Modulith, Flyway |
 | 화면 | React 19, Vite 8, TypeScript, React Router, react-markdown, uPlot |
+| AI | Claude API(공식 Java SDK `anthropic-java`, 구조화된 출력), Voyage AI 임베딩(`real[]`에 저장, 비슷한 정도는 서버가 계산) |
 | 저장소 | PostgreSQL 18(pgvector 이미지), Redis 8(짧게 쓰고 버리는 값), MinIO(이미지, S3 방식) |
 | 배포 | Docker 이미지 → GitHub Actions → 실습 서버. 앱 두 벌(a, b)을 Nginx `upstream`으로 번갈아 쓰고 한 벌씩 바꾸는 롤링 배포 |
 | 품질 | JUnit 5 · MockMvc · Spring REST Docs, Vitest · Testing Library · MSW, JaCoCo, SonarQube, CodeRabbit |
@@ -40,7 +42,7 @@
 
 | 폴더 | 내용 |
 |---|---|
-| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그)·`image`, `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
+| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그)·`image`, `notice`(공지사항), `ai`(빨간 펜 교정), `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
 | `backend/src/main/resources/db/migration` | 표는 Flyway로만 만든다 |
 | `backend/src/docs/asciidoc` | Spring REST Docs 원고 |
 | `frontend/` | 화면. 기능별 폴더(`auth`, `post`, `explore` …), 디자인 토큰은 `src/index.css` 한곳 |
@@ -70,8 +72,8 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 | 문서 | 보는 법 |
 |---|---|
-| Swagger (API 85개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 12개 묶음, 로그인·CSRF가 필요한 API에 표시 |
-| Spring REST Docs (주요 흐름 30개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
+| Swagger (API 88개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 13개 묶음, 로그인·CSRF가 필요한 API에 표시 |
+| Spring REST Docs (주요 흐름 32개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
 
 모든 주소는 `/api/v1/…`입니다. 로그인은 서버 세션(쿠키 `SESSION`)이고, GET이 아닌 요청은 쿠키 `XSRF-TOKEN`의 값을 머리글 `X-XSRF-TOKEN`에 실어 보냅니다.
 
@@ -79,7 +81,7 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 ```bash
 # 저장소 맨 위에서. 괄호는 그 폴더에 들어갔다가 돌아온다
-(cd backend && mvn verify)                  # 서버 테스트 450여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
+(cd backend && mvn verify)                  # 서버 테스트 690여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
 (cd frontend && npm test)                   # 화면 테스트 (Vitest)
 (cd frontend && npm run test:coverage)      # 화면 커버리지 (coverage/lcov.info)
 ```
