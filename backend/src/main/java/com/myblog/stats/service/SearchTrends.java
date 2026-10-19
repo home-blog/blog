@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
  *   <li>검색어는 앞뒤 공백을 지우고 여러 칸 공백을 한 칸으로, 영문은 소문자로 맞춘다(S1-3). 금지어가 들어 있거나 글자·숫자 없이 기호뿐이면 세지 않는다(S1-4)</li>
  *   <li>같은 사람·같은 검색어는 dedupe-window 칸(시계 기준으로 나눈 칸)에 한 번(S1-2). 이 표시의 키는 사람과 검색어를 해시로 묶어, Redis에 둘이 글자로 함께 남지 않는다</li>
  *   <li>10분 칸마다 정렬 집합 {@code search:count:{칸 번호}}에 센다. 순위는 최근 6칸(1시간)의 합, 변화는 한 칸 앞 6칸과 견준다(S1-5)</li>
+ *   <li>방문자는 이미 쿠키를 가진 사람만 센다(쿠키 없는 요청을 되풀이해 순위를 올리지 못하게), 1시간에 min-count번 넘게 세어진 말만 보인다</li>
  *   <li>Redis가 멈추면 세지 않고 순위는 빈 목록이다. 검색은 그대로 된다(S1-6, 잃어도 되는 값)</li>
  * </ul>
  */
@@ -123,6 +124,7 @@ public class SearchTrends {
             }
         }
         return counts.entrySet().stream()
+                .filter(entry -> entry.getValue() >= properties.minCount())
                 .sorted(Map.Entry.<String, Double>comparingByValue(Comparator.reverseOrder())
                         .thenComparing(Map.Entry.comparingByKey()))
                 .limit(properties.size())
