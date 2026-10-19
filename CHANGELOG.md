@@ -36,9 +36,9 @@
 ### 운영
 - 새 모듈 `board`(글 모듈의 주제 틀 `TopicCatalog`, 회원 모듈의 `MemberNames`·`LoggedInMember`만 씀). 조회 수는 통계 모듈이 `BoardPostViewedEvent`를 듣고 블로그 글과 같은 방문자 판단으로 센 뒤 `BoardViewCounter`로 올리고, 우편함 소식은 구독 모듈이 `BoardCommentWrittenEvent`·`BoardAnswerAcceptedEvent`를 커밋 뒤에 듣는다
 - Flyway V21: 새 표 `board_post`(주제는 `topic` 표, 채택 댓글 칸), `board_comment`(글을 지우면 함께), `notification`에 `board_post_id`와 kind 두 가지
-- 같은 회원의 글은 1분(`board.post-interval`), 댓글은 5초(`board.comment-interval`) 간격. 회원마다 트랜잭션 잠금으로 줄을 세운다
+- 같은 회원의 글은 1분(`board.post-interval`), 댓글은 5초(`board.comment-interval`) 간격. 회원마다 트랜잭션 잠금으로 줄을 세운다. 고치기·채택·댓글 쓰기·지우기는 글 줄 잠금으로 차례가 된다(겹쳐도 채택 칸을 옛 값으로 덮어쓰지 않고, 지워진 글·댓글은 404)
 - Flyway V22: 0.12.0 업데이트 공지
-- 테스트: 서버 글마당 14개, 화면 글마당 10개
+- 테스트: 서버 글마당 15개, 화면 글마당 11개
 
 ## [0.11.0] - 2026-10-19
 
