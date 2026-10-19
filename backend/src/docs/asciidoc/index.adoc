@@ -150,6 +150,13 @@ operation::post-summary[snippets='http-request,http-response,response-fields']
 
 operation::comment-create[snippets='request-headers,path-parameters,request-fields,http-request,http-response,response-fields']
 
+[[comment-reply]]
+=== 답글·비밀 댓글 쓰기
+
+`parentId`를 넣으면 그 댓글의 답글이 된다(한 단계). `secret: true`면 봉한 쪽지: 쓴 사람·블로그 주인·원댓글 쓴 사람만 읽는다.
+
+operation::comment-reply[snippets='request-headers,path-parameters,request-fields,http-request,http-response,response-fields']
+
 [[comment-list]]
 === 댓글 목록
 

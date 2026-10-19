@@ -21,9 +21,90 @@
   list-style: none;
 }
 
-.comment {
+/* 원댓글 하나와 그 답글이 한 묶음 */
+.comment-thread {
   padding: 0.85rem 0;
   border-bottom: 1px dashed var(--grid);
+}
+
+/* 답글: 원댓글 아래 붉은 교정선을 따라 한 단계 (specs/019) */
+.comment-replies {
+  margin: 0.75rem 0 0 0.5rem;
+  padding: 0 0 0 1rem;
+  list-style: none;
+  border-left: 2px solid var(--seal);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comment.is-reply .comment-author::before {
+  content: '↳ ';
+  color: var(--seal);
+  font-weight: 400;
+}
+
+/* 봉한 쪽지 표시 */
+.comment-tag {
+  padding: 0 0.4rem;
+  border: 1px solid var(--seal);
+  border-radius: var(--radius-field);
+  color: var(--seal);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
+
+/* 읽을 수 없는 봉한 쪽지: 봉투 위 붉은 봉인 도장 */
+.comment-sealed {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 10px,
+    color-mix(in srgb, var(--grid) 25%, transparent) 10px 11px
+  );
+  color: var(--ink-soft);
+}
+
+.comment-seal {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: var(--seal);
+  color: var(--seal-ink);
+  font-weight: 700;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--seal) 35%, transparent);
+}
+
+/* 지운 칸: 원고지 칸에 두 줄을 그은 자리 */
+.comment-erased {
+  margin: 0;
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--grid);
+  color: var(--ink-soft);
+  text-decoration: line-through double var(--seal);
+  font-family: var(--font-letter);
+}
+
+.comment-seal-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--step--1);
+}
+
+.comment-reply-form {
+  margin: 0.75rem 0 0 1.5rem;
 }
 
 .comment-meta {
@@ -45,6 +126,8 @@
 
 .comment-actions {
   margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
 }
 
 /* 입력한 글자 그대로: 줄바꿈을 살리고 긴 낱말은 줄을 바꾼다 */

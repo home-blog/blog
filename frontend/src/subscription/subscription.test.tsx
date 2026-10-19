@@ -165,6 +165,32 @@ describe('우편함', () => {
     expect(router.state.location.pathname).toBe('/posts/12')
   })
 
+  it('답글 소식은 답글 우표로 보이고, 누르면 그 글의 댓글 자리로 간다 (specs/019)', async () => {
+    server.use(
+      http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 1 })),
+      http.get('/api/v1/me/notifications', () =>
+        HttpResponse.json({
+          items: [notice({ kind: 'reply', actorName: '파도' })],
+          page: 1,
+          totalPages: 1,
+          unreadCount: 1,
+        }),
+      ),
+      http.post('/api/v1/me/notifications/1/read', () => new HttpResponse(null, { status: 204 })),
+    )
+    const router = renderAt([
+      { path: '/', element: <Mailbox /> },
+      { path: '/posts/:id', element: <p>글 화면</p> },
+    ])
+    fireEvent.click(await screen.findByRole('button', { name: /우편함/ }))
+    const item = await screen.findByRole('button', { name: /바다 일기/ })
+    expect(within(item).getByText('답글')).toBeInTheDocument()
+    expect(within(item).getByText(/내 댓글에 답글을 달았어요/)).toBeInTheDocument()
+    fireEvent.click(item)
+    expect(await screen.findByText('글 화면')).toBeInTheDocument()
+    expect(router.state.location.hash).toBe('#comments')
+  })
+
   it('모두 읽음을 누르면 수가 사라진다', async () => {
     server.use(
       http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 2 })),
