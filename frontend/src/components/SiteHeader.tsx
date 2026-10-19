@@ -69,7 +69,12 @@ export default function SiteHeader() {
               <span aria-hidden="true">✎</span> 글쓰기
             </Link>
             {/* 내 블로그·블로그 관리·마이페이지·로그아웃은 한 메뉴로 (블로그 관리와 마이페이지는 따로 둔다: specs/006 FR-004) */}
-            <UserMenu nickname={member.nickname} newCommentCount={newCommentCount} onLogout={handleLogout} />
+            <UserMenu
+              nickname={member.nickname}
+              admin={member.admin}
+              newCommentCount={newCommentCount}
+              onLogout={handleLogout}
+            />
           </>
         ) : (
           <>

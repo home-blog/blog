@@ -29,7 +29,13 @@ const messages = {
   failed: '※ 잠시 뒤 다시 시도해 주세요',
 } as const
 
-export default function ReportDialog({ postId }: { postId: number }) {
+interface Props {
+  postId: number
+  /** 보내는 곳. 없으면 블로그 글 신고. 글마당 글은 글마당 신고 주소로 보낸다 (specs/018 US2) */
+  send?: (reason: ReportReason, detail: string) => Promise<{ message: string }>
+}
+
+export default function ReportDialog({ postId, send }: Props) {
   const { member } = useAuth()
   const { open: openLogin } = useLoginPrompt()
   const location = useLocation()
@@ -70,7 +76,7 @@ export default function ReportDialog({ postId }: { postId: number }) {
     setBusy(true)
     setError(null)
     try {
-      const res = await reportPost(postId, reason, detail)
+      const res = send ? await send(reason, detail) : await reportPost(postId, reason, detail)
       setOpen(false)
       setDone(res.message)
     } catch (err) {

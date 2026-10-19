@@ -22,6 +22,7 @@ import NewCommentCountProvider from './manage/NewCommentCountProvider'
 import BoardEditorPage from './board/BoardEditorPage'
 import BoardListPage from './board/BoardListPage'
 import BoardPostPage from './board/BoardPostPage'
+import EditorialPage from './editorial/EditorialPage'
 import NoticeAlertProvider from './notice/NoticeAlertProvider'
 import NoticeDetailPage from './notice/NoticeDetailPage'
 import NoticeEditorPage from './notice/NoticeEditorPage'
@@ -236,6 +237,15 @@ const router = createBrowserRouter([
         element: (
           <RequireLogin>
             <BoardEditRoute />
+          </RequireLogin>
+        ),
+      },
+      // 편집실 (specs/018): 관리자만 (화면과 서버가 함께 확인)
+      {
+        path: '/editorial',
+        element: (
+          <RequireLogin>
+            <EditorialPage />
           </RequireLogin>
         ),
       },

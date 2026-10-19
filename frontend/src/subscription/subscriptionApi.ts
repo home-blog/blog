@@ -48,11 +48,13 @@ export function getSubscribedFeed(page: number, signal?: AbortSignal): Promise<S
  */
 export interface Notice {
   notificationId: number
-  kind: 'post' | 'comment' | 'board' | 'accepted'
+  kind: 'post' | 'comment' | 'board' | 'accepted' | 'editorial'
   postId: number | null
   boardPostId: number | null
   postTitle: string | null
   actorName: string
+  /** 편집실 소식의 사유 (specs/018). 다른 소식은 null */
+  note?: string | null
   available: boolean
   read: boolean
   createdAt: string

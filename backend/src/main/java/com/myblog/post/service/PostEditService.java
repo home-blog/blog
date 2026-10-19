@@ -2,6 +2,9 @@ package com.myblog.post.service;
 
 import com.myblog.blog.BlogDirectory;
 import com.myblog.blog.BlogDirectory.CategoryInfo;
+import com.myblog.common.Visibility;
+import com.myblog.common.error.ApiException;
+import com.myblog.common.error.ErrorCode;
 import com.myblog.post.PostContentSavedEvent;
 import com.myblog.post.PostDeletingEvent;
 import com.myblog.post.controller.dto.PostRequests;
@@ -61,7 +64,7 @@ public class PostEditService {
         Post post = owned.post();
         return new EditView(post.getId(), post.getTitle(), post.getContent(), post.getCategoryId(), post.getTopicId(),
                 post.getVisibility(), tagService.tagsOf(post.getId()), formService.categoryOptions(owned.category().blogId()),
-                formService.topicOptions());
+                formService.topicOptions(), post.isLocked(), post.getLockReason());
     }
 
     /**
@@ -69,6 +72,8 @@ public class PostEditService {
      * 태그(005)는 보낸 목록이 새 전체 목록이다. 태그만 바꿔도 수정 시각을 넣는다 (2026-10-08 가안, 003 FR-020과 같은 판단).
      */
     public Updated update(Long memberId, Long postId, PostRequests.Update request) {
+        // 글 줄을 먼저 잠근다: 편집실이 같은 때에 내리면 그쪽이 끝난 뒤에 잠금을 보고 판단한다 (specs/018 S1-3)
+        posts.findByIdForUpdate(postId);
         Owned owned = findMine(memberId, postId);
         Set<ConstraintViolation<PostRequests.Update>> violations = validator.validate(request);
         if (!violations.isEmpty()) {
@@ -78,6 +83,10 @@ public class PostEditService {
         checks.checkTopic(request.topicId());
         List<String> tags = tagNormalizer.normalize(request.tags());
         Post post = owned.post();
+        // 편집실이 내린 글은 주인이 다시 공개로 바꿀 수 없다 (specs/018 S1-3). 비공개로 두고 고치는 것은 된다
+        if (post.isLocked() && !Visibility.PRIVATE.value().equals(request.visibility())) {
+            throw new ApiException(ErrorCode.POST_LOCKED_BY_EDITOR);
+        }
         Instant now = Instant.now(clock);
         boolean changed = post.update(request.categoryId(), request.topicId(), request.title(), request.content(),
                 request.visibility(), now);
@@ -116,8 +125,10 @@ public class PostEditService {
     private record Owned(Post post, CategoryInfo category) {
     }
 
+    /** locked·lockReason: 편집실이 내린 글이면 참과 그 사유 (specs/018). 화면이 공개 고르기를 막고 사유를 보여 준다. */
     public record EditView(Long postId, String title, String content, Long categoryId, Long topicId, String visibility,
-            List<String> tags, List<CategoryOption> categories, List<TopicOption> topics) {
+            List<String> tags, List<CategoryOption> categories, List<TopicOption> topics, boolean locked,
+            String lockReason) {
     }
 
     /** updatedAt은 바뀌지 않았으면 원래 값(수정한 적 없으면 null). */

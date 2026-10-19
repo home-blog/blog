@@ -6,7 +6,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +16,22 @@ import org.springframework.data.repository.query.Param;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByRequestKey(String requestKey);
+
+    /** 글 고치기용: 줄을 잠그고 읽는다. 편집실 내림과 겹쳐도 잠금 여부·공개 범위를 옛 값으로 덮어쓰지 않게 (specs/018 S1-3). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Post p where p.id = :postId")
+    Optional<Post> findByIdForUpdate(@Param("postId") Long postId);
+
+    /** 편집실 내림 (specs/018 D-2): 비공개로 돌리고 잠근다. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "update post set visibility = 'private', locked_at = coalesce(locked_at, :now), lock_reason = :reason"
+            + " where post_id = :postId", nativeQuery = true)
+    int lock(@Param("postId") Long postId, @Param("reason") String reason, @Param("now") Instant now);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "update post set locked_at = null, lock_reason = null where post_id = :postId and locked_at is not null",
+            nativeQuery = true)
+    int unlock(@Param("postId") Long postId);
 
     List<Post> findByCategoryIdIn(Collection<Long> categoryIds);
 
