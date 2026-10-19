@@ -19,6 +19,7 @@
 | 소통 | 댓글, 좋아요, 신고, 문장 수집과 필사 노트(본문에서 고른 문장을 원고지 칸 카드로 모아 둠, 나만 봄) |
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
 | 구독·알림 | 원고 받아 보기(블로그 구독, 받아 보는 글 모아 보기), 우편함(새 원고·댓글 소식, 우표와 소인), 원고 편지(새 원고 메일, 그만 받기 링크) |
+| 글마당 | 블로그와 따로 서는 주제별 게시판: 이야기·물음, 댓글, 물음의 채택 도장, 첫 화면 최근 글, 검색 결과 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
 | 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
 | AI | 빨간 펜 교정(원고지 위 교정부호로 짚고 받아들일지 고름. 기본은 서버 안의 무료 맞춤법 규칙, 열쇠가 있으면 Claude), 이 글과 비슷한 글(Voyage 또는 내 서버의 무료 Ollama 임베딩, 둘 다 없으면 태그·주제로 대신) |
@@ -43,7 +44,7 @@
 
 | 폴더 | 내용 |
 |---|---|
-| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그·필사 노트)·`image`, `notice`(공지사항), `ai`(빨간 펜 교정), `subscription`(구독·우편함·원고 편지), `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
+| `backend/` | 서버. `com.myblog` 아래 기능별 모듈: `user`(회원) ← `blog`(블로그·분류) ← `post`(글·둘러보기·공유) ← `comment`·`community`(좋아요·신고·태그·필사 노트)·`image`, `notice`(공지사항), `ai`(빨간 펜 교정), `subscription`(구독·우편함·원고 편지), `board`(글마당), `stats`(통계, 읽기만), `common`(보안·오류·설정). 모듈 방향은 `ModularityTest`가 지킨다 |
 | `backend/src/main/resources/db/migration` | 표는 Flyway로만 만든다 |
 | `backend/src/docs/asciidoc` | Spring REST Docs 원고 |
 | `frontend/` | 화면. 기능별 폴더(`auth`, `post`, `explore` …), 디자인 토큰은 `src/index.css` 한곳 |

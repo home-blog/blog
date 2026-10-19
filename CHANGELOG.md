@@ -14,6 +14,32 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.12.0] - 준비 중
+
+글마당: 블로그 밖에서 주제별로 묻고 이야기하는 **글마당**이 열립니다. 물음을 올린 사람은 가장 도움이 된 댓글에 붉은 **채택 도장**을 찍습니다.
+
+### 화면
+- 머리글 **글마당**(`/board`): 주제 탭(전체·여행·음식·취미·운동·개발)과 종류(모두·이야기·물음·해결 전), 원고지 칸 머리의 표(주제, 제목+댓글 수, 쓴 사람, 날짜, 조회 수), 물음 꼬리표, 채택한 물음의 "해결" 도장, 10개씩 쪽 번호. 로그인 없이 읽는다
+- 글 읽기(`/board/:id`): 마크다운 본문(블로그 글과 같은 안전 규칙), 댓글, 물음을 쓴 사람에게 댓글마다 "채택"·"채택 거두기", 채택한 댓글은 맨 위에 붉은 도장. 쓴 사람은 고치기·지우기, 관리자는 지우기
+- 글쓰기·고치기(`/board/write`, `/board/:id/edit`, 로그인): 주제, 이야기·물음, 제목(100자), 본문(10,000자)
+- 첫 화면 아래 글마당 최근 글 5개(비면 "첫 이야기를 들려주세요"), 검색 화면 블로그 글 아래 글마당 결과 칸
+- 우편함: 내 글마당 글에 달린 댓글("답장"), 내 댓글이 채택됨("채택") 소식. 누르면 글마당 글로 간다
+- 공지사항: 0.12.0 업데이트 글(0.11.0 글의 고정을 푼다)
+
+### API (v1 그대로, 깨지지 않는 변경)
+- 새 주소(누구나): `GET /api/v1/board/posts?topic=&kind=&unsolved=&q=&page=`, `GET /api/v1/board/posts/recent`, `GET /api/v1/board/posts/{id}`(읽으면 조회 수, 같은 사람 30분에 한 번), `GET /api/v1/board/posts/{id}/comments`
+- 새 주소(로그인): `POST /api/v1/board/posts`, `PUT`·`DELETE /api/v1/board/posts/{id}`, `POST /api/v1/board/posts/{id}/comments`, `DELETE /api/v1/board/comments/{id}`, `PUT`·`DELETE /api/v1/board/posts/{id}/accepted`
+- 우편함 소식(`GET /api/v1/me/notifications`)에 `kind` 값 `board`·`accepted`와 칸 `boardPostId`를 더했다
+- 새 오류 코드: `BOARD_POST_NOT_FOUND`, `BOARD_COMMENT_NOT_FOUND`(404), `BOARD_TOPIC_INVALID`, `BOARD_KIND_INVALID`, `BOARD_TITLE_TOO_LONG`, `BOARD_CONTENT_TOO_LONG`, `BOARD_COMMENT_TOO_LONG`, `BOARD_ACCEPTED_KIND_LOCKED`, `BOARD_ACCEPT_INVALID`(400), `BOARD_POST_TOO_FAST`, `BOARD_COMMENT_TOO_FAST`(429), `BOARD_COMMENT_ACCEPTED`(409)
+- API 문서 묶음 "15. 글마당"(빠져 있던 "14. 구독·알림" 설명도 더함), REST Docs 글마당 절
+
+### 운영
+- 새 모듈 `board`(글 모듈의 주제 틀 `TopicCatalog`, 회원 모듈의 `MemberNames`·`LoggedInMember`만 씀). 조회 수는 통계 모듈이 `BoardPostViewedEvent`를 듣고 블로그 글과 같은 방문자 판단으로 센 뒤 `BoardViewCounter`로 올리고, 우편함 소식은 구독 모듈이 `BoardCommentWrittenEvent`·`BoardAnswerAcceptedEvent`를 커밋 뒤에 듣는다
+- Flyway V21: 새 표 `board_post`(주제는 `topic` 표, 채택 댓글 칸), `board_comment`(글을 지우면 함께), `notification`에 `board_post_id`와 kind 두 가지
+- 같은 회원의 글은 1분(`board.post-interval`), 댓글은 5초(`board.comment-interval`) 간격. 회원마다 트랜잭션 잠금으로 줄을 세운다. 고치기·채택·댓글 쓰기·지우기는 글 줄 잠금으로 차례가 된다(겹쳐도 채택 칸을 옛 값으로 덮어쓰지 않고, 지워진 글·댓글은 404)
+- Flyway V22: 0.12.0 업데이트 공지
+- 테스트: 서버 글마당 15개, 화면 글마당 11개
+
 ## [0.11.0] - 2026-10-19
 
 구독·알림: 좋아하는 블로그를 **원고 받아 보기**로 구독하고, 새 원고와 내 글의 댓글 소식을 머리글 **우편함**에서 받으며, 원하면 **원고 편지**(메일)로도 받습니다.

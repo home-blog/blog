@@ -1,0 +1,371 @@
+/* 글마당 (specs/017 D-10): 표 머리는 원고지 칸 선, 물음 꼬리표는 먹색 테두리, 채택은 붉은 도장(Seal). 색은 index.css 토큰만 쓴다 */
+.board-page,
+.board-editor {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  display: grid;
+  gap: 16px;
+}
+
+.board-editor {
+  max-width: 44rem;
+}
+
+.board-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.board-heading {
+  margin: 0 0 4px;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  text-wrap: balance;
+}
+
+.board-tabs,
+.board-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.board-tabs {
+  border-bottom: 1px solid var(--grid);
+}
+
+.board-tab {
+  padding: 8px 14px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.board-tab:hover {
+  color: var(--ink);
+}
+
+.board-tab[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.board-kind-link {
+  padding: 4px 12px;
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-button);
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  text-decoration: none;
+}
+
+.board-kind-link[aria-current='page'] {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 표: 좁은 화면에서는 표만 옆으로 밀린다. 위에 카드와 같은 원고지 칸 띠 */
+.board-table-wrap {
+  overflow-x: auto;
+}
+
+.board-table-wrap::before {
+  content: '';
+  display: block;
+  height: 6px;
+  background:
+    repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 14px),
+    color-mix(in srgb, var(--grid) 30%, transparent);
+}
+
+.board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+
+.board-table thead th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--grid-strong);
+}
+
+.board-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--grid);
+  vertical-align: middle;
+}
+
+.board-table tbody tr:hover {
+  background: var(--paper-raised);
+}
+
+.board-topic,
+.board-date,
+.board-views,
+.board-writer {
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.board-views {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-title-cell {
+  min-width: 14rem;
+}
+
+.board-title-link {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.board-title-link:hover {
+  background: linear-gradient(transparent 55%, var(--highlight) 55%);
+}
+
+.board-comment-count {
+  margin-left: 6px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.board-title-cell .seal {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.board-kind {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.board-kind.is-talk {
+  border-color: var(--grid-strong);
+  color: var(--ink-soft);
+}
+
+.board-table.is-compact .board-title-cell {
+  min-width: 10rem;
+}
+
+/* 글 읽기 */
+.board-back {
+  margin: 0;
+}
+
+.board-back a {
+  color: var(--ink-soft);
+}
+
+.board-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.board-topic-tag {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.board-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.board-comments {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid var(--grid-strong);
+}
+
+.board-comments-title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+.board-comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.board-comment {
+  padding: 12px 14px;
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  display: grid;
+  gap: 6px;
+}
+
+.board-comment.is-accepted {
+  border-color: var(--seal);
+  border-left-width: 4px;
+}
+
+.board-comment-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.board-comment-meta strong {
+  color: var(--ink);
+}
+
+.board-comment-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.board-comment-actions {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.board-comment-actions:empty {
+  display: none;
+}
+
+.board-comment-form {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.board-comment-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+/* 쓰기 */
+.board-kind-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border: 0;
+  padding: 0;
+}
+
+.board-kind-field legend {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.board-kind-field .hint {
+  width: 100%;
+  margin: 0;
+}
+
+.board-count {
+  justify-self: end;
+}
+
+/* 첫 화면·검색 */
+.board-recent,
+.board-search {
+  display: grid;
+  gap: 10px;
+}
+
+.board-recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.board-more {
+  color: var(--accent);
+  font-size: var(--step--1);
+}
+
+.board-search-title {
+  margin: 16px 0 0;
+  font-size: var(--step-1);
+}
+
+.board-more-line {
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .board-date,
+  .board-views,
+  .board-table thead th:nth-child(4),
+  .board-table thead th:nth-child(5) {
+    display: none;
+  }
+}
+
+.board-editor .field select,
+.board-editor .field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+}
+
+.board-editor .field textarea {
+  resize: vertical;
+}
+
+.board-editor .field select[aria-invalid='true'],
+.board-editor .field textarea[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.board-keyword {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.board-keyword strong {
+  color: var(--ink);
+}

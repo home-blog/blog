@@ -48,4 +48,10 @@ public class LoggedInMemberAdapter implements LoggedInMember {
         }
         return user.getId();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isAdmin(Long memberId) {
+        return memberId != null && users.findActiveById(memberId).map(User::isAdmin).orElse(false);
+    }
 }

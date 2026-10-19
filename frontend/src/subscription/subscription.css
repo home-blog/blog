@@ -191,7 +191,9 @@
   font-weight: 700;
 }
 
-.stamp-comment {
+.stamp-comment,
+.stamp-board,
+.stamp-accepted {
   border-color: var(--seal);
   outline-color: var(--seal);
   color: var(--seal);

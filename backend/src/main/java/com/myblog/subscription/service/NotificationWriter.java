@@ -1,5 +1,7 @@
 package com.myblog.subscription.service;
 
+import com.myblog.board.BoardAnswerAcceptedEvent;
+import com.myblog.board.BoardCommentWrittenEvent;
 import com.myblog.comment.CommentWrittenEvent;
 import com.myblog.post.PostLookup;
 import com.myblog.post.PostPublishedEvent;
@@ -126,6 +128,30 @@ public class NotificationWriter {
                         }));
             } catch (RuntimeException e) {
                 log.warn("우편함: 댓글 {}의 소식을 만들지 못했습니다: {}", event.commentId(), e.toString());
+            }
+        });
+    }
+
+    /** 글마당 글에 댓글 (specs/017 US3). 글 쓴 사람이 단 댓글은 글마당 모듈이 이벤트를 내지 않는다. */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(BoardCommentWrittenEvent event) {
+        boardNotice(event.postWriterId(), "board", event.boardPostId(), event.postTitle(), event.commenterName());
+    }
+
+    /** 내 글마당 댓글이 채택됨 (specs/017 US4). */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(BoardAnswerAcceptedEvent event) {
+        boardNotice(event.commentWriterId(), "accepted", event.boardPostId(), event.postTitle(), event.accepterName());
+    }
+
+    /** 그사이 글이 지워졌으면 글 번호 FK가 맞지 않아 넣지 못하고 기록만 남는다. */
+    private void boardNotice(Long memberId, String kind, Long boardPostId, String title, String actorName) {
+        worker.execute(() -> {
+            try {
+                transaction.executeWithoutResult(status -> notifications.insertBoardNotice(memberId, kind, boardPostId,
+                        clip(title, 100), clip(actorName, 30), Instant.now(clock)));
+            } catch (RuntimeException e) {
+                log.warn("우편함: 글마당 글 {}의 소식({})을 만들지 못했습니다: {}", boardPostId, kind, e.toString());
             }
         });
     }

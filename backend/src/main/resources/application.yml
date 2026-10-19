@@ -268,6 +268,17 @@ subscription:
     shutdown-wait: 10s            # 서버를 끌 때 일꾼마다 남은 일을 마치기를 기다리는 시간
 
 # 공지사항 (specs/012 research D-5, D-10). 글자는 코드 포인트로 센다. 릴리스 링크는 번호만 저장하고 이 틀로 만든다
+# 글마당 (커뮤니티, specs/017 research D-1 ~ D-10). 글자는 코드 포인트로 센다
+board:
+  page-size: 10            # 목록 한 쪽 (요구사항 3.7)
+  recent-size: 5           # 첫 화면 글마당 최근 글
+  title-max-length: 100    # board_post.title 칸(100)보다 길게 정하면 서버가 켜지지 않는다
+  content-max-length: 10000   # 본문 한도 = 블로그 글 본문 한도(post.content.max-length)
+  comment-max-length: 1000    # board_comment.content 칸(1000)보다 길게 정하면 서버가 켜지지 않는다
+  post-interval: 1m        # 같은 회원의 글 사이 최소 간격 (S2-3)
+  comment-interval: 5s     # 같은 회원의 댓글 사이 최소 간격 (S3-3, 블로그 댓글과 같음)
+  keyword-max-length: ${explore.search.keyword-max-length}   # 검색어 한도 = 블로그 글 검색 한도
+
 notice:
   title:
     max-length: 100

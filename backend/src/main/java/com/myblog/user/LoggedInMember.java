@@ -21,4 +21,7 @@ public interface LoggedInMember {
      * 역할은 요청마다 DB에서 읽어, 관리자에서 빼면 다시 로그인하지 않아도 바로 막힌다.
      */
     Long requireAdminIdOf(Authentication authentication);
+
+    /** 이 회원이 지금 관리자인가 (specs/017 S2-2: 관리자는 남의 글마당 글·댓글을 지운다). 없거나 탈퇴했으면 거짓. 역할은 DB에서 읽는다. */
+    boolean isAdmin(Long memberId);
 }
