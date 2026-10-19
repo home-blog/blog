@@ -760,6 +760,7 @@ class ApiDocumentationTest {
         MockHttpSession session = login(member);
         String content = "오늘은 할수있다고 믿었다. 몇일 동안 연습했다.";
         when(proofreader.available()).thenReturn(true);
+        when(proofreader.mode()).thenReturn("ai");
         when(proofreader.proofread(anyString())).thenReturn(List.of(
                 new Suggestion("spacing", "오늘은 ", "할수있다고", "할 수 있다고", "의존 명사 '수'는 띄어 씁니다"),
                 new Suggestion("spelling", "믿었다. ", "몇일", "며칠", "'며칠'이 표준어입니다")));
@@ -781,8 +782,8 @@ class ApiDocumentationTest {
                                 fieldWithPath("corrections[].original").description("본문의 원문 (start~end 그대로)"),
                                 fieldWithPath("corrections[].replacement").description("고친 말"),
                                 fieldWithPath("corrections[].reason").description("고친 까닭"),
-                                fieldWithPath("remaining").description("오늘(한국 날짜) 남은 횟수"),
-                                fieldWithPath("cached").description("같은 본문의 앞 결과를 다시 썼는지 (횟수에 넣지 않음)"))));
+                                fieldWithPath("remaining").description("오늘(한국 날짜) 남은 횟수. 규칙 교정(`rules`)은 횟수를 세지 않아 늘 하루 한도"),
+                                fieldWithPath("cached").description("같은 본문의 앞 결과를 다시 썼는지 (횟수에 넣지 않음. 규칙 교정은 늘 false)"))));
     }
 
     @Test

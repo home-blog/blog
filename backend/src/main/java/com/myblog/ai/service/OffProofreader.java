@@ -6,6 +6,11 @@ import java.util.List;
 public class OffProofreader implements Proofreader {
 
     @Override
+    public String mode() {
+        return "off";
+    }
+
+    @Override
     public boolean available() {
         return false;
     }

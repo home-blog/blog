@@ -20,7 +20,7 @@
 | 블로그 관리 | 글·댓글 관리, 대시보드, 방문자·조회수 통계 그래프 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
 | 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
-| AI | 빨간 펜 교정(Claude: 띄어쓰기·맞춤법·다듬기를 원고지 위 교정부호로, 받아들일지 고름), 이 글과 비슷한 글(Voyage 임베딩, 없으면 태그로 대신) |
+| AI | 빨간 펜 교정(원고지 위 교정부호로 짚고 받아들일지 고름. 기본은 서버 안의 무료 맞춤법 규칙, 열쇠가 있으면 Claude), 이 글과 비슷한 글(Voyage 또는 내 서버의 무료 Ollama 임베딩, 둘 다 없으면 태그·주제로 대신) |
 
 ## 기술
 
@@ -28,7 +28,7 @@
 |---|---|
 | 서버 | Java 21, Spring Boot 4.1, Maven, Spring Security(세션 + CSRF), Spring Session JDBC, Spring Modulith, Flyway |
 | 화면 | React 19, Vite 8, TypeScript, React Router, react-markdown, uPlot |
-| AI | Claude API(공식 Java SDK `anthropic-java`, 구조화된 출력), Voyage AI 임베딩(`real[]`에 저장, 비슷한 정도는 서버가 계산) |
+| AI | 규칙 교정기(서버 안, 무료), Claude API(공식 Java SDK `anthropic-java`, 구조화된 출력, 유료·선택), Ollama + bge-m3(내 서버, 무료·선택) 또는 Voyage AI 임베딩(유료·선택). 벡터는 `real[]`에 저장, 비슷한 정도는 서버가 계산 |
 | 저장소 | PostgreSQL 18(pgvector 이미지), Redis 8(짧게 쓰고 버리는 값), MinIO(이미지, S3 방식) |
 | 배포 | Docker 이미지 → GitHub Actions → 실습 서버. 앱 두 벌(a, b)을 Nginx `upstream`으로 번갈아 쓰고 한 벌씩 바꾸는 롤링 배포 |
 | 품질 | JUnit 5 · MockMvc · Spring REST Docs, Vitest · Testing Library · MSW, JaCoCo, SonarQube, CodeRabbit |

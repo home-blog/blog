@@ -64,16 +64,4 @@ class VoyageEmbedderTest {
 
         assertThatThrownBy(() -> embedder.embed(List.of("글"))).isInstanceOf(Embedder.UnavailableException.class);
     }
-
-    @Test
-    void 가짜_임베딩은_같은_글이면_같고_비슷한_글이_더_가깝다() {
-        FakeEmbedder fake = new FakeEmbedder(64);
-        float[] jeju = fake.embed(List.of("제주 렌터카 여행 후기")).get(0);
-        float[] bus = fake.embed(List.of("제주 버스 여행 팁")).get(0);
-        float[] java = fake.embed(List.of("자바 스프링 트랜잭션")).get(0);
-
-        assertThat(fake.embed(List.of("제주 렌터카 여행 후기")).get(0)).containsExactly(jeju);
-        assertThat(Vectors.dot(jeju, bus)).isGreaterThan(Vectors.dot(jeju, java));
-        assertThat(Vectors.dot(jeju, jeju)).isCloseTo(1f, org.assertj.core.data.Offset.offset(1e-5f));
-    }
 }

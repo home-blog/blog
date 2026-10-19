@@ -155,8 +155,8 @@ series:
 
 # 빨간 펜 교정 (specs/014 research D-1 ~ D-7, D-15)
 proofread:
-  provider: ${PROOFREAD_PROVIDER:auto}   # auto: 열쇠가 있으면 claude, 없으면 without-key / claude / fake / off
-  without-key: "off"                     # 열쇠가 없을 때. 배포는 off(단추 숨김), 개발은 fake(규칙 교정). 따옴표 필수(없으면 YAML이 false로 읽는다)
+  provider: ${PROOFREAD_PROVIDER:auto}   # auto: 열쇠가 있으면 claude, 없으면 without-key / claude / rules / off
+  without-key: rules                     # 열쇠가 없을 때: rules(서버 안의 규칙 교정, 무료, 횟수 안 셈) 또는 "off"(단추 숨김. off는 따옴표 필수, 없으면 YAML이 false로 읽는다)
   api-key: ${ANTHROPIC_API_KEY:}         # 환경 변수로만 (GitHub Secrets → 서버 .env.deploy)
   model: claude-opus-5-5
   effort: low              # 생각 깊이: 교정은 low로 충분하고 빠르다 (바깥 Nginx가 60초에 끊는다)
@@ -174,11 +174,14 @@ proofread:
 
 # 비슷한 글 (specs/014 research D-9 ~ D-13, D-15)
 related:
-  provider: ${RELATED_PROVIDER:auto}     # auto: 열쇠가 있으면 voyage, 없으면 without-key / voyage / fake / off
-  without-key: "off"                     # 열쇠가 없을 때. 배포는 off(태그·주제로 대신), 개발은 fake. 따옴표 필수
+  provider: ${RELATED_PROVIDER:auto}     # auto: Voyage 열쇠 → Ollama 주소 → without-key 순서 / voyage / ollama / local / off
+  without-key: "off"                     # 둘 다 없을 때: "off"(태그·주제로 대신, 배포) 또는 local(글자 조각, 개발·시험용). off는 따옴표 필수
   api-key: ${VOYAGE_API_KEY:}            # 환경 변수로만 (GitHub Secrets → 서버 .env.deploy)
   base-url: https://api.voyageai.com/v1
   model: voyage-3.5
+  ollama-url: ${RELATED_OLLAMA_URL:}     # 내 서버의 Ollama (배포는 OLLAMA_ENABLED이고 자원이 넉넉할 때만 http://ollama:11434를 넣는다)
+  ollama-model: bge-m3                   # 한국어를 잘하는 다국어 임베딩, 1024칸 (dimensions와 같아야 한다)
+  ollama-timeout: 120s                   # CPU로 돌아 Voyage보다 느리다. 정리 작업은 뒤에서 돌아 화면을 기다리게 하지 않는다
   dimensions: 1024         # post_embedding.embedding 길이. 바꾸면 모두 다시 만든다
   max-chars: 4000          # 임베딩하는 본문 앞부분 글자 수 (제목은 따로 붙인다)
   timeout: 20s

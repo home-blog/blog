@@ -46,7 +46,7 @@ class NoticeHistoryTest {
     void 릴리스마다_업데이트_글이_하나씩_있다() {
         List<String> versions = jdbc.queryForList(
                 "select release_version from notice where kind = 'update' order by created_at", String.class);
-        assertThat(versions).containsExactly("0.3.0", "0.4.0", "0.5.0", "0.5.1", "0.5.2", "0.6.0", "0.7.0", "0.8.0");
+        assertThat(versions).containsExactly("0.3.0", "0.4.0", "0.5.0", "0.5.1", "0.5.2", "0.6.0", "0.7.0", "0.8.0", "0.9.0");
     }
 
     @Test
@@ -59,7 +59,7 @@ class NoticeHistoryTest {
     @Test
     void 운영팀이_넣은_글이라_쓴_사람이_비어_있다() {
         Integer seeded = jdbc.queryForObject("select count(*) from notice where users_id is null", Integer.class);
-        assertThat(seeded).isEqualTo(14);
+        assertThat(seeded).isEqualTo(15);
     }
 
     @Test
@@ -77,10 +77,10 @@ class NoticeHistoryTest {
     void 첫_쪽에는_고정한_이용_안내와_최신_업데이트가_맨_위에_있다() throws Exception {
         mvc.perform(get("/api/v1/notices"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(14))
+                .andExpect(jsonPath("$.totalCount").value(15))
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.items", hasSize(10)))
-                .andExpect(jsonPath("$.items[0].releaseVersion").value("0.8.0"))
+                .andExpect(jsonPath("$.items[0].releaseVersion").value("0.9.0"))
                 .andExpect(jsonPath("$.items[0].pinned").value(true))
                 .andExpect(jsonPath("$.items[1].title").value("글결 이용 안내"))
                 .andExpect(jsonPath("$.items[1].pinned").value(true))
@@ -91,13 +91,13 @@ class NoticeHistoryTest {
     void 업데이트_탭은_새_릴리스부터() throws Exception {
         mvc.perform(get("/api/v1/notices").param("kind", "update"))
                 .andExpect(jsonPath("$.items[*].releaseVersion",
-                        contains("0.8.0", "0.7.0", "0.6.0", "0.5.2", "0.5.1", "0.5.0", "0.4.0", "0.3.0")));
+                        contains("0.9.0", "0.8.0", "0.7.0", "0.6.0", "0.5.2", "0.5.1", "0.5.0", "0.4.0", "0.3.0")));
     }
 
     @Test
     void 새_업데이트_글이_오면_앞_업데이트의_고정을_푼다() {
         List<String> pinned = jdbc.queryForList(
                 "select coalesce(release_version, title) from notice where pinned order by created_at", String.class);
-        assertThat(pinned).containsExactly("글결 이용 안내", "0.8.0");
+        assertThat(pinned).containsExactly("글결 이용 안내", "0.9.0");
     }
 }

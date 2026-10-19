@@ -56,6 +56,8 @@ const PREVIEW_KEY = 'geulgyeol-editor-preview'
 
 /** 빨간 펜에 본문을 보내도 된다고 한 번 동의했는지 (이 기기에 기억, specs/014 D-8) */
 const RED_PEN_CONSENT_KEY = 'geulgyeol-redpen-consent'
+/** 규칙 교정(무료, 서버 안)일 때 교정지 아래에 붙이는 한 줄 */
+const RULES_NOTE = '자주 틀리는 맞춤법·띄어쓰기·외래어 표기 규칙으로 찾았습니다. 규칙에 없는 곳은 놓칠 수 있어요.'
 
 function redPenConsented(): boolean {
   try {
@@ -466,7 +468,8 @@ export default function PostEditorPage() {
   }
 
   function startRedPen() {
-    if (redPenConsented()) void runRedPen()
+    // 글을 밖의 AI로 보낼 때만 묻는다. 규칙 교정은 서버 안에서 끝난다
+    if (redPen?.mode !== 'ai' || redPenConsented()) void runRedPen()
     else setAskRedPenConsent(true)
   }
 
@@ -754,7 +757,7 @@ export default function PostEditorPage() {
           <section className="redpen" aria-label="빨간 펜 교정지" aria-busy="true">
             <div className="redpen-waiting" role="status">
               <span className="redpen-waiting-line" aria-hidden="true" />
-              빨간 펜으로 읽는 중입니다. 긴 글은 30초쯤 걸립니다.
+              빨간 펜으로 읽는 중입니다.{redPen?.mode === 'ai' && ' 긴 글은 30초쯤 걸립니다.'}
             </div>
           </section>
         ) : activeProof ? (
@@ -762,7 +765,8 @@ export default function PostEditorPage() {
             base={activeProof.base}
             corrections={activeProof.corrections}
             decisions={activeProof.decisions}
-            remaining={redPen?.remaining ?? 0}
+            remaining={redPen?.mode === 'ai' ? redPen.remaining : null}
+            note={redPen?.mode === 'rules' ? RULES_NOTE : undefined}
             onDecide={(index, decision) =>
               decideRedPen(activeProof.decisions.map((d, i) => (i === index ? decision : d)))
             }
@@ -800,7 +804,7 @@ export default function PostEditorPage() {
               type="button"
               className="btn btn-quiet redpen-button"
               disabled={busy || proofing}
-              title={`오늘 ${redPen.remaining}번 남음`}
+              title={redPen.mode === 'ai' ? `오늘 ${redPen.remaining}번 남음` : '맞춤법·띄어쓰기 규칙으로 고칠 곳을 찾습니다'}
               onClick={startRedPen}
             >
               {proofing ? '교정하는 중' : '빨간 펜'}

@@ -1,10 +1,10 @@
 package com.myblog.ai.config;
 
 import com.myblog.ai.service.ClaudeProofreader;
-import com.myblog.ai.service.FakeProofreader;
 import com.myblog.ai.service.OffProofreader;
 import com.myblog.ai.service.ProofreadChecker;
 import com.myblog.ai.service.Proofreader;
+import com.myblog.ai.service.RuleProofreader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +23,7 @@ public class ProofreadConfig {
         log.info("빨간 펜 교정기: {}", provider);
         return switch (provider) {
             case "claude" -> new ClaudeProofreader(properties, jsonMapper);
-            case "fake" -> new FakeProofreader();
+            case "rules" -> new RuleProofreader();
             default -> new OffProofreader();
         };
     }

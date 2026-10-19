@@ -49,22 +49,29 @@ class ProofreaderTest {
     }
 
     @Test
-    void 가짜_교정기는_자주_틀리는_말을_본문_순서대로_찾는다() {
-        List<Suggestion> found = new FakeProofreader().proofread("몇일 동안 할수있다고 생각했는데 됬다");
+    void 규칙_교정기는_틀린_어절을_본문_순서대로_찾는다() {
+        String text = "몇일 동안 할수있다고 생각했는데 됬다";
+        List<Suggestion> found = new RuleProofreader().proofread(text);
 
-        assertThat(found).extracting(Suggestion::original).containsExactly("몇일", "할수있", "됬");
+        assertThat(found).extracting(Suggestion::original).containsExactly("몇일", "할수있다고", "됬다");
         assertThat(found).extracting(Suggestion::kind).containsExactly("spelling", "spacing", "spelling");
         // 앞 글자는 검사기가 위치를 찾을 수 있게 본문에서 그대로 가져온다
-        String text = "몇일 동안 할수있다고 생각했는데 됬다";
         assertThat(new ProofreadChecker(100, 200, 120).check(text, found)).hasSize(3);
+    }
+
+    @Test
+    void 교정기마다_방식이_다르다() {
+        assertThat(new OffProofreader().mode()).isEqualTo("off");
+        assertThat(new RuleProofreader().mode()).isEqualTo("rules");
+        assertThat(claude.mode()).isEqualTo("ai");
     }
 
     @Test
     void 열쇠가_있으면_claude_없으면_without_key를_쓴다() {
         assertThat(properties("auto", "off", "sk-test").resolvedProvider()).isEqualTo("claude");
         assertThat(properties("auto", "off", "  ").resolvedProvider()).isEqualTo("off");
-        assertThat(properties("auto", "fake", "").resolvedProvider()).isEqualTo("fake");
-        assertThat(properties("off", "fake", "sk-test").resolvedProvider()).isEqualTo("off");
+        assertThat(properties("auto", "rules", "").resolvedProvider()).isEqualTo("rules");
+        assertThat(properties("off", "rules", "sk-test").resolvedProvider()).isEqualTo("off");
     }
 
     @Test

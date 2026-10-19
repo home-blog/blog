@@ -4,6 +4,8 @@ import type { Correction } from './redPenRules'
 
 export interface RedPenStatus {
   enabled: boolean
+  /** ai: 밖의 AI(보내기 동의, 하루 횟수) · rules: 서버 안의 맞춤법 규칙(무료, 횟수 없음) · off */
+  mode: 'ai' | 'rules' | 'off'
   dailyLimit: number
   remaining: number
   maxLength: number
