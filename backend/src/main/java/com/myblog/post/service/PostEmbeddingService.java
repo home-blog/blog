@@ -10,7 +10,6 @@ import jakarta.annotation.PreDestroy;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
@@ -47,18 +46,16 @@ public class PostEmbeddingService {
     private final RelatedProperties properties;
     private final TransactionTemplate transaction;
     private final StringRedisTemplate redis;
-    private final Clock clock;
     /** 저장 뒤 임베딩하는 일꾼 한 명. 대기열(related.queue-size)이 넘치면 버린다(정리 작업이 채운다). */
     private final ThreadPoolExecutor worker;
 
     public PostEmbeddingService(Embedder embedder, PostEmbeddingRepository embeddings, RelatedProperties properties,
-            PlatformTransactionManager transactionManager, StringRedisTemplate redis, Clock clock) {
+            PlatformTransactionManager transactionManager, StringRedisTemplate redis) {
         this.embedder = embedder;
         this.embeddings = embeddings;
         this.properties = properties;
         this.transaction = new TransactionTemplate(transactionManager);
         this.redis = redis;
-        this.clock = clock;
         this.worker = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(properties.queueSize()),
                 runnable -> {
                     Thread thread = new Thread(runnable, "post-embedding");
@@ -122,7 +119,7 @@ public class PostEmbeddingService {
                 String hash = sha256(embedder.model() + "\n" + text);
                 Stored stored = embeddings.stored(source.postId()).orElse(null);
                 if (stored != null && stored.model().equals(embedder.model()) && stored.contentHash().equals(hash)) {
-                    embeddings.touch(source.postId(), clock.instant());
+                    embeddings.touch(source.postId(), source.changedAt());
                     done += withTouched ? 1 : 0;
                     continue;
                 }
@@ -139,7 +136,7 @@ public class PostEmbeddingService {
                     return done + oneByOne(todo, texts, hashes, from, to);
                 }
                 for (int i = from; i < to; i++) {
-                    save(todo.get(i).postId(), hashes.get(i), vectors.get(i - from));
+                    save(todo.get(i), hashes.get(i), vectors.get(i - from));
                     done++;
                 }
             }
@@ -158,7 +155,7 @@ public class PostEmbeddingService {
         int failedInRow = 0;
         for (int i = from; i < to && failedInRow < 2; i++) {
             try {
-                save(todo.get(i).postId(), hashes.get(i), embedder.embed(List.of(texts.get(i))).get(0));
+                save(todo.get(i), hashes.get(i), embedder.embed(List.of(texts.get(i))).get(0));
                 saved++;
                 failedInRow = 0;
             } catch (Embedder.UnavailableException e) {
@@ -170,8 +167,10 @@ public class PostEmbeddingService {
     }
 
     /** 저장하고, 그 글의 비슷한 글 보관을 지운다(다음 요청이 새 뜻 정보로 고르게). Redis가 멈추면 보관은 cache-ttl 뒤 저절로 사라진다. */
-    private void save(long postId, String hash, float[] vector) {
-        embeddings.upsert(postId, embedder.model(), hash, vector, clock.instant());
+    private void save(Source source, String hash, float[] vector) {
+        long postId = source.postId();
+        // 시각은 읽은 때의 글 수정 시각: 임베딩하는 동안 글이 고쳐지면 정리 작업이 다시 만든다
+        embeddings.upsert(postId, embedder.model(), hash, vector, source.changedAt());
         try {
             redis.delete(RelatedPostService.cacheKey(postId));
         } catch (RuntimeException e) {

@@ -16,7 +16,7 @@ class ProofreaderTest {
 
     private static ProofreadProperties properties(String provider, String withoutKey, String apiKey) {
         return new ProofreadProperties(provider, withoutKey, apiKey, "claude-opus-5-5", "low", 16000,
-                Duration.ofSeconds(50), 20, 10000, 100, 200, 120, Duration.ofDays(1), Duration.ofMinutes(10),
+                Duration.ofSeconds(50), 0, 20, 10000, 100, 200, 120, Duration.ofDays(1), Duration.ofMinutes(10),
                 ZoneId.of("Asia/Seoul"));
     }
 
@@ -70,7 +70,7 @@ class ProofreaderTest {
     @Test
     void 모르는_설정값은_서버를_켤_때_막는다() {
         assertThatThrownBy(() -> properties("gpt", "off", "")).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new ProofreadProperties("auto", "off", "", "m", "turbo", 1, Duration.ofSeconds(1), 1, 1,
+        assertThatThrownBy(() -> new ProofreadProperties("auto", "off", "", "m", "turbo", 1, Duration.ofSeconds(1), 0, 1, 1,
                 1, 1, 1, Duration.ofDays(1), Duration.ofMinutes(10), ZoneId.of("Asia/Seoul")))
                 .isInstanceOf(IllegalStateException.class);
     }

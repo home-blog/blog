@@ -117,6 +117,9 @@ public class RelatedPostService {
             log.warn("비슷한 글 보관 값이 올바르지 않습니다 (글 {}): {}", postId, value);
             return null;
         }
+        if ("meaning".equals(parts[0]) && !embedder.available()) {
+            return null; // 뜻 정보를 끈 뒤에는 앞서 고른 뜻 결과를 쓰지 않고 태그로 다시 고른다
+        }
         List<Long> ids;
         try {
             ids = parts[1].isEmpty() ? List.of() : Arrays.stream(parts[1].split(",")).map(Long::valueOf).toList();

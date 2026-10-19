@@ -25,7 +25,7 @@
 | `ANTHROPIC_API_KEY` | 빨간 펜 교정(Claude API) 열쇠, specs/014 | 없으면 빨간 펜 단추가 안 보인다 |
 | `VOYAGE_API_KEY` | 비슷한 글 임베딩(Voyage AI) 열쇠, specs/014 | 없으면 태그·주제가 겹치는 글로 대신한다 |
 
-**AI 열쇠** (specs/014). Secrets에 넣은 뒤 Actions → `배포`를 번호 없이 한 번 돌리면(설정만 다시 올리기) 켜진다. 비슷한 글의 뜻 정보는 켜진 뒤 10분마다 공개 글 32개씩 채워진다.
+**AI 열쇠** (specs/014). Secrets에 넣은 뒤 Actions → `배포`를 번호 없이 한 번 돌려 다시 배포하면(이미지를 다시 만들고 두 벌을 차례로 바꿔 켠다. 설정만 바뀌는 것이 아니다) 켜진다. 비슷한 글의 뜻 정보는 켜진 뒤 10분마다 공개 글 32개씩 채워진다.
 
 **소셜 로그인 앱 등록** (specs/010). 회사마다 개발자 사이트에 앱을 만들고, 받은 Client ID·Secret을 위 Secrets(배포)와 저장소 맨 위 `.env`(로컬)에 넣는다. 콜백(Redirect) 주소는 로컬 `http://localhost:5173/login/oauth2/code/{회사}`, 배포 `http://<내 도메인>/login/oauth2/code/{회사}` (HTTPS가 붙으면 `https://`로 바꾼다).
 

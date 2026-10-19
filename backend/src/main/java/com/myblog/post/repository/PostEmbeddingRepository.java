@@ -32,8 +32,8 @@ public class PostEmbeddingRepository {
     public record Stored(String model, String contentHash) {
     }
 
-    /** 임베딩할 글. */
-    public record Source(long postId, String title, String content) {
+    /** 임베딩할 글. changedAt은 읽은 때의 글 수정 시각(없으면 쓴 시각): 뜻 정보의 시각으로 저장한다. */
+    public record Source(long postId, String title, String content, Instant changedAt) {
     }
 
     /** 비슷한 글 후보. */
@@ -49,7 +49,8 @@ public class PostEmbeddingRepository {
                 rs -> rs.next() ? Optional.of(new Stored(rs.getString(1), rs.getString(2))) : Optional.<Stored>empty(), postId);
     }
 
-    public void upsert(long postId, String model, String contentHash, float[] embedding, Instant now) {
+    /** changedAt은 임베딩한 글의 수정 시각. 그 뒤에 고쳐지면 정리 작업(staleOpen)이 다시 만든다. */
+    public void upsert(long postId, String model, String contentHash, float[] embedding, Instant changedAt) {
         jdbc.update(connection -> {
             PreparedStatement statement = connection.prepareStatement("""
                     insert into post_embedding (post_id, model, content_hash, embedding, updated_at) values (?, ?, ?, ?, ?)
@@ -60,14 +61,14 @@ public class PostEmbeddingRepository {
             statement.setString(2, model);
             statement.setString(3, contentHash);
             statement.setArray(4, connection.createArrayOf("float4", box(embedding)));
-            statement.setTimestamp(5, Timestamp.from(now));
+            statement.setTimestamp(5, Timestamp.from(changedAt));
             return statement;
         });
     }
 
-    /** 글이 고쳐졌지만 임베딩할 내용은 그대로일 때: 다시 보지 않게 시각만 올린다. */
-    public void touch(long postId, Instant now) {
-        jdbc.update("update post_embedding set updated_at = ? where post_id = ?", Timestamp.from(now), postId);
+    /** 글이 고쳐졌지만 임베딩할 내용은 그대로일 때: 다시 보지 않게 시각만 그 글의 수정 시각으로 올린다. */
+    public void touch(long postId, Instant changedAt) {
+        jdbc.update("update post_embedding set updated_at = ? where post_id = ?", Timestamp.from(changedAt), postId);
     }
 
     /** 정해진 글 가운데 공개 글만 임베딩한다(비공개 글은 밖으로 보내지 않는다). */
@@ -77,11 +78,12 @@ public class PostEmbeddingRepository {
         }
         return jdbc.query(connection -> {
             PreparedStatement statement = connection.prepareStatement(
-                    "select p.post_id, p.title, p.content " + FROM + OPEN_POSTS + " and p.post_id = any(?)");
+                    "select p.post_id, p.title, p.content, coalesce(p.updated_at, p.created_at) " + FROM + OPEN_POSTS + " and p.post_id = any(?)");
             int next = bindOpenPosts(statement, 1, null);
             statement.setArray(next, connection.createArrayOf("bigint", postIds.toArray()));
             return statement;
-        }, (rs, row) -> new Source(rs.getLong(1), rs.getString(2), rs.getString(3)));
+        }, (rs, row) -> new Source(rs.getLong(1), rs.getString(2), rs.getString(3),
+                rs.getTimestamp(4).toInstant()));
     }
 
     /** 뜻 정보가 없거나, 모델이 다르거나, 그 뒤에 고쳐진 공개 글. 새 글부터 limit개 (정리 작업, D-11). */

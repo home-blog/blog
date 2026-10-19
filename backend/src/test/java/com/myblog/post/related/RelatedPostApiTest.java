@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -307,5 +308,37 @@ class RelatedPostApiTest {
                     .andExpect(jsonPath("$.basis").value(org.hamcrest.Matchers.oneOf("meaning", "tags")));
             assertThat(redis.opsForValue().get("related:" + source)).isNotEqualTo(broken);
         }
+    }
+
+    @Test
+    void 임베딩하는_동안_글이_고쳐지면_정리_작업이_다시_만든다() {
+        Member a = members.register("rel");
+        Long source = post(a, "고쳐질 글", repeat("고치기 전 본문"), "public");
+        doAnswer(invocation -> {
+            // Voyage에 보내는 사이에 글쓴이가 글을 고친다 (그 저장 뒤의 일은 대기열이 넘쳐 버려졌다고 본다)
+            jdbc.update("update post set content = ?, updated_at = clock_timestamp() where post_id = ?",
+                    repeat("고친 뒤 본문"), source);
+            return invocation.callRealMethod();
+        }).when(embedder).embed(anyList());
+
+        assertThat(embeddings.refresh(List.of(source))).isEqualTo(1);
+
+        // 저장된 뜻 정보는 고치기 전 본문의 것이므로, 그 시각은 글의 수정 시각보다 앞이어야 한다
+        Boolean stale = jdbc.queryForObject("""
+                select coalesce(p.updated_at, p.created_at) > e.updated_at
+                from post p join post_embedding e on e.post_id = p.post_id where p.post_id = ?
+                """, Boolean.class, source);
+        assertThat(stale).isTrue();
+    }
+
+    @Test
+    void 뜻_정보를_끈_뒤에는_보관한_뜻_결과를_쓰지_않는다() throws Exception {
+        Member a = members.register("rel");
+        Long source = post(a, "끈 뒤의 글", repeat("끈 뒤 시험"), "public");
+        redis.opsForValue().set("related:" + source, "meaning|");
+        doReturn(false).when(embedder).available();
+
+        mvc.perform(get("/api/v1/posts/" + source + "/related")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.basis").value("tags"));
     }
 }
