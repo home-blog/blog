@@ -57,6 +57,17 @@ class VoyageEmbedderTest {
     }
 
     @Test
+    void float을_넘는_값이나_0_벡터는_받지_않는다() {
+        for (String vector : List.of("[1.0e300,1.0,0.0]", "[0.0,0.0,0.0]")) {
+            voyage.reset();
+            voyage.expect(requestTo("https://api.voyageai.com/v1/embeddings")).andRespond(withSuccess(
+                    "{\"data\":[{\"embedding\":" + vector + ",\"index\":0}]}", MediaType.APPLICATION_JSON));
+
+            assertThatThrownBy(() -> embedder.embed(List.of("글"))).as(vector).isInstanceOf(Embedder.UnavailableException.class);
+        }
+    }
+
+    @Test
     void 차원이_다른_답은_받지_않는다() {
         voyage.expect(requestTo("https://api.voyageai.com/v1/embeddings")).andRespond(withSuccess("""
                 {"data":[{"embedding":[1.0,0.0],"index":0}]}

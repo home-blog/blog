@@ -85,19 +85,11 @@ public class OllamaEmbedder implements Embedder {
             if (embedding == null || embedding.size() != properties.dimensions()) {
                 throw new UnavailableException("Ollama 임베딩 차원이 설정과 다릅니다");
             }
-            float[] vector = new float[embedding.size()];
-            for (int i = 0; i < vector.length; i++) {
-                Double value = embedding.get(i);
-                if (value == null) {
-                    throw new UnavailableException("Ollama 임베딩 답에 빈 숫자가 있습니다");
-                }
-                vector[i] = value.floatValue();
+            float[] vector = Vectors.usable(embedding);
+            if (vector == null) {
+                throw new UnavailableException("Ollama 임베딩 답에 쓸 수 없는 숫자(빈 값·무한대·모두 0)가 있습니다");
             }
-            float[] normalized = Vectors.normalize(vector);
-            if (Vectors.dot(normalized, normalized) == 0) {
-                throw new UnavailableException("Ollama 임베딩 답이 0 벡터입니다");
-            }
-            vectors.add(normalized);
+            vectors.add(vector);
         }
         return vectors;
     }
