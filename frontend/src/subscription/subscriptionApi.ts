@@ -43,12 +43,12 @@ export function getSubscribedFeed(page: number, signal?: AbortSignal): Promise<S
 
 /**
  * kind: post(받아 보는 블로그의 새 원고) · comment(내 글에 달린 댓글) · board(내 글마당 글에 달린 댓글)
- * · accepted(내 글마당 댓글이 채택됨, specs/017). available: 지금 그 글을 볼 수 있는가 (아니면 글 번호·제목은 null)
+ * · accepted(내 글마당 댓글이 채택됨, specs/017) · editorial(편집실, specs/018) · reply(내 댓글에 답글, specs/019). available: 지금 그 글을 볼 수 있는가 (아니면 글 번호·제목은 null)
  * 블로그 글 소식은 postId, 글마당 소식은 boardPostId
  */
 export interface Notice {
   notificationId: number
-  kind: 'post' | 'comment' | 'board' | 'accepted' | 'editorial'
+  kind: 'post' | 'comment' | 'board' | 'accepted' | 'editorial' | 'reply'
   postId: number | null
   boardPostId: number | null
   postTitle: string | null

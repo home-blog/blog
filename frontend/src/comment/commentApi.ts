@@ -11,26 +11,48 @@ export interface CommentAuthor {
 
 export interface CommentItem {
   id: number
+  /** 지운 칸·봉한 쪽지면 id·nickname이 null이고 withdrawn은 거짓 */
   author: CommentAuthor
-  /** 입력한 글자 그대로. HTML로 넣지 않고 글자로만 그린다 (FR-030) */
+  /** 입력한 글자 그대로. HTML로 넣지 않고 글자로만 그린다 (FR-030). 지운 칸·봉한 쪽지면 빈 글자 */
   body: string
   createdAt: string
   /** 삭제 버튼을 보일지만 정한다. 실제 권한은 서버가 다시 본다 */
   canDelete: boolean
+  /** 답글이면 원댓글 번호 (specs/019). 답글은 한 단계 */
+  parentId: number | null
+  /** 비밀 댓글(봉한 쪽지) */
+  secret: boolean
+  /** 읽을 수 없는 비밀 댓글: 서버가 내용·쓴 사람을 빼고 보냈다 */
+  sealed: boolean
+  /** 답글이 남아 줄만 남은 지운 칸 */
+  deleted: boolean
+  /** 답글 단추를 보일지 (답글이면 그 원댓글에 단다) */
+  canReply: boolean
 }
 
 export interface CommentList {
+  /** 지운 칸을 뺀 수 */
   count: number
-  /** 오래된 댓글이 위 */
+  /** 원댓글이 오래된 순, 각 원댓글 바로 뒤에 그 답글이 오래된 순 */
   comments: CommentItem[]
+}
+
+export interface WriteOptions {
+  /** 답글을 달 댓글 번호 */
+  parentId?: number
+  /** 봉해서 남기기 */
+  secret?: boolean
 }
 
 export function getComments(postId: number, signal?: AbortSignal): Promise<CommentList> {
   return api<CommentList>(`/api/v1/posts/${postId}/comments`, { signal })
 }
 
-export function writeComment(postId: number, body: string): Promise<CommentItem> {
-  return api<CommentItem>(`/api/v1/posts/${postId}/comments`, { method: 'POST', body: { body } })
+export function writeComment(postId: number, body: string, options: WriteOptions = {}): Promise<CommentItem> {
+  return api<CommentItem>(`/api/v1/posts/${postId}/comments`, {
+    method: 'POST',
+    body: { body, parentId: options.parentId ?? null, secret: options.secret ?? false },
+  })
 }
 
 /** 작성자나 그 글의 블로그 주인만. 아니면 서버가 없는 댓글과 같은 404로 답한다 */

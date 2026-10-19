@@ -341,6 +341,32 @@ class ApiDocumentationTest {
     }
 
     @Test
+    void 답글_쓰기() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession reader = login(members.register("read"));
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), reader)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("body", "7코스 출발은 어디가 좋을까요?")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Number parentId = JsonPath.read(created, "$.id");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), login(writer))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"외돌개 쪽에서 출발하면 오후 햇빛이 등 뒤라 편해요.\",\"parentId\":" + parentId
+                                + ",\"secret\":true}"))
+                .andExpect(status().isCreated())
+                .andDo(document("comment-reply",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("postId").description("글 번호")),
+                        requestFields(
+                                fieldWithPath("body").description("답글 (1~500자)"),
+                                fieldWithPath("parentId").description("답글을 달 댓글 번호. 답글을 가리키면 그 원댓글에 붙는다(한 단계). "
+                                        + "없음·다른 글·지운 칸·읽을 수 없는 비밀 댓글이면 404"),
+                                fieldWithPath("secret").description("비밀 댓글(봉한 쪽지)로 남길지. 빼면 거짓. 비밀 댓글에 단 답글은 늘 비밀")
+                                        .optional().type(JsonFieldType.BOOLEAN)),
+                        responseFields(commentFields())));
+    }
+
+    @Test
     void 댓글_목록() throws Exception {
         Member writer = members.register("docs");
         Long postId = writePost(writer, "제주 올레 7코스 걷기");
@@ -708,7 +734,13 @@ class ApiDocumentationTest {
             fieldWithPath("author.withdrawn").description("쓴 회원이 탈퇴했는지"),
             fieldWithPath("body").description("댓글"),
             fieldWithPath("createdAt").description("쓴 시각"),
-            fieldWithPath("canDelete").description("보는 사람이 지울 수 있는지 (쓴 사람이나 블로그 주인)")};
+            fieldWithPath("canDelete").description("보는 사람이 지울 수 있는지 (쓴 사람이나 블로그 주인). 지운 칸이면 거짓"),
+            fieldWithPath("parentId").description("원댓글 번호 (답글이면). 원댓글이면 null").optional()
+                    .type(JsonFieldType.NUMBER),
+            fieldWithPath("secret").description("비밀 댓글(봉한 쪽지)인지"),
+            fieldWithPath("sealed").description("보는 사람이 읽을 수 없는 비밀 댓글인지. 참이면 body는 빈 글자, author는 빈 값"),
+            fieldWithPath("deleted").description("답글이 남아 줄만 남은 지운 칸인지. 참이면 body는 빈 글자, author는 빈 값"),
+            fieldWithPath("canReply").description("보는 사람이 이 댓글(답글이면 그 원댓글)에 답글을 달 수 있는지")};
     }
 
     private static FieldDescriptor[] errorFields() {
@@ -897,7 +929,8 @@ class ApiDocumentationTest {
                                 fieldWithPath("items[]").description("소식, 최근 순 20개씩 (30일 보관)"),
                                 fieldWithPath("items[].notificationId").description("소식 번호"),
                                 fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"
-                                        + " · `board`(내 글마당 글에 달린 댓글) · `accepted`(내 글마당 댓글이 채택됨)"),
+                                        + " · `board`(내 글마당 글에 달린 댓글) · `accepted`(내 글마당 댓글이 채택됨)"
+                                        + " · `editorial`(편집실이 내 글을 내리거나 지움) · `reply`(내 댓글에 답글)"),
                                 fieldWithPath("items[].postId").description("블로그 글 번호 (글마당 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].boardPostId").description("글마당 글 번호 (블로그 글 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),

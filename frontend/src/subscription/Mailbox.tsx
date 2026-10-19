@@ -15,13 +15,14 @@ import {
 import './subscription.css'
 
 const POLL_MS = 60_000
-/** 소식마다 우표 글자: 새 원고, 댓글은 답장, 글마당 채택은 채택 */
+/** 소식마다 우표 글자: 새 원고, 댓글은 답장, 내 댓글에 단 답글은 답글, 글마당 채택은 채택 */
 const STAMP: Record<Notice['kind'], string> = {
   post: '원고',
   comment: '답장',
   board: '답장',
   accepted: '채택',
   editorial: '편집실',
+  reply: '답글',
 }
 
 export default function Mailbox() {
@@ -107,7 +108,7 @@ export default function Mailbox() {
       notice.boardPostId !== null
         ? `/board/${notice.boardPostId}`
         : notice.postId !== null
-          ? `/posts/${notice.postId}`
+          ? `/posts/${notice.postId}${notice.kind === 'reply' ? '#comments' : ''}`
           : null
     if (notice.available && target) {
       setOpen(false)
@@ -183,6 +184,10 @@ export default function Mailbox() {
                         ) : notice.kind === 'editorial' ? (
                           <>
                             <strong>편집실</strong>에서 신고된 내 글을 처리했어요
+                          </>
+                        ) : notice.kind === 'reply' ? (
+                          <>
+                            <strong>{notice.actorName}</strong>님이 내 댓글에 답글을 달았어요
                           </>
                         ) : notice.kind === 'accepted' ? (
                           <>

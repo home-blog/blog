@@ -65,6 +65,10 @@ export interface ManageComment {
   preview: string
   post: { postId: number; title: string }
   isNew: boolean
+  /** 비밀 댓글(봉한 쪽지). 주인은 내용을 읽는다 (specs/019 S2-3) */
+  secret: boolean
+  /** 다른 댓글에 단 답글 */
+  reply: boolean
 }
 
 export interface ManageCommentPage {
