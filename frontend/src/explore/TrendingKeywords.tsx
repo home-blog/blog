@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getTrending, type Trend } from './exploreApi'
 
+const REFRESH_MS = 10 * 60 * 1000
+
 function ChangeMark({ trend }: { trend: Trend }) {
   switch (trend.change) {
     case 'new':
@@ -33,13 +35,26 @@ export default function TrendingKeywords({ className = '' }: { className?: strin
   const [items, setItems] = useState<Trend[] | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    getTrending(controller.signal)
-      .then((data) => setItems(data.items))
-      .catch(() => {
-        if (!controller.signal.aborted) setItems([])
-      })
-    return () => controller.abort()
+    let controller = new AbortController()
+    const load = () => {
+      controller.abort()
+      controller = new AbortController()
+      const signal = controller.signal
+      getTrending(signal)
+        .then((data) => setItems(data.items))
+        .catch(() => {
+          if (!signal.aborted) setItems((prev) => prev ?? [])
+        })
+    }
+    load()
+    // 순위는 10분마다 바뀐다. 창을 열어 둔 동안 다시 묻되, 보이지 않는 창에서는 묻지 않는다
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, REFRESH_MS)
+    return () => {
+      window.clearInterval(timer)
+      controller.abort()
+    }
   }, [])
 
   if (!items || items.length === 0) return null

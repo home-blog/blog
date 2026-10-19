@@ -137,7 +137,7 @@ describe('필사 노트', () => {
     renderRoutes([{ path: '/mypage/library', element: <LibraryPage /> }])
     const cards = within(await screen.findByRole('list', { name: '모은 문장' })).getAllByRole('listitem')
     expect(cards).toHaveLength(2)
-    expect(within(cards[0]).getByLabelText('파도는 낮고')).toBeInTheDocument()
+    expect(within(cards[0]).getByText('파도는 낮고')).toBeInTheDocument()
     expect(within(cards[0]).getByRole('link', { name: '원문 보기' })).toHaveAttribute('href', '/posts/12')
     expect(within(cards[1]).getByText('볼 수 없는 글')).toBeInTheDocument()
     expect(within(cards[1]).queryByRole('link', { name: '원문 보기' })).toBeNull()
