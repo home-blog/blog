@@ -64,6 +64,16 @@ class OllamaEmbedderTest {
     }
 
     @Test
+    void 빈_답이나_빈_숫자가_든_답도_쓸_수_없음으로_알린다() {
+        for (String body : List.of("null", "{}", "{\"embeddings\":[null]}", "{\"embeddings\":[[1.0,null,0.0]]}")) {
+            ollama.reset();
+            ollama.expect(requestTo("http://ollama:11434/api/embed")).andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+            assertThatThrownBy(() -> embedder.embed(List.of("글"))).as(body).isInstanceOf(Embedder.UnavailableException.class);
+        }
+    }
+
+    @Test
     void 모델_이름에_ollama와_모델과_차원을_붙인다() {
         assertThat(embedder.model()).isEqualTo("ollama-bge-m3@3");
     }

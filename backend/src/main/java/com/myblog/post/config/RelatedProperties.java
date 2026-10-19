@@ -23,7 +23,7 @@ public record RelatedProperties(String provider, String withoutKey, String apiKe
 
     public RelatedProperties {
         if (!PROVIDERS.contains(provider)) {
-            throw new IllegalStateException("related.provider는 auto, voyage, fake, off 가운데 하나여야 합니다");
+            throw new IllegalStateException("related.provider는 auto, voyage, ollama, local, off 가운데 하나여야 합니다");
         }
         if (!Set.of("local", "off").contains(withoutKey)) {
             throw new IllegalStateException("related.without-key는 local 또는 off여야 합니다");

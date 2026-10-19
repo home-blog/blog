@@ -32,6 +32,8 @@ public class RuleProofreader implements Proofreader {
     private static final String NIEUN = finalConsonant(4, "");
     /** -ㄹ게, -ㄹ 거, -ㄹ 때, -ㄹ 수도: 말끝으로 자주 쓰는 글자만 둔다(아들께, 말수도처럼 명사 뒤를 고치지 않게). */
     private static final String VERB_RIEUL = "[할갈볼줄올될을쓸살알럴일놀들잘]";
+    /** -ㄹ게요: 높임 조사 '께'+'요'(아들께요, 여러분들께요, 딸께요)와 헷갈리지 않게 '들'·'딸'은 뺀다. 만들께요는 따로 둔다. */
+    private static final String RIEUL_BEFORE_YO = finalConsonant(8, "들딸");
     /** -ㄹ게, -ㄹ걸: 높임 조사 '께'(아들께)와 헷갈리지 않게 '들'은 뺀다. */
     private static final String PROMISE_RIEUL = "[할갈볼줄올될을쓸살알럴놀잘]";
 
@@ -82,10 +84,11 @@ public class RuleProofreader implements Proofreader {
             Rule.of(SPELLING, "갈려(고|면)", "가려$1", "'-려고'는 받침 없이 붙입니다"),
             Rule.of(SPELLING, "볼려(고|면)", "보려$1", "'-려고'는 받침 없이 붙입니다"),
             Rule.of(SPELLING, "줄려(고|면)", "주려$1", "'-려고'는 받침 없이 붙입니다"),
-            // '께요'는 높임 조사 '께' 뒤에 오지 않으므로 받침 ㄹ 글자 모두(보낼께요, 만들께요). 말끝의 '께'는 자주 쓰는 글자만
-            Rule.of(SPELLING, "(" + RIEUL + ")께(?=요)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
+            // '께요'는 받침 ㄹ 글자 대부분(보낼께요), 높임 조사로 자주 쓰는 '들께요'·'딸께요'만 빼고. 말끝의 '께'는 자주 쓰는 글자만
+            Rule.of(SPELLING, "만들께(?=요|[^가-힣]|$)", "만들게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
+            Rule.of(SPELLING, "(" + RIEUL_BEFORE_YO + ")께(?=요)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
             Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")께(?=[^가-힣]|$)", "$1게", "약속을 나타내는 어미는 '-ㄹ게'입니다"),
-            Rule.of(SPELLING, "(" + RIEUL + ")껄(?=요)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
+            Rule.of(SPELLING, "(" + RIEUL_BEFORE_YO + ")껄(?=요)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
             Rule.of(SPELLING, "(" + PROMISE_RIEUL + ")껄(?=[^가-힣]|$)", "$1걸", "'-ㄹ걸'이 맞는 표기입니다"),
             // 외래어 표기 (고친 말의 받침이 같은 것만: 뒤의 조사가 그대로 맞게)
             Rule.of(SPELLING, "메세지", "메시지", LOANWORD),

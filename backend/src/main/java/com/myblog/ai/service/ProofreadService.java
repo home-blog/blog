@@ -66,7 +66,7 @@ public class ProofreadService {
                 properties.maxLength());
     }
 
-    public Result proofread(Long memberId, String content) {
+    public Result proofread(Long memberId, String content, boolean aiConsent) {
         if (content == null || content.isBlank()) {
             throw new ApiException(ErrorCode.PROOFREAD_EMPTY);
         }
@@ -76,6 +76,10 @@ public class ProofreadService {
         }
         if (!proofreader.available()) {
             throw new ApiException(ErrorCode.PROOFREAD_UNAVAILABLE);
+        }
+        if (countsUse() && !aiConsent) {
+            // 화면이 연 뒤 서버의 교정기가 규칙에서 AI로 바뀌어도, 동의 없이 본문을 밖으로 보내지 않는다
+            throw new ApiException(ErrorCode.PROOFREAD_CONSENT_REQUIRED);
         }
         if (!countsUse()) {
             // 규칙 교정은 서버 안에서 바로 끝나고 돈이 들지 않으므로 횟수를 세지도, 결과를 보관하지도 않는다

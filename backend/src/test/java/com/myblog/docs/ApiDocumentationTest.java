@@ -769,11 +769,13 @@ class ApiDocumentationTest {
                 MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8))));
         mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/proofread"), session)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json("content", content)))
+                        .content("{\"content\":\"" + content + "\",\"aiConsent\":true}"))
                 .andExpect(status().isOk())
                 .andDo(document("proofread",
                         requestHeaders(csrfHeader()),
-                        requestFields(fieldWithPath("content").description("교정받을 마크다운 본문 (1~10,000자)")),
+                        requestFields(fieldWithPath("content").description("교정받을 마크다운 본문 (1~10,000자)"),
+                                fieldWithPath("aiConsent").description("본문이 바깥 AI로 보내진다는 안내에 동의했는지."
+                                        + " 상태의 mode가 ai인데 참이 아니면 본문을 보내지 않고 409 `PROOFREAD_CONSENT_REQUIRED` (규칙 교정은 보지 않는다)")),
                         responseFields(
                                 fieldWithPath("corrections[]").description("고칠 곳. 본문 앞에서부터, 겹치지 않는다"),
                                 fieldWithPath("corrections[].start").description("본문에서 시작 위치 (UTF-16, 자바스크립트 문자열 위치)"),

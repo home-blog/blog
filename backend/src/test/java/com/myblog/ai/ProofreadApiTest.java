@@ -96,8 +96,13 @@ class ProofreadApiTest {
     }
 
     private ResultActions proofread(String content) throws Exception {
+        return proofread(content, true);
+    }
+
+    /** aiConsent: 화면에서 "본문이 AI로 보내진다"에 동의했는지 (바깥 AI일 때 서버가 확인한다). */
+    private ResultActions proofread(String content, boolean aiConsent) throws Exception {
         return mvc.perform(post(PROOFREAD).session(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"" + content + "\"}"));
+                .content("{\"content\":\"" + content + "\",\"aiConsent\":" + aiConsent + "}"));
     }
 
     @Test
@@ -284,5 +289,21 @@ class ProofreadApiTest {
         mvc.perform(get(PROOFREAD).session(session))
                 .andExpect(jsonPath("$.mode").value("rules"))
                 .andExpect(jsonPath("$.remaining").value(3));
+    }
+
+    @Test
+    void 바깥_AI는_보내기_동의가_없으면_본문을_보내지_않고_409() throws Exception {
+        proofread(unique("동의 없음"), false).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROOFREAD_CONSENT_REQUIRED"));
+        verify(proofreader, never()).proofread(anyString());
+        mvc.perform(get(PROOFREAD).session(session)).andExpect(jsonPath("$.remaining").value(3)); // 횟수도 그대로
+    }
+
+    @Test
+    void 규칙_교정은_동의가_없어도_된다() throws Exception {
+        when(proofreader.mode()).thenReturn("rules");
+        when(proofreader.proofread(anyString())).thenReturn(List.of());
+
+        proofread(unique("동의 없음"), false).andExpect(status().isOk());
     }
 }

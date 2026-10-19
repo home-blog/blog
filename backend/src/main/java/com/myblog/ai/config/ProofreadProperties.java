@@ -23,7 +23,7 @@ public record ProofreadProperties(String provider, String withoutKey, String api
 
     public ProofreadProperties {
         if (!PROVIDERS.contains(provider)) {
-            throw new IllegalStateException("proofread.provider는 auto, claude, fake, off 가운데 하나여야 합니다");
+            throw new IllegalStateException("proofread.provider는 auto, claude, rules, off 가운데 하나여야 합니다");
         }
         if (!Set.of("rules", "off").contains(withoutKey)) {
             throw new IllegalStateException("proofread.without-key는 rules 또는 off여야 합니다");

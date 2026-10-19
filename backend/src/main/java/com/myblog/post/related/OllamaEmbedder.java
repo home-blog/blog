@@ -77,7 +77,7 @@ public class OllamaEmbedder implements Embedder {
         } catch (JacksonException e) {
             throw new UnavailableException("Ollama 임베딩 답을 읽지 못했습니다", e);
         }
-        if (response.embeddings() == null || response.embeddings().size() != expected) {
+        if (response == null || response.embeddings() == null || response.embeddings().size() != expected) {
             throw new UnavailableException("Ollama 임베딩 답의 개수가 다릅니다");
         }
         List<float[]> vectors = new ArrayList<>();
@@ -87,7 +87,11 @@ public class OllamaEmbedder implements Embedder {
             }
             float[] vector = new float[embedding.size()];
             for (int i = 0; i < vector.length; i++) {
-                vector[i] = embedding.get(i).floatValue();
+                Double value = embedding.get(i);
+                if (value == null) {
+                    throw new UnavailableException("Ollama 임베딩 답에 빈 숫자가 있습니다");
+                }
+                vector[i] = value.floatValue();
             }
             vectors.add(Vectors.normalize(vector));
         }

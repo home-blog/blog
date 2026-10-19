@@ -483,12 +483,18 @@ export default function PostEditorPage() {
     setProofing(true)
     setMode('preview')
     try {
-      const result = await proofread(content)
+      const result = await proofread(content, redPenConsented())
       setProof({ base: content, corrections: result.corrections, decisions: result.corrections.map(() => 'pending') })
       setRedPen((prev) => (prev ? { ...prev, remaining: result.remaining } : prev))
     } catch (err) {
-      setDraftMessage({ text: err instanceof ApiError ? err.message : '※ 지금은 빨간 펜을 쓸 수 없습니다', error: true })
       setMode('write')
+      if (err instanceof ApiError && err.code === 'PROOFREAD_CONSENT_REQUIRED') {
+        // 화면을 연 뒤 서버의 교정기가 바깥 AI로 바뀌었다: 동의를 묻고 다시 보낸다
+        setRedPen((prev) => (prev ? { ...prev, mode: 'ai' } : prev))
+        setAskRedPenConsent(true)
+        return
+      }
+      setDraftMessage({ text: err instanceof ApiError ? err.message : '※ 지금은 빨간 펜을 쓸 수 없습니다', error: true })
     } finally {
       setProofing(false)
     }
