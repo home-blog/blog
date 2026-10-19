@@ -224,6 +224,21 @@ describe('받아 보는 글', () => {
     expect(await screen.findByText('아직 받아 보는 블로그가 없습니다.')).toBeInTheDocument()
   })
 
+  it('받아 보는 블로그 목록을 못 읽으면 빈 목록이 아니라 오류를 보여 준다', async () => {
+    loggedIn()
+    server.use(
+      http.get('/api/v1/me/subscriptions/feed', () =>
+        HttpResponse.json({ totalCount: 0, page: 1, totalPages: 1, pageSize: 12, posts: [] }),
+      ),
+      http.get('/api/v1/me/subscriptions', () =>
+        HttpResponse.json({ code: 'INTERNAL_ERROR', message: '※ 잠시 뒤 다시 시도해 주세요' }, { status: 500 }),
+      ),
+    )
+    renderAt([{ path: '/subscriptions', element: <SubscribedPage /> }])
+    expect(await screen.findByRole('alert')).toHaveTextContent('잠시 뒤 다시 시도해 주세요')
+    expect(screen.queryByText('아직 받아 보는 블로그가 없습니다.')).not.toBeInTheDocument()
+  })
+
   it('받아 보는 블로그 목록에서 그만 받으면 다시 읽는다', async () => {
     loggedIn()
     let items = [

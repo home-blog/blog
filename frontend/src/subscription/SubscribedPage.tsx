@@ -30,6 +30,7 @@ export default function SubscribedPage() {
   const page = pageFrom(searchParams.get('page'))
   const [feed, setFeed] = useState<Loaded<SubscribedFeed> | null>(null)
   const [blogs, setBlogs] = useState<MySubscription[] | null>(null)
+  const [blogsError, setBlogsError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,9 +47,13 @@ export default function SubscribedPage() {
   useEffect(() => {
     const controller = new AbortController()
     getMySubscriptions(controller.signal)
-      .then((data) => setBlogs(data.items))
-      .catch(() => {
-        if (!controller.signal.aborted) setBlogs([])
+      .then((data) => {
+        setBlogs(data.items)
+        setBlogsError(null)
+      })
+      .catch((err: unknown) => {
+        // 못 읽은 것을 "받아 보는 블로그가 없다"로 보이지 않는다
+        if (!controller.signal.aborted) setBlogsError(messageOf(err))
       })
     return () => controller.abort()
   }, [reload])
@@ -111,7 +116,11 @@ export default function SubscribedPage() {
               {error}
             </p>
           )}
-          {blogs === null ? (
+          {blogsError ? (
+            <p className="msg msg-error" role="alert">
+              {blogsError}
+            </p>
+          ) : blogs === null ? (
             <p className="hint">불러오는 중</p>
           ) : blogs.length === 0 ? (
             <p className="hint">아직 받아 보는 블로그가 없습니다.</p>

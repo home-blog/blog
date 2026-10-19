@@ -9,11 +9,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   <li>maxPerMember: 한 사람이 받아 볼 수 있는 블로그 수(500)</li>
  *   <li>notificationRetention: 우편함 소식 보관(30일), notificationPageSize: 우편함 한 쪽(20)</li>
  *   <li>newsletter: 원고 편지(메일) 켜기, 하루 한도(사이트 300·블로그마다 100), 메일 속 링크의 사이트 주소, 요약 길이(120자)</li>
+ *   <li>worker: 소식·메일 일꾼의 기다리는 줄 크기(1,000), 끌 때 기다리는 시간(10초)</li>
  * </ul>
  */
 @ConfigurationProperties(prefix = "subscription")
 public record SubscriptionProperties(int maxPerMember, Duration notificationRetention, int notificationPageSize,
-        Newsletter newsletter) {
+        Newsletter newsletter, Worker worker) {
 
     public SubscriptionProperties {
         if (maxPerMember < 1 || notificationPageSize < 1) {
@@ -24,6 +25,18 @@ public record SubscriptionProperties(int maxPerMember, Duration notificationRete
         }
         if (newsletter == null) {
             throw new IllegalStateException("subscription.newsletter 설정이 필요합니다");
+        }
+        if (worker == null) {
+            throw new IllegalStateException("subscription.worker 설정이 필요합니다");
+        }
+    }
+
+    public record Worker(int queueSize, Duration shutdownWait) {
+
+        public Worker {
+            if (queueSize < 1 || shutdownWait == null || shutdownWait.isNegative()) {
+                throw new IllegalStateException("subscription.worker.queue-size는 1 이상, shutdown-wait는 0 이상이어야 합니다");
+            }
         }
     }
 
