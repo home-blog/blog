@@ -110,6 +110,13 @@ public enum ErrorCode {
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "※ 비밀번호를 입력해 주세요"),
     WITHDRAWAL_NOT_AGREED(HttpStatus.BAD_REQUEST, "※ 탈퇴 안내를 확인해 주세요"),
 
+    // 빨간 펜 교정 (specs/014 contracts 1). 숫자는 설정값(proofread.*)에 따라 ProofreadService가 채운다
+    PROOFREAD_EMPTY(HttpStatus.BAD_REQUEST, "※ 교정받을 본문을 입력해 주세요"),
+    PROOFREAD_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 본문이 너무 깁니다. %d자 이하로 나눠 교정받아 주세요"),
+    PROOFREAD_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "※ 오늘은 빨간 펜을 %d번 모두 썼습니다. 내일 다시 써 주세요"),
+    /** AI가 꺼져 있거나 늦거나 실패했다. 글쓰기는 그대로 할 수 있다 (S1-5, S1-6). */
+    PROOFREAD_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "※ 지금은 빨간 펜을 쓸 수 없습니다. 잠시 뒤 다시 시도해 주세요"),
+
     // 소셜 로그인 (specs/010 contracts)
     /** 회사 화면에서 취소했거나 회사와 주고받다 실패했다. 화면 주소(?socialError=…)로만 알린다. */
     SOCIAL_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "※ 소셜 로그인을 마치지 못했습니다. 다시 시도해 주세요"),

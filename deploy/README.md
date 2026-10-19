@@ -22,6 +22,10 @@
 | `DB_ADDRESS`, `DB_PORT`, `DB_NAME`, `DB_SCHEMA`, `DB_USERNAME`, `DB_PASSWORD` | 실습 DB. 표는 `DB_SCHEMA` 안에 만든다. `DB_ADDRESS`는 `localhost`가 아닌 DB 서버의 실제 주소 | 꼭 |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` | 인증 메일 (Gmail: `smtp.gmail.com` + 앱 비밀번호) | 없으면 가입이 안 된다 |
 | `SOCIAL_GITHUB_CLIENT_ID`, `SOCIAL_GITHUB_CLIENT_SECRET` (GOOGLE, KAKAO, NAVER도 같은 모양) | 소셜 로그인 앱 열쇠 (아래 "소셜 로그인 앱 등록") | 없는 회사는 버튼이 안 보인다 |
+| `ANTHROPIC_API_KEY` | 빨간 펜 교정(Claude API) 열쇠, specs/014 | 없으면 빨간 펜 단추가 안 보인다 |
+| `VOYAGE_API_KEY` | 비슷한 글 임베딩(Voyage AI) 열쇠, specs/014 | 없으면 태그·주제가 겹치는 글로 대신한다 |
+
+**AI 열쇠** (specs/014). Secrets에 넣은 뒤 Actions → `배포`를 번호 없이 한 번 돌리면(설정만 다시 올리기) 켜진다. 비슷한 글의 뜻 정보는 켜진 뒤 10분마다 공개 글 32개씩 채워진다.
 
 **소셜 로그인 앱 등록** (specs/010). 회사마다 개발자 사이트에 앱을 만들고, 받은 Client ID·Secret을 위 Secrets(배포)와 저장소 맨 위 `.env`(로컬)에 넣는다. 콜백(Redirect) 주소는 로컬 `http://localhost:5173/login/oauth2/code/{회사}`, 배포 `http://<내 도메인>/login/oauth2/code/{회사}` (HTTPS가 붙으면 `https://`로 바꾼다).
 

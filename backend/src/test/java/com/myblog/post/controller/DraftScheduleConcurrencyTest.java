@@ -89,7 +89,9 @@ class DraftScheduleConcurrencyTest {
             for (Future<Integer> result : results) {
                 total += result.get();
             }
-            assertThat(total).isEqualTo(DRAFTS);
+            // 올리는 작업은 DB 전체의 예약을 본다. 개발 DB에 시각이 지난 다른 예약이 있으면 그것도 함께 올리므로 "이상"으로 본다.
+            // 예약마다 글이 하나인지는 아래에서 이 블로그의 글 수로 확인한다
+            assertThat(total).isGreaterThanOrEqualTo(DRAFTS);
         } finally {
             pool.shutdownNow();
         }
