@@ -155,7 +155,10 @@ class ApiDocumentationTest {
                                 fieldWithPath("blogId").description("블로그 번호"),
                                 fieldWithPath("name").description("블로그 이름 (1~30자)"),
                                 fieldWithPath("intro").description("블로그 소개 (0~200자)").optional().type(JsonFieldType.STRING),
-                                fieldWithPath("isOwner").description("보는 사람이 이 블로그의 주인인지"))));
+                                fieldWithPath("isOwner").description("보는 사람이 이 블로그의 주인인지"),
+                                fieldWithPath("subscriberCount").description("이 블로그를 받아 보는 사람 수 (0.11.0)"),
+                                fieldWithPath("subscribedByMe").description("보는 사람이 받아 보는지 (로그인하지 않았으면 false)"),
+                                fieldWithPath("subscriptionEmail").description("보는 사람이 새 원고를 메일로도 받는지"))));
     }
 
     @Test
@@ -858,6 +861,51 @@ class ApiDocumentationTest {
                                 fieldWithPath("post.title").description("모을 때의 글 제목"),
                                 fieldWithPath("post.blogName").description("모을 때의 블로그 이름"),
                                 fieldWithPath("post.available").description("지금 원문을 볼 수 있는지 (비공개가 되거나 지워지면 false)"))));
+    }
+
+    // ── 11. 구독·알림 (specs/016) ──
+
+    @Test
+    void 원고_받아_보기() throws Exception {
+        Member writer = members.register("docs");
+        Member reader = members.register("docs");
+        MockHttpSession session = login(reader);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.put("/api/v1/blogs/{blogId}/subscription", writer.blogId()),
+                        session).contentType(MediaType.APPLICATION_JSON).content("{\"emailEnabled\":true}"))
+                .andExpect(status().isOk())
+                .andDo(document("subscription-put",
+                        pathParameters(parameterWithName("blogId").description("받아 볼 블로그 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("emailEnabled").description("새 원고를 메일로도 받기 (본문이 없으면 false)."
+                                + " 이미 받아 보면 이것만 바꾼다")),
+                        responseFields(
+                                fieldWithPath("subscribed").description("받아 보는 중인가"),
+                                fieldWithPath("emailEnabled").description("메일로도 받는가"),
+                                fieldWithPath("subscriberCount").description("이 블로그를 받아 보는 사람 수"))));
+    }
+
+    @Test
+    void 우편함() throws Exception {
+        Member reader = members.register("docs");
+        MockHttpSession session = login(reader);
+        jdbc.update("insert into notification (users_id, kind, post_id, post_title, actor_name, created_at)"
+                + " values (?, 'post', null, '바닷가 산책', '바다 일기', now())", reader.id());
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/me/notifications").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("notifications",
+                        responseFields(
+                                fieldWithPath("items[]").description("소식, 최근 순 20개씩 (30일 보관)"),
+                                fieldWithPath("items[].notificationId").description("소식 번호"),
+                                fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"),
+                                fieldWithPath("items[].postId").description("글 번호 (지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임"),
+                                fieldWithPath("items[].available").description("지금 그 글을 볼 수 있는가"),
+                                fieldWithPath("items[].read").description("읽었는가"),
+                                fieldWithPath("items[].createdAt").description("소식이 온 시각"),
+                                fieldWithPath("page").description("쪽 번호"),
+                                fieldWithPath("totalPages").description("모든 쪽 수"),
+                                fieldWithPath("unreadCount").description("안 읽은 소식 수"))));
     }
 
     private Long writePost(Member member, String title) {

@@ -64,6 +64,16 @@ public class PostFeedRepository {
     private static final String PUBLIC_ACTIVITY_IN_CATEGORIES =
             "select p.created_at, p.content from post p where p.category_id = any(?) and p.visibility = ? and p.created_at >= ?";
 
+    /** 받아 보는 블로그들의 공개 글 (specs/016 US1). 자리표시자: OPEN_POSTS 넷, 블로그 번호 배열. */
+    private static final String IN_BLOGS = " and c.blog_id = any(?)\n";
+
+    private static final String COUNT_IN_BLOGS = "select count(*) " + FROM + OPEN_POSTS + IN_BLOGS;
+
+    private static final String PAGE_IN_BLOGS = COLUMNS + FROM + OPEN_POSTS + IN_BLOGS + """
+            order by p.created_at desc, p.post_id desc
+            offset ? limit ?
+            """;
+
     private static final String PAGE = COLUMNS + FROM + OPEN_POSTS + """
             order by p.created_at desc, p.post_id desc
             offset ? limit ?
@@ -162,6 +172,29 @@ public class PostFeedRepository {
             PreparedStatement statement = connection.prepareStatement(COLUMNS + FROM + OPEN_POSTS + " and p.post_id = any(?)");
             int next = bindOpenPosts(statement, 1, null);
             statement.setArray(next, connection.createArrayOf("bigint", postIds.toArray()));
+            return statement;
+        }, PostFeedRepository::toItem);
+    }
+
+    /** 정해진 블로그들의 공개 글 수 (받아 보는 글, specs/016). */
+    public long countInBlogs(Collection<Long> blogIds) {
+        Long count = jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(COUNT_IN_BLOGS);
+            int next = bindOpenPosts(statement, 1, null);
+            statement.setArray(next, connection.createArrayOf("bigint", blogIds.toArray()));
+            return statement;
+        }, rs -> rs.next() ? rs.getLong(1) : 0L);
+        return count == null ? 0 : count;
+    }
+
+    /** 정해진 블로그들의 공개 글, 최신순으로 offset부터 limit개. */
+    public List<FeedItem> findInBlogs(Collection<Long> blogIds, long offset, int limit) {
+        return jdbc.query(connection -> {
+            PreparedStatement statement = connection.prepareStatement(PAGE_IN_BLOGS);
+            int next = bindOpenPosts(statement, 1, null);
+            statement.setArray(next, connection.createArrayOf("bigint", blogIds.toArray()));
+            statement.setLong(next + 1, offset);
+            statement.setInt(next + 2, limit);
             return statement;
         }, PostFeedRepository::toItem);
     }

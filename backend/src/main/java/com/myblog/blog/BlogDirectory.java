@@ -16,6 +16,9 @@ public interface BlogDirectory {
     /** 블로그와 그 주인. 글 목록이 "없는 블로그인가, 주인인가"를 묻는다 (specs/004 T006). */
     Optional<BlogInfo> blog(Long blogId);
 
+    /** 여러 블로그를 한 번에 (받아 보는 블로그 목록, specs/016). 없는 번호는 빠지고 순서는 정하지 않는다. */
+    List<BlogInfo> blogs(Collection<Long> blogIds);
+
     /** 분류와 그 분류가 속한 블로그·주인. */
     Optional<CategoryInfo> category(Long categoryId);
 

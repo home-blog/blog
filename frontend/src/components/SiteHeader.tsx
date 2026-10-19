@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import SearchBox from '../explore/SearchBox'
 import { useNewCommentCount } from '../manage/newCommentCount'
 import { useNoticeAlert } from '../notice/noticeAlert'
+import Mailbox from '../subscription/Mailbox'
 import ThemeToggle from '../theme/ThemeToggle'
 import BrandMark from './BrandMark'
 import UserMenu from './UserMenu'
@@ -58,6 +59,8 @@ export default function SiteHeader() {
                 로그아웃하지 못했습니다. 다시 눌러 주세요
               </span>
             )}
+            {/* 우편함 (specs/016 US2) */}
+            <Mailbox />
             <Link to="/write" className="header-write">
               <span aria-hidden="true">✎</span> 글쓰기
             </Link>
