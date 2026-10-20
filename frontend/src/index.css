@@ -119,12 +119,15 @@ body {
       .md-tool,
       .btn,
       .header-tab,
-      .mailbox-button
+      .mailbox-button,
+      .board-tab,
+      .board-kind-link
     ):is(
       :hover,
       :focus-within,
       :active
     ),
+  .header-tab:is(:hover, :active) .header-tab-cell,
   .popular-item:hover .popular-rank,
   .card:is(:hover, :focus-within) :is(.thumb-photo, .thumb-photo img),
   .site-brand:hover .brand-mark,

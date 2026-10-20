@@ -578,8 +578,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .board-tab:hover,
-  .board-kind-link:hover,
+  .board-tab:is(:hover, :active),
+  .board-kind-link:is(:hover, :active),
   .board-write:hover,
   .board-row:hover .board-topic-chip {
     transform: none;
