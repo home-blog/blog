@@ -28,6 +28,7 @@ import NoticeDetailPage from './notice/NoticeDetailPage'
 import NoticeEditorPage from './notice/NoticeEditorPage'
 import NoticeListPage from './notice/NoticeListPage'
 import SiteFooter from './components/SiteFooter'
+import InkTouch from './components/InkTouch'
 import SiteHeader from './components/SiteHeader'
 import BlogHomePage from './pages/BlogHomePage'
 import LibraryPage from './community/clip/LibraryPage'
@@ -98,6 +99,7 @@ function Layout() {
       <LoginModalProvider>
         <NewCommentCountProvider>
           <NoticeAlertProvider>
+            <InkTouch />
             <SiteHeader />
             <main>
               <Outlet />

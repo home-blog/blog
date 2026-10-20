@@ -1,10 +1,11 @@
 // 글마당 목록 (specs/017 US1, US4): /board?topic=&kind=&unsolved=&page=. 누구나 본다
 // 주제 탭과 종류 고르기는 주소에 남는다. 글쓰기는 로그인하지 않았으면 로그인 창을 띄운다
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { useLoginPrompt } from '../auth/loginPrompt'
 import EmptySheet from '../components/EmptySheet'
+import { useCountUp } from '../components/useCountUp'
 import Pagination from '../explore/Pagination'
 import { pageFrom } from '../explore/rules'
 import BoardTable from './BoardTable'
@@ -55,6 +56,7 @@ export default function BoardListPage() {
   }, [topic, kind, unsolved, q, page])
 
   const current = result?.key === key ? result : null
+  const total = useCountUp(current && 'data' in current ? current.data.totalCount : null)
 
   function write() {
     if (member) navigate('/board/write')
@@ -63,12 +65,29 @@ export default function BoardListPage() {
 
   return (
     <div className="board-page">
+      {/* 머리: 원고지 칸에 한 글자씩 쓰인 "글마당", 지금 글 수(세어 올라감), 글쓰기 (2026-10-20 사용자: 있어 보이게) */}
       <div className="board-head">
-        <div>
-          <h1 className="board-heading">글마당</h1>
-          <p className="hint">블로그 밖에서 주제별로 묻고 이야기하는 마당입니다.</p>
+        <div className="board-head-text">
+          <h1 className="board-heading">
+            <span className="board-heading-cells" aria-hidden="true">
+              {[...'글마당'].map((char, index) => (
+                <span key={char} style={{ '--i': index } as CSSProperties}>
+                  {char}
+                </span>
+              ))}
+            </span>
+            <span className="visually-hidden">글마당</span>
+          </h1>
+          <p className="board-lead">
+            블로그 밖에서 주제별로 <mark className="board-lead-mark">묻고 이야기하는</mark> 마당입니다.
+          </p>
+          {total !== null && (
+            <p className="board-total">
+              {topic ?? '모든 주제'}에 글 <strong>{total.toLocaleString('ko-KR')}</strong>편
+            </p>
+          )}
         </div>
-        <button type="button" className="btn btn-primary btn-small" onClick={write}>
+        <button type="button" className="btn btn-primary board-write" onClick={write}>
           <span aria-hidden="true">✎</span> 글쓰기
         </button>
       </div>

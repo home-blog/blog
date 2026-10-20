@@ -307,23 +307,138 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 공지사항 링크와 새 글 점 (specs/012 US3) */
-.header-notice {
+/* 글마당·공지 탭 (2026-10-20 사용자: 글로만 있지 말고 애니메이션·하이라이트, 누를 때마다 재미를).
+   원고지 칸 머리글자(마크·내 메뉴와 같은 칸) + 이름. 올리면 형광펜이 왼쪽부터 칠해지고 칸이 기울고,
+   누르면 칸이 도장처럼 눌리고, 지금 보는 곳이면 칸이 먹색으로 차고 붉은 펜 밑줄이 그어진다 */
+.header-tab {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.7rem 0.28rem 0.3rem;
+  border-radius: 10px;
   color: var(--ink-soft);
+  font-weight: 600;
   text-decoration: none;
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--highlight) 90%, transparent),
+    color-mix(in srgb, var(--highlight) 35%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition:
+    background-size 0.35s var(--ease-out),
+    color 0.2s,
+    transform 0.2s var(--ease-out);
 }
 
-.header-notice:hover {
+.header-tab:hover,
+.header-tab:focus-visible {
+  background-size: 100% 100%;
   color: var(--ink);
 }
 
+.header-tab:active {
+  transform: translateY(1px) scale(0.95);
+}
+
+.header-tab-cell {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1.5px solid var(--grid-strong);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  color: var(--accent);
+  font-family: var(--font-letter);
+  font-size: 0.8rem;
+  line-height: 1;
+  transition:
+    transform 0.3s var(--ease-out),
+    border-color 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.header-tab:hover .header-tab-cell {
+  transform: rotate(-8deg) scale(1.08);
+  border-color: var(--accent);
+}
+
+.header-tab:active .header-tab-cell {
+  animation: cell-stamp 0.35s var(--ease-out);
+}
+
+.header-tab[aria-current='page'] {
+  color: var(--ink);
+}
+
+.header-tab[aria-current='page'] .header-tab-cell {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* 지금 보는 곳: 붉은 펜이 왼쪽에서 오른쪽으로 한 번 긋는다 */
+.header-tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 2.1rem;
+  right: 0.6rem;
+  bottom: 0.05rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--seal);
+  transform-origin: left;
+  animation: pen-line 0.45s var(--ease-out) both;
+}
+
+@keyframes pen-line {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes cell-stamp {
+  40% {
+    transform: scale(0.8) rotate(-10deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 새 공지 점: 칸 귀퉁이에서 숨 쉬듯 */
 .header-notice-dot {
   position: absolute;
-  top: -2px;
-  right: -8px;
-  width: 7px;
-  height: 7px;
+  top: 0.1rem;
+  left: 1.45rem;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--paper);
   border-radius: 50%;
   background: var(--seal);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* 밝게/어둡게·우편함 단추: 누르면 꾹 눌린다 */
+.theme-toggle:active,
+.mailbox-button:active {
+  transform: scale(0.88) rotate(-12deg);
+}
+
+/* 좁은 화면: 탭은 머리글자 칸만 (이름은 화면 읽기 도구가 읽는다) */
+@media (max-width: 30rem) {
+  .header-tab {
+    padding: 0.2rem;
+  }
+  .header-tab-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
 }

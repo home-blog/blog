@@ -34,6 +34,21 @@ class DevDemoSeedTest {
     }
 
     @Test
+    void 글마당_예시_파일은_이미_있으면_넣지_않는_문장이다() throws Exception {
+        String script = Files.readString(Path.of("../deploy/seed/demo-board.sql"), StandardCharsets.UTF_8);
+        List<String> statements = DevDemoSeed.statements(script);
+        List<String> inserts = statements.stream().filter(sql -> sql.strip().startsWith("insert into")).toList();
+        // 글 10개, 몇 번 실행해도 같도록 넣는 문장은 모두 "이미 없을 때만"
+        assertThat(inserts).filteredOn(sql -> sql.strip().startsWith("insert into board_post ")).hasSize(10);
+        assertThat(inserts).isNotEmpty().allSatisfy(sql -> assertThat(sql).contains("and not exists ("));
+        // 시각은 넣는 순간 기준 (글마당이 늘 최근 글로 보인다)
+        assertThat(inserts).filteredOn(sql -> sql.strip().startsWith("insert into board_post "))
+                .allSatisfy(sql -> assertThat(sql).contains("now() - interval '"));
+        assertThat(statements).filteredOn(sql -> !sql.strip().startsWith("insert into"))
+                .allSatisfy(sql -> assertThat(sql.strip()).startsWith("update board_post set "));
+    }
+
+    @Test
     void 따옴표_안의_세미콜론과_줄바꿈은_문장을_나누지_않는다() {
         String script = """
                 \\set ON_ERROR_STOP on
