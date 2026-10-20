@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 글결 MCP의 작은 OAuth 2.1 인가 서버 (specs/023 D-1). 공개 클라이언트·인가 코드 + PKCE(S256)·갱신 토큰 돌리기만 한다.
@@ -103,18 +105,30 @@ public class OAuthService {
             throw OAuthError.badRequest("invalid_client_metadata", "response_types에 code가 있어야 합니다");
         }
         Object rawName = metadata.get("client_name");
-        String name = rawName instanceof String text ? text.strip() : "";
+        String name = cleanName(rawName instanceof String text ? text : "");
         if (name.codePointCount(0, name.length()) > properties.clientNameMaxLength()) {
             throw OAuthError.badRequest("invalid_client_metadata",
                     "client_name은 %d자 이하여야 합니다".formatted(properties.clientNameMaxLength()));
         }
-        if (name.isEmpty() || name.chars().anyMatch(Character::isISOControl)) {
+        if (name.isEmpty()) {
             name = UNNAMED;
         }
         Instant now = Instant.now(clock);
         Client client = new Client(OAuthTokens.random(OAuthTokens.CLIENT_PREFIX, 24), name, List.copyOf(uris), now);
         store.insertClient(client);
         return new Registered(client.clientId(), now, name, client.redirectUris());
+    }
+
+    /**
+     * 앱 이름에서 제어 글자와 보이지 않는 서식 글자(Cf: 방향 바꾸기·폭 없는 글자 등)를 빼고 앞뒤 공백을 지운다 (S1-2).
+     * 위임장에서 이름을 뒤집거나 숨겨 다른 앱처럼 보이게 하는 것을 막는다.
+     */
+    static String cleanName(String raw) {
+        StringBuilder sb = new StringBuilder(raw.length());
+        raw.codePoints()
+                .filter(cp -> !Character.isISOControl(cp) && Character.getType(cp) != Character.FORMAT)
+                .forEach(sb::appendCodePoint);
+        return sb.toString().strip();
     }
 
     /** https(호스트 있음) 또는 http 루프백. 조각(#)·사용자 정보 없이. */
@@ -152,6 +166,7 @@ public class OAuthService {
             return new AuthorizeOutcome("/connect/authorize?error=invalid_client");
         }
         Client client = found.get();
+        store.touchClient(client.clientId(), Instant.now(clock));
         String requested = params.get("redirect_uri");
         String redirectUri = requested == null ? (client.redirectUris().size() == 1 ? client.redirectUris().get(0) : null)
                 : matchRedirect(client, requested);
@@ -160,25 +175,25 @@ public class OAuthService {
         }
         String state = params.get("state");
         if (state != null && state.length() > MAX_STATE_LENGTH) {
-            return redirectError(redirectUri, "invalid_request", null);
+            return errorPage(client, redirectUri, "invalid_request", null);
         }
         if (!"code".equals(params.get("response_type"))) {
-            return redirectError(redirectUri, "unsupported_response_type", state);
+            return errorPage(client, redirectUri, "unsupported_response_type", state);
         }
         String challenge = params.get("code_challenge");
         if (challenge == null || !CHALLENGE.matcher(challenge).matches()
                 || !"S256".equals(params.get("code_challenge_method"))) {
-            return redirectError(redirectUri, "invalid_request", state);
+            return errorPage(client, redirectUri, "invalid_request", state);
         }
         String scope;
         try {
             scope = requestedScope(params.get("scope"));
         } catch (OAuthError e) {
-            return redirectError(redirectUri, e.error(), state);
+            return errorPage(client, redirectUri, e.error(), state);
         }
         String resource = params.get("resource");
         if (resource != null && !isOurResource(resource)) {
-            return redirectError(redirectUri, "invalid_target", state);
+            return errorPage(client, redirectUri, "invalid_target", state);
         }
         try {
             String id = pending.saveRequest(new PendingRequest(client.clientId(), client.name(), redirectUri,
@@ -186,8 +201,34 @@ public class OAuthService {
                     Instant.now(clock).plus(properties.requestTtl())));
             return new AuthorizeOutcome("/connect/authorize?request=" + id);
         } catch (OAuthError e) {
-            return redirectError(redirectUri, e.error(), state);
+            return errorPage(client, redirectUri, e.error(), state);
         }
+    }
+
+    /**
+     * 위임장 전에 난 인가 오류 (S1-3): 앱으로 바로 보내지 않는다(글결을 거쳐 아무 데나 튕겨 주는 길이 되지 않게).
+     * 돌아갈 주소를 Redis에 두고 글결 오류 화면이 번호로 받아, 회원이 눌러야 앱으로 돌아간다.
+     * Redis가 멈췄으면 돌아갈 길 없이 오류만 보인다.
+     */
+    private AuthorizeOutcome errorPage(Client client, String redirectUri, String error, String state) {
+        String back = redirectError(redirectUri, error, state).location();
+        try {
+            String id = pending.saveError(new OAuthPending.PendingError(client.name(),
+                    URI.create(redirectUri).getHost(), error, back));
+            return new AuthorizeOutcome("/connect/authorize?error=" + error + "&back=" + id);
+        } catch (OAuthError e) {
+            return new AuthorizeOutcome("/connect/authorize?error=" + error);
+        }
+    }
+
+    /** 오류 화면에 보일 것 (로그인 없이). */
+    public record ErrorView(String clientName, String redirectHost, String error, String redirectTo) {
+    }
+
+    public ErrorView describeError(String errorId) {
+        OAuthPending.PendingError error = consent(() -> pending.error(errorId))
+                .orElseThrow(OAuthService::requestNotFound);
+        return new ErrorView(error.clientName(), error.redirectHost(), error.error(), error.redirectTo());
     }
 
     /**
@@ -287,7 +328,7 @@ public class OAuthService {
                 .orElseThrow(OAuthService::requestNotFound);
         String code = consent(() -> pending.saveCode(new IssuedCode(memberId, request.clientId(),
                 request.redirectUri(), request.redirectUriProvided(), request.codeChallenge(), scope,
-                request.resource())));
+                request.resource(), Instant.now(clock))));
         Map<String, String> query = new LinkedHashMap<>();
         query.put("code", code);
         if (request.state() != null) {
@@ -341,8 +382,9 @@ public class OAuthService {
         String verifier = required(form, "code_verifier");
         Optional<IssuedCode> taken = pending.takeCode(code);
         if (taken.isEmpty()) {
-            // 이미 쓴 코드가 다시 왔다: 그 코드로 만든 연결을 끊는다 (S1-4)
-            pending.usedCodeGrant(code).ifPresent(store::deleteGrant);
+            // 이미 쓴 코드를 그 앱이 다시 보냈다: 그 코드로 만든 연결을 끊는다 (S1-4). 다른 앱이 보낸 것이면 끊지 않는다
+            pending.usedCode(code).filter(used -> used.clientId().equals(client.clientId()))
+                    .ifPresent(used -> store.deleteGrant(used.grantId()));
             throw OAuthError.invalidGrant("허락 코드가 없거나, 지났거나, 이미 썼습니다");
         }
         IssuedCode issued = taken.get();
@@ -360,21 +402,29 @@ public class OAuthService {
             throw OAuthError.badRequest("invalid_target", "resource는 글결 MCP 주소여야 합니다");
         }
         Instant now = Instant.now(clock);
+        store.touchClient(client.clientId(), now);
         // 회원 줄을 잡고 연결 수를 센다: 같은 회원의 연결 만들기·모두 끊기(비밀번호 변경·정지)가 한 줄로 선다
         users.findActiveByIdForUpdate(issued.memberId());
         if (users.findLoggedInById(issued.memberId(), now).isEmpty()) {
             throw OAuthError.invalidGrant("회원이 로그인할 수 없는 상태입니다");
+        }
+        // 허락한 뒤에 비밀번호를 바꾸는 등으로 연결을 모두 끊었다면 그 전의 허락 코드도 쓸 수 없다
+        Optional<Instant> revokedAt = store.revokedAt(issued.memberId());
+        if (issued.issuedAt() == null || revokedAt.isPresent() && !revokedAt.get().isBefore(issued.issuedAt())) {
+            throw OAuthError.invalidGrant("허락한 뒤 연결이 모두 끊겼습니다. 다시 연결해 주세요");
         }
         long over = store.countGrants(issued.memberId()) - properties.maxGrantsPerMember() + 1;
         store.deleteLeastRecentlyUsed(issued.memberId(), (int) Math.max(0, over));
         String refresh = OAuthTokens.random(OAuthTokens.REFRESH_PREFIX, 32);
         long grantId = store.insertGrant(issued.memberId(), client.clientId(), issued.scope(),
                 OAuthTokens.sha256Hex(refresh), now.plus(properties.refreshTokenTtl()), now);
-        try {
-            pending.markCodeUsed(code, grantId);
-        } catch (OAuthError e) {
-            // 표시를 남기지 못하면 코드를 두 번 쓴 것을 알아채지 못할 뿐이다. 코드는 이미 지워져 다시 쓸 수 없다
-        }
+        afterCommit(() -> {
+            try {
+                pending.markCodeUsed(code, client.clientId(), grantId);
+            } catch (OAuthError e) {
+                // 표시를 남기지 못하면 코드를 두 번 쓴 것을 알아채지 못할 뿐이다. 코드는 이미 지워져 다시 쓸 수 없다
+            }
+        });
         return new TokenResponse(issueAccess(grantId, now), properties.accessTokenTtl().toSeconds(), refresh,
                 issued.scope());
     }
@@ -384,6 +434,7 @@ public class OAuthService {
         Client client = client(required(form, "client_id"));
         String hash = OAuthTokens.sha256Hex(refresh);
         Instant now = Instant.now(clock);
+        store.touchClient(client.clientId(), now);
         // 범위는 돌리기 전에 본다: 돌린 뒤에 거절하면 앱 손의 갱신 토큰이 옛것이 되어 연결이 끊긴다
         String scope = form.get("scope");
         if (scope != null && !scope.isBlank() && DRAFT.equals(requestedScope(scope))
@@ -394,8 +445,13 @@ public class OAuthService {
         Optional<Grant> rotated = store.rotateRefresh(hash, client.clientId(), OAuthTokens.sha256Hex(next),
                 now.plus(properties.refreshTokenTtl()), now);
         if (rotated.isEmpty()) {
-            // 옛 갱신 토큰이 다시 왔다면 도난으로 보고 연결을 끊는다 (S1-5)
-            store.grantByPreviousRefresh(hash).ifPresent(store::deleteGrant);
+            // 옛 갱신 토큰이 다시 왔다 (S1-5). 바뀐 지 유예 시간 안이면 같은 앱이 겹쳐 보낸 요청일 수 있어 거절만 하고,
+            // 그 뒤면 도난으로 보고 연결을 끊는다
+            store.grantByPreviousRefresh(hash)
+                    .filter(previous -> previous.clientId().equals(client.clientId()))
+                    .filter(previous -> previous.rotatedAt() == null
+                            || !now.isBefore(previous.rotatedAt().plus(properties.refreshReuseGrace())))
+                    .ifPresent(previous -> store.deleteGrant(previous.grantId()));
             throw OAuthError.invalidGrant("갱신 토큰이 없거나, 지났거나, 이미 바뀌었습니다");
         }
         Grant grant = rotated.get();
@@ -461,6 +517,20 @@ public class OAuthService {
                 }));
     }
 
+    /** 커밋된 뒤에 한다 (트랜잭션이 없으면 바로). */
+    private static void afterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
     public static boolean isAccessToken(String token) {
         return token != null && token.startsWith(OAuthTokens.ACCESS_PREFIX);
     }
@@ -492,6 +562,7 @@ public class OAuthService {
     /** 비밀번호 변경·탈퇴·정지: 이 회원의 연결을 모두 끊는다 (D-5). 부르는 쪽이 회원 줄을 잡은 트랜잭션 안에서 부른다. */
     public void revokeAll(Long memberId) {
         store.deleteGrantsOf(memberId);
+        store.markRevoked(memberId, Instant.now(clock));
     }
 
     // ---- 정리 ----

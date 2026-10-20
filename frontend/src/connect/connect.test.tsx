@@ -31,10 +31,16 @@ function serveRequest(over: Partial<ConnectRequest> = {}) {
   )
 }
 
-function renderPage(url = `/connect/authorize?request=${REQUEST_ID}`, go = vi.fn(), openLogin = vi.fn()) {
-  const router = createMemoryRouter([{ path: '/connect/authorize', element: <ConnectAuthorizePage go={go} /> }], {
-    initialEntries: [url],
-  })
+function renderPage(
+  url = `/connect/authorize?request=${REQUEST_ID}`,
+  go = vi.fn(),
+  openLogin = vi.fn(),
+  framed = false,
+) {
+  const router = createMemoryRouter(
+    [{ path: '/connect/authorize', element: <ConnectAuthorizePage go={go} framed={framed} /> }],
+    { initialEntries: [url] },
+  )
   render(
     <LoginPromptContext.Provider value={{ open: openLogin }}>
       <AuthProvider>
@@ -73,7 +79,9 @@ describe('위임장', () => {
     const { go } = renderPage()
     expect(await screen.findByRole('heading', { name: '위임장' })).toBeInTheDocument()
     expect(await screen.findByText('Claude')).toBeInTheDocument()
-    expect(screen.getByText(/claude\.ai\(으\)로 돌아가요/)).toBeInTheDocument()
+    expect(screen.getByText('claude.ai')).toHaveClass('warrant-host')
+    expect(screen.getByText('Claude 공식')).toBeInTheDocument()
+    expect(screen.queryByText('확인되지 않은 앱')).toBeNull()
     expect(screen.getByText('먹물')).toBeInTheDocument()
     // 앱이 범위를 정하지 않았으면 읽기만이 먼저 골라져 있다
     expect(screen.getByRole('radio', { name: /읽기만/ })).toBeChecked()
@@ -112,11 +120,38 @@ describe('위임장', () => {
     expect(screen.getByText('이 앱은 읽기만 요청했어요')).toBeInTheDocument()
   })
 
-  it('앱이 초안까지 요청했으면 그것이 먼저 골라져 있다', async () => {
+  it('앱이 초안까지 요청해도 읽기만이 먼저 골라져 있고, 초안은 회원이 골라야 한다', async () => {
     loggedIn()
     serveRequest({ scope: 'draft' })
     renderPage()
-    expect(await screen.findByRole('radio', { name: /읽기 \+ 초안 남기기/ })).toBeChecked()
+    const draft = await screen.findByRole('radio', { name: /읽기 \+ 초안 남기기/ })
+    expect(screen.getByRole('radio', { name: /읽기만/ })).toBeChecked()
+    expect(draft).not.toBeChecked()
+    expect(draft).toBeEnabled()
+    fireEvent.click(draft)
+    expect(draft).toBeChecked()
+  })
+
+  it('Claude 공식 주소가 아니면 돌아갈 주소를 크게 보이고 확인되지 않은 앱이라고 알린다', async () => {
+    loggedIn()
+    // 앱 이름은 앱이 스스로 적는다: 이름이 Claude여도 주소가 다르면 공식이 아니다
+    serveRequest({ clientName: 'Claude', redirectHost: 'claude.ai.evil.example' })
+    renderPage()
+    expect(await screen.findByText('claude.ai.evil.example')).toHaveClass('warrant-host')
+    expect(screen.getByText('확인되지 않은 앱')).toBeInTheDocument()
+    expect(screen.queryByText('Claude 공식')).toBeNull()
+  })
+
+  it('다른 사이트 안(틀)에 띄워졌으면 허락 단추를 보이지 않는다', async () => {
+    loggedIn()
+    serveRequest()
+    renderPage(undefined, vi.fn(), vi.fn(), true)
+    expect(await screen.findByRole('alert')).toHaveTextContent('다른 사이트 안에서는 위임장을 열 수 없어요')
+    expect(screen.queryByRole('button', { name: '허락하고 인장 찍기' })).toBeNull()
+    expect(screen.getByRole('link', { name: /새 창에서 열기/ })).toHaveAttribute(
+      'href',
+      `/connect/authorize?request=${REQUEST_ID}`,
+    )
   })
 
   it('거절하면 앱으로 거절을 알린다', async () => {
@@ -148,6 +183,38 @@ describe('위임장', () => {
     const { openLogin } = renderPage('/connect/authorize?error=invalid_client')
     expect(await screen.findByRole('alert')).toHaveTextContent('알 수 없는 앱이거나')
     expect(openLogin).not.toHaveBeenCalled()
+  })
+
+  it('위임장 전에 난 오류는 앱으로 바로 보내지 않고, 회원이 눌러야 서버가 만든 주소로 돌아간다', async () => {
+    server.use(
+      http.get('/api/v1/oauth/errors/back123', () =>
+        HttpResponse.json({
+          clientName: 'Claude',
+          redirectHost: 'claude.ai',
+          error: 'invalid_scope',
+          redirectTo: 'https://claude.ai/api/mcp/auth_callback?error=invalid_scope&state=s',
+        }),
+      ),
+    )
+    const { go, openLogin } = renderPage('/connect/authorize?error=invalid_scope&back=back123')
+    const link = await screen.findByRole('link', { name: '앱으로 돌아가기 (claude.ai)' })
+    expect(link).toHaveAttribute('href', 'https://claude.ai/api/mcp/auth_callback?error=invalid_scope&state=s')
+    expect(screen.getByRole('alert')).toHaveTextContent('글결에 없는 권한')
+    expect(screen.getByText('Claude')).toBeInTheDocument()
+    expect(go).not.toHaveBeenCalled()
+    expect(openLogin).not.toHaveBeenCalled()
+  })
+
+  it('오류 번호가 없거나 지났으면 돌아갈 길 없이 알려 주기만 한다', async () => {
+    server.use(
+      http.get('/api/v1/oauth/errors/gone', () =>
+        HttpResponse.json({ code: 'OAUTH_REQUEST_NOT_FOUND', message: '※ 없음' }, { status: 404 }),
+      ),
+    )
+    renderPage('/connect/authorize?error=invalid_request&back=gone')
+    expect(await screen.findByRole('alert')).toHaveTextContent('앱이 보낸 연결 요청이 규칙에 맞지 않아요')
+    await waitFor(() => expect(screen.queryByText('오류를 읽는 중…')).toBeNull())
+    expect(screen.queryByRole('link', { name: /앱으로 돌아가기/ })).toBeNull()
   })
 
   it('허락하다 서버가 거절하면 그 말을 보이고 다시 누를 수 있다', async () => {

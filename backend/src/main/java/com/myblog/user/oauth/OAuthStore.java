@@ -42,9 +42,16 @@ class OAuthStore {
     }
 
     void insertClient(Client client) {
-        jdbc.update("insert into oauth_client (client_id, client_name, redirect_uris, created_at) values (?, ?, ?, ?)",
-                client.clientId(), client.name(), String.join("\n", client.redirectUris()),
+        jdbc.update("insert into oauth_client (client_id, client_name, redirect_uris, created_at, last_used_at)"
+                        + " values (?, ?, ?, ?, ?)", client.clientId(), client.name(),
+                String.join("\n", client.redirectUris()), Timestamp.from(client.createdAt()),
                 Timestamp.from(client.createdAt()));
+    }
+
+    /** 앱이 인가·토큰을 부를 때: 마지막 사용 시각 (1분보다 자주 쓰지 않는다). 연결 없이 오래된 앱만 지운다. */
+    void touchClient(String clientId, Instant now) {
+        jdbc.update("update oauth_client set last_used_at = ? where client_id = ? and last_used_at < ?",
+                Timestamp.from(now), clientId, Timestamp.from(now.minusSeconds(60)));
     }
 
     Optional<Client> client(String clientId) {
@@ -81,17 +88,22 @@ class OAuthStore {
      */
     Optional<Grant> rotateRefresh(String oldHash, String clientId, String newHash, Instant newExpiresAt, Instant now) {
         List<Long> ids = jdbc.queryForList("update oauth_grant set previous_refresh_hash = refresh_hash,"
-                        + " refresh_hash = ?, refresh_expires_at = ?, last_used_at = ?"
+                        + " refresh_hash = ?, refresh_expires_at = ?, last_used_at = ?, refresh_rotated_at = ?"
                         + " where refresh_hash = ? and client_id = ? and refresh_expires_at > ? returning oauth_grant_id",
-                Long.class, newHash, Timestamp.from(newExpiresAt), Timestamp.from(now), oldHash, clientId,
-                Timestamp.from(now));
+                Long.class, newHash, Timestamp.from(newExpiresAt), Timestamp.from(now), Timestamp.from(now), oldHash,
+                clientId, Timestamp.from(now));
         return ids.stream().findFirst().flatMap(this::grant);
     }
 
-    /** 이미 바뀐(옛) 갱신 토큰이 다시 오면 그 연결 번호. */
-    Optional<Long> grantByPreviousRefresh(String hash) {
-        return jdbc.queryForList("select oauth_grant_id from oauth_grant where previous_refresh_hash = ?", Long.class,
-                hash).stream().findFirst();
+    /** 이미 바뀐(옛) 갱신 토큰이 다시 왔을 때 그 연결과, 갱신 토큰을 바꾼 시각·앱. */
+    record PreviousRefresh(long grantId, String clientId, Instant rotatedAt) {
+    }
+
+    Optional<PreviousRefresh> grantByPreviousRefresh(String hash) {
+        return jdbc.query("select oauth_grant_id, client_id, refresh_rotated_at from oauth_grant"
+                        + " where previous_refresh_hash = ?",
+                (rs, rowNum) -> new PreviousRefresh(rs.getLong("oauth_grant_id"), rs.getString("client_id"),
+                        instant(rs, "refresh_rotated_at")), hash).stream().findFirst();
     }
 
     Optional<Long> grantByRefresh(String hash) {
@@ -136,6 +148,17 @@ class OAuthStore {
         return jdbc.update("delete from oauth_grant where users_id = ?", memberId);
     }
 
+    /** 연결을 모두 끊은 시각을 남긴다: 그 전에 받은 허락 코드는 쓸 수 없다. */
+    void markRevoked(long memberId, Instant now) {
+        jdbc.update("update users set oauth_revoked_at = ? where users_id = ?", Timestamp.from(now), memberId);
+    }
+
+    Optional<Instant> revokedAt(long memberId) {
+        List<Timestamp> values = jdbc.queryForList("select oauth_revoked_at from users where users_id = ?",
+                Timestamp.class, memberId);
+        return values.isEmpty() || values.get(0) == null ? Optional.empty() : Optional.of(values.get(0).toInstant());
+    }
+
     int deleteAccessToken(String tokenHash) {
         return jdbc.update("delete from oauth_access_token where token_hash = ?", tokenHash);
     }
@@ -155,7 +178,7 @@ class OAuthStore {
     }
 
     int deleteUnusedClients(Instant before) {
-        return jdbc.update("delete from oauth_client c where c.created_at < ?"
+        return jdbc.update("delete from oauth_client c where c.last_used_at < ?"
                 + " and not exists (select 1 from oauth_grant g where g.client_id = c.client_id)", Timestamp.from(before));
     }
 

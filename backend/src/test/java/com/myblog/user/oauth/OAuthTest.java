@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.myblog.support.TestClock;
 import com.myblog.support.TestComments;
 import com.myblog.support.TestJson;
 import com.myblog.support.TestMembers;
@@ -28,6 +29,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,7 +53,7 @@ import org.springframework.web.context.WebApplicationContext;
  * 등록 횟수는 IP마다 세므로 요청마다 다른 가짜 IP를 쓴다(한 시간 동안 남는 Redis 값이 다음 실행과 겹치지 않게).
  */
 @SpringBootTest
-@Import({TestMembers.class, TestComments.class})
+@Import({TestMembers.class, TestComments.class, TestClock.Config.class})
 @TestPropertySource(properties = {"mcp.oauth.issuer=", "mcp.oauth.register-per-hour=3",
         "mcp.oauth.max-grants-per-member=3"})
 class OAuthTest {
@@ -76,6 +79,12 @@ class OAuthTest {
     @Autowired
     private AccessKeyService accessKeys;
 
+    @Autowired
+    private TestClock clock;
+
+    @Autowired
+    private OAuthService oauthService;
+
     private MockMvc mvc;
     private final List<Member> created = new ArrayList<>();
     private final List<String> clients = new ArrayList<>();
@@ -91,6 +100,7 @@ class OAuthTest {
 
     @AfterEach
     void cleanUp() {
+        clock.reset();
         for (Member member : created) {
             jdbc.update("delete from oauth_grant where users_id = ?", member.id());
             testComments.deleteMember(member);
@@ -372,29 +382,41 @@ class OAuthTest {
         otherPort.put("redirect_uri", "http://127.0.0.1:51234/cb");
         assertThat(authorize(otherPort)).startsWith("/connect/authorize?request=");
 
+        // 그 밖의 잘못은 앱으로 바로 튕기지 않고 글결 오류 화면으로: 돌아갈 주소는 서버가 만들어 번호로만 준다
         Map<String, String> noPkce = authParams(clientId, verifier);
         noPkce.put("redirect_uri", "http://127.0.0.1:4000/cb");
         noPkce.remove("code_challenge");
-        Map<String, String> back = query(authorize(noPkce));
-        assertThat(back).containsEntry("error", "invalid_request").containsEntry("state", "상태 값+1")
+        String errorPage = authorize(noPkce);
+        assertThat(errorPage).startsWith("/connect/authorize?error=invalid_request&back=");
+        String errorId = errorPage.substring(errorPage.indexOf("back=") + 5);
+        String view = mvc.perform(get("/api/v1/oauth/errors/{id}", errorId)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientName").value("Claude"))
+                .andExpect(jsonPath("$.redirectHost").value("127.0.0.1"))
+                .andExpect(jsonPath("$.error").value("invalid_request"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String redirectTo = JsonPath.read(view, "$.redirectTo");
+        assertThat(redirectTo).startsWith("http://127.0.0.1:4000/cb?");
+        assertThat(query(redirectTo)).containsEntry("error", "invalid_request").containsEntry("state", "상태 값+1")
                 .containsEntry("iss", ISSUER);
+        mvc.perform(get("/api/v1/oauth/errors/{id}", "y".repeat(32))).andExpect(status().isNotFound());
+
         Map<String, String> plain = authParams(clientId, verifier);
         plain.put("redirect_uri", "http://127.0.0.1:4000/cb");
         plain.put("code_challenge_method", "plain");
-        assertThat(query(authorize(plain))).containsEntry("error", "invalid_request");
+        assertThat(authorize(plain)).startsWith("/connect/authorize?error=invalid_request&back=");
         Map<String, String> implicit = authParams(clientId, verifier);
         implicit.put("redirect_uri", "http://127.0.0.1:4000/cb");
         implicit.put("response_type", "token");
-        assertThat(query(authorize(implicit))).containsEntry("error", "unsupported_response_type");
+        assertThat(authorize(implicit)).startsWith("/connect/authorize?error=unsupported_response_type&back=");
         Map<String, String> badScope = authParams(clientId, verifier);
         badScope.put("redirect_uri", "http://127.0.0.1:4000/cb");
         badScope.put("scope", "read admin");
-        assertThat(query(authorize(badScope))).containsEntry("error", "invalid_scope");
+        assertThat(authorize(badScope)).startsWith("/connect/authorize?error=invalid_scope&back=");
         // S1-6 다른 자원을 달라고 하면 invalid_target
         Map<String, String> otherResource = authParams(clientId, verifier);
         otherResource.put("redirect_uri", "http://127.0.0.1:4000/cb");
         otherResource.put("resource", "https://other.example/mcp");
-        assertThat(query(authorize(otherResource))).containsEntry("error", "invalid_target");
+        assertThat(authorize(otherResource)).startsWith("/connect/authorize?error=invalid_target&back=");
     }
 
     @Test
@@ -463,7 +485,9 @@ class OAuthTest {
     }
 
     @Test
-    void S1_5_갱신_토큰은_쓸_때마다_바뀌고_옛_갱신_토큰이_다시_오면_연결을_끊는다() throws Exception {
+    void S1_5_갱신_토큰은_쓸_때마다_바뀌고_유예가_지나_옛_갱신_토큰이_다시_오면_연결을_끊는다() throws Exception {
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS); // DB는 마이크로초로 반올림해 저장한다
+        clock.set(start);
         Connected connected = connect(mySession, "read");
         String body = token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id",
                 connected.clientId()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -478,11 +502,126 @@ class OAuthTest {
         token("grant_type", "refresh_token", "refresh_token", newRefresh, "client_id", newClient())
                 .andExpect(jsonPath("$.error").value("invalid_grant"));
 
+        // 바뀐 지 60초(유예)가 지나 옛 갱신 토큰이 오면 도난으로 보고 연결을 끊는다
+        clock.set(start.plusSeconds(60));
         token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id", connected.clientId())
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("invalid_grant"));
         assertThat(mcp(newAccess, "ping").getResponse().getStatus()).isEqualTo(401);
         token("grant_type", "refresh_token", "refresh_token", newRefresh, "client_id", connected.clientId())
                 .andExpect(jsonPath("$.error").value("invalid_grant"));
+    }
+
+    @Test
+    void S1_5_바뀐_지_유예_안에_옛_갱신_토큰이_오면_거절만_하고_연결은_그대로다() throws Exception {
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS); // DB는 마이크로초로 반올림해 저장한다
+        clock.set(start);
+        Connected connected = connect(mySession, "read");
+        String body = token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id",
+                connected.clientId()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String newAccess = JsonPath.read(body, "$.access_token");
+        String newRefresh = JsonPath.read(body, "$.refresh_token");
+        clock.set(start.plusSeconds(59));
+        token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id", connected.clientId())
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(newAccess, "ping").getResponse().getStatus()).isEqualTo(200);
+        // 다른 앱이 옛 갱신 토큰을 보내도 그 연결을 끊지 않는다
+        clock.set(start.plusSeconds(120));
+        token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id", newClient())
+                .andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(newAccess, "ping").getResponse().getStatus()).isEqualTo(200);
+        token("grant_type", "refresh_token", "refresh_token", newRefresh, "client_id", connected.clientId())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void S1_5_같은_갱신_토큰으로_거의_동시에_두_번_갱신해도_하나만_받고_연결은_그대로다() throws Exception {
+        Connected connected = connect(mySession, "read");
+        java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        List<java.util.concurrent.Future<MvcResult>> results = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            results.add(pool.submit(() -> {
+                ready.await();
+                return token("grant_type", "refresh_token", "refresh_token", connected.refresh(), "client_id",
+                        connected.clientId()).andReturn();
+            }));
+        }
+        ready.countDown();
+        List<Integer> statuses = new ArrayList<>();
+        String issuedAccess = null;
+        for (var future : results) {
+            MvcResult result = future.get();
+            statuses.add(result.getResponse().getStatus());
+            if (result.getResponse().getStatus() == 200) {
+                issuedAccess = JsonPath.read(result.getResponse().getContentAsString(), "$.access_token");
+            }
+        }
+        pool.shutdown();
+        assertThat(statuses).containsExactlyInAnyOrder(200, 400);
+        assertThat(jdbc.queryForObject("select count(*) from oauth_grant where users_id = ?", Long.class, me.id()))
+                .isEqualTo(1);
+        assertThat(mcp(issuedAccess, "ping").getResponse().getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void S1_4_다른_앱이_이미_쓴_코드를_보내도_그_연결은_끊지_않는다() throws Exception {
+        Connected connected = connect(mySession, "read");
+        token("grant_type", "authorization_code", "code", connected.code(), "client_id", newClient(), "redirect_uri",
+                CALLBACK, "code_verifier", connected.verifier()).andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(connected.access(), "ping").getResponse().getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void S2_3_허락한_뒤_연결을_모두_끊었으면_그_전에_받은_허락_코드는_쓸_수_없다() throws Exception {
+        String clientId = newClient();
+        String verifier = verifier();
+        Map<String, String> back = query(approve(mySession, requestId(authorize(authParams(clientId, verifier))),
+                "read"));
+        accessKeys.revokeAll(me.id());
+        token("grant_type", "authorization_code", "code", back.get("code"), "client_id", clientId, "redirect_uri",
+                CALLBACK, "code_verifier", verifier).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(jdbc.queryForObject("select count(*) from oauth_grant where users_id = ?", Long.class, me.id()))
+                .isZero();
+        // 끊은 뒤에 새로 허락하면 다시 잇는다
+        connect(mySession, "read");
+    }
+
+    @Test
+    void 토큰과_폐기는_주소_뒤에_값을_실으면_거절한다() throws Exception {
+        mvc.perform(post("/oauth/token?code=leak&grant_type=authorization_code")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED).param("client_id", "gc_x"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("invalid_request"));
+        mvc.perform(post("/oauth/revoke?token=gr_leak").contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("invalid_request"));
+    }
+
+    @Test
+    void 앱_이름의_보이지_않는_서식_글자와_제어_글자는_뺀다() throws Exception {
+        registerClient(randomIp(), "client_name", "\u202EClaude\u200B\u0007 공식", "redirect_uris", List.of(CALLBACK))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.client_name").value("Claude 공식"))
+                .andDo(result -> clients.add(JsonPath.read(result.getResponse().getContentAsString(), "$.client_id")));
+        registerClient(randomIp(), "client_name", "\u200B\u200E", "redirect_uris", List.of(CALLBACK))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.client_name").value("이름 없는 앱"))
+                .andDo(result -> clients.add(JsonPath.read(result.getResponse().getContentAsString(), "$.client_id")));
+    }
+
+    @Test
+    void 연결_없이_오래_쓰지_않은_앱_등록만_지운다() throws Exception {
+        String stale = "gc_stale" + UUID.randomUUID().toString().substring(0, 8);
+        String fresh = "gc_fresh" + UUID.randomUUID().toString().substring(0, 8);
+        clients.add(stale);
+        clients.add(fresh);
+        jdbc.update("insert into oauth_client (client_id, client_name, redirect_uris, created_at, last_used_at)"
+                + " values (?, 'a', 'https://a.example/cb', now() - interval '90 days', now() - interval '31 days')", stale);
+        jdbc.update("insert into oauth_client (client_id, client_name, redirect_uris, created_at, last_used_at)"
+                + " values (?, 'b', 'https://b.example/cb', now() - interval '90 days', now() - interval '1 day')", fresh);
+        Connected connected = connect(mySession, "read");
+        jdbc.update("update oauth_client set created_at = now() - interval '90 days',"
+                + " last_used_at = now() - interval '90 days' where client_id = ?", connected.clientId());
+        oauthService.cleanup();
+        assertThat(jdbc.queryForList("select client_id from oauth_client where client_id in (?, ?, ?)", String.class,
+                stale, fresh, connected.clientId())).containsExactlyInAnyOrder(fresh, connected.clientId());
     }
 
     @Test

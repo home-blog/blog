@@ -102,7 +102,9 @@ public class OAuthController {
     @Operation(summary = "토큰 (authorization_code·refresh_token)")
     @PostMapping(path = "/oauth/token", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> token(@RequestParam MultiValueMap<String, String> form) {
+    public ResponseEntity<Map<String, Object>> token(@RequestParam MultiValueMap<String, String> form,
+            HttpServletRequest request) {
+        rejectQuery(request);
         OAuthService.TokenResponse token = oauth.token(single(form));
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("access_token", token.accessToken());
@@ -116,10 +118,21 @@ public class OAuthController {
 
     @Operation(summary = "폐기 (RFC 7009)", description = "갱신 토큰이면 연결을, 출입증이면 그 출입증을 끊는다. 늘 200")
     @PostMapping(path = "/oauth/revoke", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    public ResponseEntity<Void> revoke(@RequestParam MultiValueMap<String, String> form) {
+    public ResponseEntity<Void> revoke(@RequestParam MultiValueMap<String, String> form, HttpServletRequest request) {
+        rejectQuery(request);
         Map<String, String> values = single(form);
         oauth.revoke(values.get("token"), values.get("client_id"));
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).build();
+    }
+
+    /**
+     * 토큰·폐기는 본문(form)으로만 받는다: 주소 뒤(?…)에 실린 코드·토큰은 접근 기록에 남으므로 거절한다
+     * (RFC 6749 3.2, OAuth 2.1 보안 권고).
+     */
+    private static void rejectQuery(HttpServletRequest request) {
+        if (request.getQueryString() != null) {
+            throw OAuthError.badRequest("invalid_request", "토큰·폐기 요청은 주소가 아니라 본문으로 보내야 합니다");
+        }
     }
 
     /** 같은 이름이 두 번 오면 잘못된 요청이다 (RFC 6749 3.1, 3.2). */

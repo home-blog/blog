@@ -44,3 +44,15 @@ export function getConnectedApps(signal?: AbortSignal): Promise<ConnectedApps> {
 export function disconnectApp(grantId: number): Promise<void> {
   return api(`/api/v1/me/connected-apps/${grantId}`, { method: 'DELETE' })
 }
+
+/** 위임장을 펴기 전에 생긴 오류 (contracts 3). 앱으로 돌아갈 주소는 서버가 만들어 두고, 회원이 눌러야 간다 */
+export interface OAuthErrorView {
+  clientName: string
+  redirectHost: string
+  error: string
+  redirectTo: string
+}
+
+export function getOAuthError(errorId: string, signal?: AbortSignal): Promise<OAuthErrorView> {
+  return api<OAuthErrorView>(`/api/v1/oauth/errors/${encodeURIComponent(errorId)}`, { signal })
+}

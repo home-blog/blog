@@ -38,6 +38,12 @@ public class OAuthConsentController {
         return oauth.describe(requestId);
     }
 
+    @Operation(summary = "위임장 전에 난 인가 오류", description = "로그인 없이. 앱으로 돌아갈 주소는 회원이 눌러야 간다")
+    @GetMapping("/api/{version}/oauth/errors/{errorId}")
+    public OAuthService.ErrorView error(@PathVariable String errorId) {
+        return oauth.describeError(errorId);
+    }
+
     @Operation(summary = "허락", description = "앱으로 돌아갈 주소(허락 코드·state·iss)를 돌려준다")
     @PostMapping("/api/{version}/oauth/requests/{requestId}/approve")
     public Redirect approve(@PathVariable String requestId, @RequestBody(required = false) ApproveRequest body,

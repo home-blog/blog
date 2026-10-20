@@ -101,6 +101,46 @@
   background: linear-gradient(transparent 60%, var(--highlight) 60%) no-repeat 0 0 / 100% 100%;
 }
 
+/* 돌아갈 주소: 앱 이름은 앱이 스스로 적으니 주소를 크게 보인다 */
+.warrant-host-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.warrant-host {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.warrant-badge {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.warrant-badge.is-official {
+  color: var(--accent);
+}
+
+.warrant-badge.is-unverified {
+  color: var(--seal);
+  border-style: dashed;
+}
+
+.warrant-back {
+  margin-top: 1rem;
+}
+
 .warrant-scope {
   border: 0;
   margin: 0;

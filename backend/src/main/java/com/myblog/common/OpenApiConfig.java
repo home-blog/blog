@@ -141,7 +141,7 @@ public class OpenApiConfig {
     private static final List<String> PUBLIC_GET = List.of("/api/*/blogs/**", "/api/*/posts", "/api/*/posts/popular",
             "/api/*/posts/summary", "/api/*/posts/{postId}", "/api/*/search/**", "/api/*/posts/{postId}/comments",
             "/api/*/tags/**", "/api/*/series/{seriesId}", "/api/*/posts/{postId}/series", "/api/*/posts/{postId}/related", "/api/*/notices", "/api/*/notices/**", "/api/*/board/**", "/api/images/**", "/og", "/og/", "/og/**",
-            "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml", "/robots.txt");
+            "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml", "/robots.txt", "/api/*/oauth/errors/*");
 
     /** OAuth 끝점은 세션도 CSRF도 쓰지 않는 따로 선 사슬이다 (user/oauth/OAuthSecurityConfig, specs/023). */
     private static final List<String> OAUTH = List.of("/.well-known/**", "/oauth/**");

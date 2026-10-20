@@ -40,9 +40,20 @@ class OAuthPending {
             String state, String codeChallenge, String scope, String resource, Instant expiresAt) {
     }
 
-    /** 허락 코드가 가리키는 것. */
+    /** 허락 코드가 가리키는 것. issuedAt: 허락한 시각 (그 뒤에 연결을 모두 끊었으면 쓸 수 없다). */
     record IssuedCode(long memberId, String clientId, String redirectUri, boolean redirectUriProvided,
-            String codeChallenge, String scope, String resource) {
+            String codeChallenge, String scope, String resource, Instant issuedAt) {
+    }
+
+    /** 이미 쓴 코드 표시: 어느 앱이 어느 연결을 만들었나. */
+    record UsedCode(String clientId, long grantId) {
+    }
+
+    /**
+     * 위임장 전에 난 인가 오류 (S1-3): 앱으로 바로 돌려보내지 않고 글결 화면에서 알린 뒤 회원이 눌러야 돌아간다.
+     * redirectTo는 서버가 만든 돌아갈 주소(error·state·iss)다. 화면은 번호로만 받는다.
+     */
+    record PendingError(String clientName, String redirectHost, String error, String redirectTo) {
     }
 
     String saveRequest(PendingRequest request) {
@@ -80,21 +91,38 @@ class OAuthPending {
                 IssuedCode.class);
     }
 
-    /** 코드로 연결을 만들었다고 남긴다: 같은 코드가 다시 오면 그 연결을 끊는다 (S1-4). 코드 수명의 두 배만 둔다. */
-    void markCodeUsed(String code, long grantId) {
+    /**
+     * 코드로 연결을 만들었다고 남긴다: 같은 앱이 같은 코드를 다시 보내면 그 연결을 끊는다 (S1-4).
+     * 코드 수명의 두 배만 둔다. 부르는 쪽이 커밋 뒤에 부른다(없는 연결 번호를 남기지 않게).
+     */
+    void markCodeUsed(String code, String clientId, long grantId) {
+        String value = json.writeValueAsString(new UsedCode(clientId, grantId));
         guard(() -> {
-            redis.opsForValue().set(PREFIX + "used:" + OAuthTokens.sha256Hex(code), String.valueOf(grantId),
+            redis.opsForValue().set(PREFIX + "used:" + OAuthTokens.sha256Hex(code), value,
                     properties.codeTtl().multipliedBy(2));
             return null;
         });
     }
 
-    Optional<Long> usedCodeGrant(String code) {
+    Optional<UsedCode> usedCode(String code) {
         if (code == null || code.isBlank() || code.length() > 200) {
             return Optional.empty();
         }
-        String value = guard(() -> redis.opsForValue().get(PREFIX + "used:" + OAuthTokens.sha256Hex(code)));
-        return Optional.ofNullable(value).map(Long::valueOf);
+        return read(guard(() -> redis.opsForValue().get(PREFIX + "used:" + OAuthTokens.sha256Hex(code))),
+                UsedCode.class);
+    }
+
+    String saveError(PendingError error) {
+        String id = OAuthTokens.random("", 24);
+        set(PREFIX + "error:" + id, error, properties.requestTtl());
+        return id;
+    }
+
+    Optional<PendingError> error(String id) {
+        if (!isToken(id)) {
+            return Optional.empty();
+        }
+        return read(guard(() -> redis.opsForValue().get(PREFIX + "error:" + id)), PendingError.class);
     }
 
     /** 이 IP의 이번 시간 등록 횟수(이번 것 포함). */

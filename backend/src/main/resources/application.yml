@@ -318,6 +318,7 @@ mcp:
     issuer: ${MCP_OAUTH_ISSUER:${SITE_URL:}}   # 비어 있으면 요청이 들어온 주소(Host·X-Forwarded-*)로 정한다
     access-token-ttl: 1h       # 출입증
     refresh-token-ttl: 30d     # 갱신 토큰 (쓸 때마다 바뀐다)
+    refresh-reuse-grace: 60s   # 바뀐 지 이만큼 안에 옛 갱신 토큰이 오면 겹친 요청으로 보고 거절만 한다(그 뒤면 연결을 끊는다)
     request-ttl: 10m           # 위임장을 기다리는 인가 요청 (Redis)
     code-ttl: 5m               # 허락 코드 (Redis, 한 번만)
     max-grants-per-member: 10  # 회원 한 사람의 연결된 앱. 넘으면 가장 오래 쓰지 않은 연결을 끊는다
