@@ -122,6 +122,8 @@ public class AccessKeyService {
      */
     @Transactional
     public void revokeAll(Long memberId) {
+        // 회원 줄을 잡고 지운다: 열쇠 만들기도 같은 줄을 잡으므로, 그 사이에 끼어 만들어진 열쇠도 여기서 함께 지워진다
+        users.findActiveByIdForUpdate(memberId);
         keys.deleteByMemberId(memberId);
     }
 

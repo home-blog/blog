@@ -66,6 +66,9 @@ public class PasswordChangeService {
             accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
+        // 한 번 더 끊는다: 바꾸기 전에 로그인해 둔 다른 세션의 "열쇠 만들기"가 비밀번호 변경을 기다렸다가
+        // 바로 뒤에 열쇠를 만들 수 있다. 다른 세션을 끝낸 뒤 지우면 그 열쇠도 남지 않는다
+        accessKeys.revokeAll(member.getId());
     }
 
     /**
@@ -85,6 +88,9 @@ public class PasswordChangeService {
             accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
+        // 한 번 더 끊는다: 바꾸기 전에 로그인해 둔 다른 세션의 "열쇠 만들기"가 비밀번호 변경을 기다렸다가
+        // 바로 뒤에 열쇠를 만들 수 있다. 다른 세션을 끝낸 뒤 지우면 그 열쇠도 남지 않는다
+        accessKeys.revokeAll(member.getId());
     }
 
     /** 칸 오류 모양은 @Valid와 같다 (VALIDATION_FAILED + 칸). */

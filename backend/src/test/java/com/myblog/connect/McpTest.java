@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.myblog.connect.service.McpRateLimiter;
 import com.myblog.support.TestComments;
 import com.myblog.support.TestJson;
 import com.myblog.support.TestMembers;
@@ -55,7 +56,7 @@ class McpTest {
     private JdbcTemplate jdbc;
 
     @Autowired
-    private com.myblog.connect.service.McpRateLimiter rateLimiter;
+    private McpRateLimiter rateLimiter;
 
     @Autowired
     private org.springframework.data.redis.core.StringRedisTemplate redis;
@@ -316,14 +317,14 @@ class McpTest {
             // 예전처럼 INCR만 되고 EXPIRE가 빠진 상태
             redis.opsForValue().set(key, "100");
             assertThat(redis.getExpire(key)).isEqualTo(-1L);
-            assertThat(rateLimiter.allow(keyId)).isFalse();
+            assertThat(rateLimiter.check(keyId)).isEqualTo(McpRateLimiter.Verdict.LIMITED);
             assertThat(redis.getExpire(key)).isBetween(1L, 60L);
         } finally {
             redis.delete(key);
         }
         // 새 키는 첫 요청에서 1분 창이 열린다
         try {
-            assertThat(rateLimiter.allow(keyId)).isTrue();
+            assertThat(rateLimiter.check(keyId)).isEqualTo(McpRateLimiter.Verdict.ALLOWED);
             assertThat(redis.getExpire(key)).isBetween(1L, 60L);
         } finally {
             redis.delete(key);

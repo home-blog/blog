@@ -51,9 +51,16 @@ public class McpController {
     public ResponseEntity<String> message(@RequestBody(required = false) String body, Authentication authentication) {
         Long memberId = loggedInMember.requireIdOf(authentication);
         AccessKeyGrant grant = AccessKeyGrant.of(authentication).orElseThrow();
-        if (!rateLimiter.allow(grant.keyId())) {
-            return json(new Outcome(HttpStatus.TOO_MANY_REQUESTS.value(), Map.of("jsonrpc", "2.0",
-                    "error", Map.of("code", -32000, "message", ErrorCode.MCP_TOO_MANY_REQUESTS.message()))));
+        switch (rateLimiter.check(grant.keyId())) {
+            case LIMITED -> {
+                return refuse(HttpStatus.TOO_MANY_REQUESTS, ErrorCode.MCP_TOO_MANY_REQUESTS);
+            }
+            case UNAVAILABLE -> {
+                return refuse(HttpStatus.SERVICE_UNAVAILABLE, ErrorCode.SERVICE_UNAVAILABLE);
+            }
+            case ALLOWED -> {
+                // 그대로 처리한다
+            }
         }
         Object message;
         try {
@@ -63,6 +70,12 @@ public class McpController {
         }
         String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
         return json(server.handle(message, new Caller(memberId, grant, baseUrl)));
+    }
+
+    /** 요청 수 때문에 받지 않을 때도 JSON-RPC 오류 모양으로 답한다 (서버 오류 -32000). */
+    private ResponseEntity<String> refuse(HttpStatus status, ErrorCode code) {
+        return json(new Outcome(status.value(), Map.of("jsonrpc", "2.0",
+                "error", Map.of("code", -32000, "message", code.message()))));
     }
 
     @Operation(summary = "서버가 먼저 보내는 흐름 (쓰지 않음, 405)")
