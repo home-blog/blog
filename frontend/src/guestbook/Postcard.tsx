@@ -1,6 +1,6 @@
 // 엽서 한 장 (specs/021 US1·US2): 앞면은 우표·소인·내용·쓴 사람, 뒷면은 블로그 주인의 답장.
 // 남의 비밀 엽서는 밀랍으로 봉한 봉투로 보인다. 엽서마다 조금씩 기울어 꽂혀 있고, 새로 꽂힌 엽서는 떨어지며 소인이 찍힌다
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import { formatDate, lengthOf } from '../explore/rules'
 import { replyEntry, deleteReply, type GuestbookEntry } from './guestbookApi'
@@ -35,7 +35,8 @@ export default function Postcard({ entry, index, isNew, maxLength, onChange, onA
   const cardRef = useRef<HTMLLIElement>(null)
   // 뒤집으면 면이 새로 그려져 누른 단추가 사라진다: 키보드 자리를 새 면의 답장 칸이나 뒤집기 단추로 옮긴다
   const turnedRef = useRef(false)
-  useEffect(() => {
+  // 그리기를 마치는 자리(layout)에서 옮긴다: 다음 작업으로 미뤄지지 않아 늘 같은 때에 자리를 잡는다
+  useLayoutEffect(() => {
     if (!turnedRef.current) return
     turnedRef.current = false
     cardRef.current?.querySelector<HTMLElement>('textarea, .postcard-flip')?.focus()
