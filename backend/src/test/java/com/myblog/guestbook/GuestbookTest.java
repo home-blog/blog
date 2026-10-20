@@ -377,6 +377,11 @@ class GuestbookTest {
         mvc.perform(get("/api/v1/blogs/{id}/guestbook", owner.blogId()))
                 .andExpect(jsonPath("$.items[0].reply").doesNotExist())
                 .andExpect(jsonPath("$.items[0].repliedAt").doesNotExist());
+
+        // 지웠다 다시 써도 소식은 엽서마다 한 번만 (우편함을 채우지 않는다)
+        reply(ownerSession, entryId, "다시 쓴 답장").andExpect(status().isOk());
+        Thread.sleep(300);
+        assertThat(notices(guest, "gb_reply")).isEqualTo(1);
     }
 
     @Test

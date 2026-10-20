@@ -135,7 +135,11 @@ export default function ManageCommentsPage() {
               <li key={comment.commentId} className="manage-row">
                 <div className="manage-row-main">
                   <span className="manage-row-author">
-                    {comment.author.withdrawn ? '탈퇴한 사용자' : comment.author.nickname}
+                    {comment.hidden
+                      ? '쓴 사람 가림'
+                      : comment.author.withdrawn
+                        ? '탈퇴한 사용자'
+                        : comment.author.nickname}
                   </span>
                   {comment.isNew && <span className="new-mark">NEW</span>}
                   {comment.reply && <span className="comment-tag">답글</span>}

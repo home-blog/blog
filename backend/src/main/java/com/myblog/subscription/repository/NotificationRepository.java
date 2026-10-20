@@ -68,7 +68,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             + " created_at)"
             + " select :memberId, :kind, e.blog_id, e.guestbook_entry_id, :blogName, :actorName, :now"
             + " from guestbook_entry e where e.guestbook_entry_id = :entryId"
-            + " and exists (select 1 from users u where u.users_id = :memberId and u.deleted_at is null)",
+            + " and exists (select 1 from users u where u.users_id = :memberId and u.deleted_at is null)"
+            // 엽서마다 같은 소식은 한 번만: 답장을 지웠다 다시 써도 우편함을 채우지 않는다
+            + " and not exists (select 1 from notification n where n.users_id = :memberId"
+            + " and n.guestbook_entry_id = :entryId and n.kind = :kind)",
             nativeQuery = true)
     int insertGuestbookNotice(@Param("memberId") Long memberId, @Param("kind") String kind,
             @Param("entryId") Long entryId, @Param("blogName") String blogName, @Param("actorName") String actorName,

@@ -18,16 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentReportsAdapter implements CommentReports {
 
     private static final String PENDING_GROUPS = """
-            select comment_id, count(*) as total,
-                   count(*) filter (where reason = 'SPAM') as spam,
-                   count(*) filter (where reason = 'ABUSE') as abuse,
-                   count(*) filter (where reason = 'ADULT') as adult,
-                   count(*) filter (where reason = 'OTHER') as other,
-                   min(created_at) as first_at, max(created_at) as last_at
-            from comment_report
-            where resolved_at is null
-            group by comment_id
-            order by total desc, first_at asc, comment_id asc
+            select r.comment_id, count(*) as total,
+                   count(*) filter (where r.reason = 'SPAM') as spam,
+                   count(*) filter (where r.reason = 'ABUSE') as abuse,
+                   count(*) filter (where r.reason = 'ADULT') as adult,
+                   count(*) filter (where r.reason = 'OTHER') as other,
+                   min(r.created_at) as first_at, max(r.created_at) as last_at
+            from comment_report r
+            join comment c on c.comment_id = r.comment_id
+            where r.resolved_at is null and c.deleted_at is null
+            group by r.comment_id
+            order by total desc, first_at asc, r.comment_id asc
             offset ? limit ?
             """;
 
@@ -44,13 +45,15 @@ public class CommentReportsAdapter implements CommentReports {
     @Override
     @Transactional(readOnly = true)
     public long pendingCommentCount() {
-        return count("select count(distinct comment_id) from comment_report where resolved_at is null");
+        return count("select count(distinct r.comment_id) from comment_report r join comment c on c.comment_id = r.comment_id"
+                + " where r.resolved_at is null and c.deleted_at is null");
     }
 
     @Override
     @Transactional(readOnly = true)
     public long pendingReportCount() {
-        return count("select count(*) from comment_report where resolved_at is null");
+        return count("select count(*) from comment_report r join comment c on c.comment_id = r.comment_id"
+                + " where r.resolved_at is null and c.deleted_at is null");
     }
 
     @Override

@@ -185,6 +185,8 @@ public class CommentService {
                     });
         } else if (comments.countByParentId(comment.getId()) > 0) {
             comments.markDeleted(comment.getId(), Instant.now(clock));
+            // 지운 칸은 줄이 남아 신고가 CASCADE로 지워지지 않는다: 편집실 대기에 남지 않게 함께 지운다 (specs/022 S1-5)
+            jdbc.update("delete from comment_report where comment_id = ?", comment.getId());
         } else {
             comments.delete(comment);
             comments.flush();
@@ -210,15 +212,16 @@ public class CommentService {
         boolean owner = viewerId != null && post.isOwnedBy(viewerId);
         Long parentWriterId = parent == null ? null : parent.getMemberId();
         boolean sealed = !comment.readableBy(viewerId, owner, parentWriterId);
+        boolean canDelete = viewerId != null && (viewerId.equals(comment.getMemberId()) || owner);
+        // 가린 댓글은 봉한 쪽지보다 먼저 본다: 누구에게나 같은 먹줄 칸이고, 화면의 댓글 수도 서버와 같이 뺀다
+        if (comment.isHidden() && !comment.isDeleted()) {
+            return new CommentView(comment.getId(), HIDDEN, "", comment.getCreatedAt(), canDelete,
+                    comment.getParentId(), comment.isSecret(), false, false, false, true, false);
+        }
         if (comment.isDeleted() || sealed) {
             // 지운 칸·봉한 쪽지에는 단추가 없다 (봉한 쪽지의 원댓글이 읽히면 답글은 원댓글의 단추로 단다)
             return new CommentView(comment.getId(), HIDDEN, "", comment.getCreatedAt(), false, comment.getParentId(),
                     comment.isSecret(), !comment.isDeleted(), comment.isDeleted(), false, false, false);
-        }
-        boolean canDelete = viewerId != null && (viewerId.equals(comment.getMemberId()) || owner);
-        if (comment.isHidden()) {
-            return new CommentView(comment.getId(), HIDDEN, "", comment.getCreatedAt(), canDelete,
-                    comment.getParentId(), comment.isSecret(), false, false, false, true, false);
         }
         MemberName author = names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember());
         Comment root = parent == null ? comment : parent;

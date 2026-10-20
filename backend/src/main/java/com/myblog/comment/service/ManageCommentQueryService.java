@@ -71,7 +71,9 @@ public class ManageCommentQueryService {
         Map<Long, String> titles = postSummary.titlesOf(found.stream().map(Comment::getPostId).distinct().toList());
         List<ManageCommentRow> items = found.stream().map(comment -> new ManageCommentRow(
                 comment.getId(),
-                author(names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember())),
+                // 가린 댓글은 블로그 주인에게도 쓴 사람을 보이지 않는다 (specs/022 US1-3)
+                comment.isHidden() ? new Author(null, false)
+                        : author(names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember())),
                 comment.getCreatedAt(),
                 comment.isHidden() ? "" : preview(comment.getBody()),
                 new PostRef(comment.getPostId(), titles.get(comment.getPostId())),

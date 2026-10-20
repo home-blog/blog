@@ -1,6 +1,6 @@
 // 엽서 한 장 (specs/021 US1·US2): 앞면은 우표·소인·내용·쓴 사람, 뒷면은 블로그 주인의 답장.
 // 남의 비밀 엽서는 밀랍으로 봉한 봉투로 보인다. 엽서마다 조금씩 기울어 꽂혀 있고, 새로 꽂힌 엽서는 떨어지며 소인이 찍힌다
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import { formatDate, lengthOf } from '../explore/rules'
 import { replyEntry, deleteReply, type GuestbookEntry } from './guestbookApi'
@@ -32,6 +32,14 @@ export default function Postcard({ entry, index, isNew, maxLength, onChange, onA
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const cardRef = useRef<HTMLLIElement>(null)
+  // 뒤집으면 면이 새로 그려져 누른 단추가 사라진다: 키보드 자리를 새 면의 답장 칸이나 뒤집기 단추로 옮긴다
+  const turnedRef = useRef(false)
+  useEffect(() => {
+    if (!turnedRef.current) return
+    turnedRef.current = false
+    cardRef.current?.querySelector<HTMLElement>('textarea, .postcard-flip')?.focus()
+  }, [flipped])
   const hasBack = !entry.sealed && (entry.reply !== null || entry.canReply)
   const className = ['postcard', `postcard-${entry.stamp}`, isNew && 'is-new', entry.sealed && 'is-sealed']
     .filter(Boolean)
@@ -39,6 +47,7 @@ export default function Postcard({ entry, index, isNew, maxLength, onChange, onA
   const style = { '--tilt': tiltOf(entry.entryId), '--i': index } as CSSProperties
 
   function turn(toBack: boolean) {
+    turnedRef.current = true
     setFlipped(toBack)
     setError(null)
     if (toBack && entry.reply === null && entry.canReply) {
@@ -85,7 +94,7 @@ export default function Postcard({ entry, index, isNew, maxLength, onChange, onA
   const author = entry.author.withdrawn ? '탈퇴한 회원' : (entry.author.nickname ?? '')
 
   return (
-    <li className={className} style={style}>
+    <li ref={cardRef} className={className} style={style}>
       <div key={flipped ? 'back' : 'front'} className={flipped ? 'postcard-face postcard-back' : 'postcard-face'}>
         <div className="postcard-corner">
           <Stamp name={entry.stamp} />

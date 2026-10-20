@@ -241,6 +241,8 @@ describe('방명록 엽서함', () => {
     const card = screen.getAllByRole('listitem')[0]
     fireEvent.click(within(card).getByRole('button', { name: '답장 쓰기' }))
     const replyBox = within(card).getByRole('textbox', { name: '답장' })
+    // 뒤집으면 키보드 자리가 답장 칸으로 간다
+    expect(replyBox).toHaveFocus()
     fireEvent.change(replyBox, { target: { value: '반가워요!' } })
     fireEvent.click(within(card).getByRole('button', { name: '답장 보내기' }))
     await waitFor(() => expect(sent).toEqual({ body: '반가워요!' }))
@@ -255,8 +257,13 @@ describe('방명록 엽서함', () => {
     const flip = within(card).getByRole('button', { name: '답장 보기' })
     expect(flip).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(flip)
-    expect(within(card).getByRole('button', { name: '엽서 앞면' })).toHaveAttribute('aria-expanded', 'true')
+    const back = within(card).getByRole('button', { name: '엽서 앞면' })
+    expect(back).toHaveAttribute('aria-expanded', 'true')
+    expect(back).toHaveFocus()
     expect(within(card).getByText('또 오세요')).toBeInTheDocument()
+    fireEvent.click(back)
+    expect(within(card).getByRole('button', { name: '답장 보기' })).toHaveFocus()
+    fireEvent.click(within(card).getByRole('button', { name: '답장 보기' }))
     expect(within(card).queryByRole('textbox', { name: '답장' })).toBeNull()
   })
 

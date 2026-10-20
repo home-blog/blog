@@ -317,6 +317,30 @@ class CommentReportTest {
         mvc.perform(get("/api/v1/manage/comments").session(ownerSession)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].hidden").value(true))
-                .andExpect(jsonPath("$.items[0].preview").value(""));
+                .andExpect(jsonPath("$.items[0].preview").value(""))
+                .andExpect(jsonPath("$.items[0].author.nickname").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void S1_5_답글이_남아_지운_칸이_된_댓글의_신고도_지워_편집실_대기에_남지_않는다() throws Exception {
+        Long rootId = writeComment(writerSession, writer);
+        writeComment(ownerSession, owner, "parentId", rootId);
+        report(reporter(), rootId, "SPAM", null).andExpect(status().isCreated());
+        mvc.perform(delete("/api/v1/comments/{id}", rootId).with(csrf()).session(writerSession))
+                .andExpect(status().isNoContent());
+        assertThat(jdbc.queryForObject("select deleted_at is not null from comment where comment_id = ?",
+                Boolean.class, rootId)).isTrue();
+        assertThat(jdbc.queryForObject("select count(*) from comment_report where comment_id = ?", Long.class,
+                rootId)).isZero();
+    }
+
+    @Test
+    void S1_3_가린_비밀_댓글도_남에게는_봉한_쪽지가_아니라_가린_칸이다() throws Exception {
+        Long commentId = writeComment(writerSession, writer, "secret", true);
+        jdbc.update("update comment set hidden_at = now(), hidden_by = 'editor' where comment_id = ?", commentId);
+        String body = list(reporter());
+        assertThat((Boolean) JsonPath.read(body, "$.comments[0].hidden")).isTrue();
+        assertThat((Boolean) JsonPath.read(body, "$.comments[0].sealed")).isFalse();
+        assertThat((Integer) JsonPath.read(body, "$.count")).isZero();
     }
 }
