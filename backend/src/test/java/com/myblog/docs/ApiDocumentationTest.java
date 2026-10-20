@@ -405,6 +405,30 @@ class ApiDocumentationTest {
     }
 
     @Test
+    void 댓글_신고() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession commenter = login(members.register("read"));
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), commenter)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("body", "싸게 파는 곳 알려 드려요")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Number commentId = JsonPath.read(created, "$.id");
+        MockHttpSession reporter = login(members.register("rept"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/comments/{commentId}/reports", commentId), reporter)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("reason", "SPAM", "detail", "")))
+                .andExpect(status().isCreated())
+                .andDo(document("comment-report",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("commentId").description("댓글 번호. 읽을 수 있는 남의 댓글만 (아니면 404, 내 댓글은 403)")),
+                        requestFields(
+                                fieldWithPath("reason").description("SPAM · ABUSE · ADULT · OTHER"),
+                                fieldWithPath("detail").description("기타일 때만 남기는 설명 (200자까지)").optional()),
+                        responseFields(
+                                fieldWithPath("message").description("접수 안내"),
+                                fieldWithPath("hidden").description("이 신고로 대기 신고가 기준(3건)에 닿아 저절로 가려졌는지"))));
+    }
+
+    @Test
     void 좋아요() throws Exception {
         Member writer = members.register("docs");
         Long postId = writePost(writer, "제주 올레 7코스 걷기");
@@ -743,7 +767,9 @@ class ApiDocumentationTest {
             fieldWithPath("secret").description("비밀 댓글(봉한 쪽지)인지"),
             fieldWithPath("sealed").description("보는 사람이 읽을 수 없는 비밀 댓글인지. 참이면 body는 빈 글자, author는 빈 값"),
             fieldWithPath("deleted").description("답글이 남아 줄만 남은 지운 칸인지. 참이면 body는 빈 글자, author는 빈 값"),
-            fieldWithPath("canReply").description("보는 사람이 이 댓글(답글이면 그 원댓글)에 답글을 달 수 있는지")};
+            fieldWithPath("canReply").description("보는 사람이 이 댓글(답글이면 그 원댓글)에 답글을 달 수 있는지"),
+            fieldWithPath("hidden").description("편집실이 가린 댓글인지 (specs/022). 참이면 body는 빈 글자, author는 빈 값, 답글을 달 수 없다"),
+            fieldWithPath("canReport").description("보는 사람이 신고할 수 있는지 (로그인했고, 내 댓글이 아니고, 보이는 댓글)")};
     }
 
     private static FieldDescriptor[] errorFields() {
@@ -790,6 +816,27 @@ class ApiDocumentationTest {
     }
 
     /** 글을 표에 바로 넣는다 (문서에 나오지 않는 준비). */
+    // ── 편집실 회원 정지 (specs/022) ──
+
+    @Test
+    void 회원_정지() throws Exception {
+        Member admin = members.register("adm");
+        jdbc.update("update users set role = 'admin' where users_id = ?", admin.id());
+        MockHttpSession adminSession = login(admin);
+        Member target = members.register("spam");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/editorial/members/{memberId}/suspend",
+                                target.id()), adminSession)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"days\":7,\"reason\":\"광고 댓글을 되풀이해 남김\"}"))
+                .andExpect(status().isOk())
+                .andDo(document("editorial-member-suspend",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("memberId").description("회원 번호. 관리자는 정지할 수 없다 (409)")),
+                        requestFields(
+                                fieldWithPath("days").description("정지 기간(일). `moderation.member.suspend-days` 가운데 하나 (기본 1·3·7·30·365)"),
+                                fieldWithPath("reason").description("사유 (1~200자). 로그인 창에 그대로 보인다")),
+                        responseFields(fieldWithPath("suspendedUntil").description("이 시각 전까지 로그인할 수 없다. 세션은 모두 끝나고 AI 비서 열쇠는 끊긴다"))));
+    }
+
     // ── 9. AI (specs/014) ──
 
     @Test
@@ -933,10 +980,12 @@ class ApiDocumentationTest {
                                 fieldWithPath("items[].notificationId").description("소식 번호"),
                                 fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"
                                         + " · `board`(내 글마당 글에 달린 댓글) · `accepted`(내 글마당 댓글이 채택됨)"
-                                        + " · `editorial`(편집실이 내 글을 내리거나 지움) · `reply`(내 댓글에 답글)"),
+                                        + " · `editorial`(편집실이 내 글을 내리거나 지움) · `reply`(내 댓글에 답글)"
+                                        + " · `guestbook`(내 방명록에 새 엽서) · `gb_reply`(내 엽서에 답장)"),
                                 fieldWithPath("items[].postId").description("블로그 글 번호 (글마당 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].boardPostId").description("글마당 글 번호 (블로그 글 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
-                                fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].blogId").description("방명록 소식(`guestbook` · `gb_reply`)의 블로그 번호 (다른 소식은 null)").optional(),
+                                fieldWithPath("items[].postTitle").description("그때의 글 제목, 방명록 소식이면 블로그 이름 (지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임, 편집실 소식이면 \"편집실\""),
                                 fieldWithPath("items[].note").description("편집실 소식의 사유 (다른 소식은 null)").optional(),
                                 fieldWithPath("items[].available").description("지금 그 글을 볼 수 있는가"),
@@ -1120,6 +1169,63 @@ class ApiDocumentationTest {
                                 subsectionWithPath("result.structuredContent").description("같은 결과의 자료 모양: 단락마다 "
                                         + "`postId`, `title`, `blogName`, `url`, `paragraph`(몇 번째 단락), `text`, `score`"),
                                 fieldWithPath("result.isError").description("도구가 일을 못 했으면 참 (예: 없는 글, 읽기 열쇠로 초안)"))));
+    }
+
+    // ── 15. 방명록 (specs/021) ──
+
+    @Test
+    void 방명록_엽서_남기기와_목록() throws Exception {
+        Member owner = members.register("docs");
+        Member guest = members.register("docs");
+        MockHttpSession session = login(guest);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/blogs/{blogId}/guestbook", owner.blogId()),
+                        session).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"사진 잘 보고 갑니다.\\n다음 여행기도 기다릴게요!\",\"stamp\":\"wave\",\"secret\":false}"))
+                .andExpect(status().isCreated())
+                .andDo(document("guestbook-write",
+                        pathParameters(parameterWithName("blogId").description("방명록의 블로그 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("body").description("엽서 내용 1~300자 (`guestbook.body-max-length`, 줄바꿈 됨, 앞뒤 공백은 지운다)"),
+                                fieldWithPath("stamp").description("우표: `pine`(소나무) · `wave`(파도) · `moon`(달) · `plum`(매화) · `crane`(학)"),
+                                fieldWithPath("secret").description("비밀 엽서(쓴 사람과 블로그 주인만 읽음). 없으면 false").optional()),
+                        responseFields(entryFields(""))));
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}/guestbook", owner.blogId())
+                        .param("page", "1").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("guestbook-list",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호 (없으면 404 `BLOG_NOT_FOUND`)")),
+                        queryParameters(parameterWithName("page").description("쪽 번호 (1부터, 넘으면 마지막 쪽)").optional()),
+                        responseFields(concat(List.of(
+                                fieldWithPath("totalCount").description("엽서 수"),
+                                fieldWithPath("page").description("쪽 번호"),
+                                fieldWithPath("totalPages").description("모든 쪽 수"),
+                                fieldWithPath("pageSize").description("한 쪽 엽서 수 (`guestbook.page-size`)"),
+                                fieldWithPath("canWrite").description("엽서를 남길 수 있나 (로그인했고 블로그 주인이 아니다)"),
+                                fieldWithPath("bodyMaxLength").description("엽서·답장 글자 수 한도"),
+                                fieldWithPath("stamps[]").description("고를 수 있는 우표 이름"),
+                                fieldWithPath("items[]").description("엽서, 최근 순")), entryFields("items[].")))));
+    }
+
+    private static List<FieldDescriptor> entryFields(String prefix) {
+        return List.of(
+                fieldWithPath(prefix + "entryId").description("엽서 번호"),
+                subsectionWithPath(prefix + "author").description("쓴 사람 `{ id, nickname, withdrawn }` (탈퇴했거나 봉한 엽서면 id·nickname이 null)"),
+                fieldWithPath(prefix + "body").description("내용 (봉한 엽서면 빈 글자)"),
+                fieldWithPath(prefix + "stamp").description("우표 이름"),
+                fieldWithPath(prefix + "secret").description("비밀 엽서인가"),
+                fieldWithPath(prefix + "sealed").description("읽을 수 없는 남의 비밀 엽서인가 (내용·쓴 사람·답장을 뺐다)"),
+                fieldWithPath(prefix + "createdAt").description("남긴 시각"),
+                fieldWithPath(prefix + "reply").description("블로그 주인의 답장 (없거나 봉한 엽서면 null)").optional(),
+                fieldWithPath(prefix + "repliedAt").description("답장을 처음 쓴 시각 (없으면 null)").optional(),
+                fieldWithPath(prefix + "canDelete").description("지울 수 있나 (쓴 사람·블로그 주인)"),
+                fieldWithPath(prefix + "canReply").description("답장할 수 있나 (블로그 주인)"));
+    }
+
+    private static List<FieldDescriptor> concat(List<FieldDescriptor> first, List<FieldDescriptor> second) {
+        List<FieldDescriptor> all = new java.util.ArrayList<>(first);
+        all.addAll(second);
+        return all;
     }
 
     private Long writePost(Member member, String title) {

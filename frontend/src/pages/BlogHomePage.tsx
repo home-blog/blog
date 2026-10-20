@@ -8,6 +8,7 @@ import { useAuth } from '../auth/useAuth'
 import { getBlog, getCategories, type Blog, type CategorySummary } from '../blog/blogApi'
 import BlogActivity from '../blog/BlogActivity'
 import BlogManuscriptHead from '../blog/BlogManuscriptHead'
+import BlogTabs from '../blog/BlogTabs'
 import BlogSeriesList from '../series/BlogSeriesList'
 import BlogPostList from '../explore/BlogPostList'
 import CategoryFilter from '../explore/CategoryFilter'
@@ -82,6 +83,7 @@ export default function BlogHomePage() {
       <link rel="alternate" type="application/rss+xml" title={`${blog.name} RSS`} href={`/blog/${id}/rss.xml`} />
       <header className="blog-head">
         <BlogManuscriptHead blogId={id} name={blog.name} viewer={viewer ?? 'guest'} />
+        <BlogTabs blogId={id} current="posts" />
         {blog.intro ? (
           <p className="blog-intro">{blog.intro}</p>
         ) : (

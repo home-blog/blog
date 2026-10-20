@@ -18,13 +18,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("select c from Comment c where c.postId = :postId order by c.createdAt, c.id")
     List<Comment> findByPostIdOldestFirst(@Param("postId") Long postId);
 
-    /** 글의 댓글 수 (지운 칸 빼고). */
-    @Query("select count(c) from Comment c where c.postId = :postId and c.deletedAt is null")
+    /** 글의 댓글 수 (지운 칸·가린 댓글 빼고, specs/022 S1-3). */
+    @Query("select count(c) from Comment c where c.postId = :postId and c.deletedAt is null and c.hiddenAt is null")
     long countByPostId(@Param("postId") Long postId);
 
-    /** 글마다 댓글 수 (specs/006 T019, 지운 칸 빼고). 댓글이 없는 글은 결과에 없다. */
+    /** 글마다 댓글 수 (specs/006 T019, 지운 칸·가린 댓글 빼고). 댓글이 없는 글은 결과에 없다. */
     @Query("select c.postId as postId, count(c) as commentCount from Comment c"
-            + " where c.postId in :postIds and c.deletedAt is null group by c.postId")
+            + " where c.postId in :postIds and c.deletedAt is null and c.hiddenAt is null group by c.postId")
     List<PostCount> countByPostIds(@Param("postIds") Collection<Long> postIds);
 
     /** 회원의 마지막 댓글 시각 (5초 간격, D-2). 어느 글에 썼는지는 상관없다. */
@@ -46,23 +46,25 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("select count(c) from Comment c where c.postId in :postIds and c.deletedAt is null")
     long countByPostIdIn(@Param("postIds") Collection<Long> postIds);
 
-    /** 새 댓글: 주인이 쓰지 않았고 since보다 늦은 것. */
+    /** 새 댓글: 주인이 쓰지 않았고 since보다 늦은 것 (가린 댓글 빼고). */
     @Query("select count(c) from Comment c where c.postId in :postIds and c.memberId <> :ownerId and c.createdAt > :since"
-            + " and c.deletedAt is null")
+            + " and c.deletedAt is null and c.hiddenAt is null")
     long countNewSince(@Param("postIds") Collection<Long> postIds, @Param("ownerId") Long ownerId,
             @Param("since") Instant since);
 
     /** 한 번도 열지 않았을 때의 새 댓글: 주인이 쓰지 않은 모든 댓글. */
-    @Query("select count(c) from Comment c where c.postId in :postIds and c.memberId <> :ownerId and c.deletedAt is null")
+    @Query("select count(c) from Comment c where c.postId in :postIds and c.memberId <> :ownerId and c.deletedAt is null"
+            + " and c.hiddenAt is null")
     long countNotBy(@Param("postIds") Collection<Long> postIds, @Param("ownerId") Long ownerId);
 
     /* 019 답글: 원댓글 줄을 잠가 "답글 수를 센 뒤 지운다"와 "부모를 확인한 뒤 답글을 넣는다"를 한 줄로 세운다 (research D-2) */
 
     /**
-     * 답글 쓰기: 부모 줄을 FOR SHARE로 잡는다 (지우기의 FOR UPDATE와 엇갈린다). 지워졌거나 지운 칸이면 비어 있다.
+     * 답글 쓰기: 부모 줄을 FOR SHARE로 잡는다 (지우기·신고의 FOR UPDATE와 엇갈린다). 지워졌거나 지운 칸·가린 댓글이면 비어 있다.
      * 잠금을 기다린 뒤 PostgreSQL은 WHERE를 새 줄로 다시 보므로, 기다리는 사이 지운 칸이 되어도 여기서 걸린다.
      */
-    @Query(value = "select comment_id from comment where comment_id = :id and deleted_at is null for share",
+    @Query(value = "select comment_id from comment where comment_id = :id and deleted_at is null"
+            + " and hidden_at is null for share",
             nativeQuery = true)
     Optional<Long> lockShared(@Param("id") Long id);
 

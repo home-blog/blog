@@ -1,36 +1,44 @@
-// 편집실 (specs/018): /editorial?tab=posts|board|history&page=. 관리자만 (서버가 다시 확인한다)
-// 위에 운영 현황 숫자, 아래 탭: 검토 대기(블로그 글) · 글마당 · 처리 기록. 줄을 펼치면 신고 자세히와 처리 도장
+// 편집실 (specs/018): /editorial?tab=posts|board|comments|members|history&page=. 관리자만 (서버가 다시 확인한다)
+// 위에 운영 현황 숫자, 아래 탭: 검토 대기(블로그 글) · 글마당 · 댓글 · 회원 · 처리 기록 (댓글·회원은 specs/022).
+// 줄을 펼치면 신고 자세히와 처리 도장. 처리 기록에서 내린 글은 잠금 풀기, 가린 댓글은 되돌리기
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import Pagination from '../explore/Pagination'
 import { formatDate, pageFrom } from '../explore/rules'
+import MembersPanel from './MembersPanel'
 import ReviewPanel from './ReviewPanel'
 import {
   ACTION_LABEL,
   getActions,
   getPendingBoard,
+  getPendingComments,
   getPendingPosts,
   getSummary,
   messageOf,
+  restoreComment,
+  TARGET_LABEL,
   unlockPost,
   type ActionRow,
   type EditorialSummary,
   type Pending,
   type PendingBoardRow,
+  type PendingCommentRow,
   type PendingPostRow,
 } from './editorialApi'
 import './editorial.css'
 
-type Tab = 'posts' | 'board' | 'history'
+type Tab = 'posts' | 'board' | 'comments' | 'members' | 'history'
 const TABS: { tab: Tab; label: string }[] = [
   { tab: 'posts', label: '검토 대기' },
   { tab: 'board', label: '글마당' },
+  { tab: 'comments', label: '댓글' },
+  { tab: 'members', label: '회원' },
   { tab: 'history', label: '처리 기록' },
 ]
 
 function tabFrom(value: string | null): Tab {
-  return value === 'board' || value === 'history' ? value : 'posts'
+  return TABS.some((item) => item.tab === value) ? (value as Tab) : 'posts'
 }
 
 function hrefFor(tab: Tab, page = 1): string {
@@ -41,7 +49,8 @@ function hrefFor(tab: Tab, page = 1): string {
   return `/editorial${qs ? `?${qs}` : ''}`
 }
 
-type Rows = Pending<PendingPostRow> | Pending<PendingBoardRow> | Pending<ActionRow>
+type PendingRow = PendingPostRow | PendingBoardRow | PendingCommentRow
+type Rows = Pending<PendingRow> | Pending<ActionRow>
 type Loaded = { key: string; data: Rows } | { key: string; error: string }
 
 const CARDS: { key: keyof EditorialSummary; label: string }[] = [
@@ -51,9 +60,24 @@ const CARDS: { key: keyof EditorialSummary; label: string }[] = [
   { key: 'publicPostsToday', label: '오늘 올라온 글' },
   { key: 'boardPosts', label: '글마당 글' },
   { key: 'pendingReports', label: '검토 대기 신고' },
+  { key: 'pendingCommentReports', label: '댓글 신고 대기' },
+  { key: 'suspendedMembers', label: '정지 중 회원' },
 ]
 
-function reasonsOf(row: PendingPostRow | PendingBoardRow): string {
+/** 줄의 번호와 제목·곁말 */
+function rowIdOf(row: PendingRow): number {
+  return 'commentId' in row ? row.commentId : 'postId' in row ? row.postId : row.boardPostId
+}
+
+function rowWhere(row: PendingRow): string {
+  if ('commentId' in row) {
+    const hidden = row.hidden ? (row.hiddenBy === 'auto' ? ' · 저절로 가림' : ' · 가림') : ''
+    return `${row.writerNickname ?? '탈퇴한 사용자'}의 댓글 "${row.excerpt ?? ''}"${hidden}`
+  }
+  return 'blogName' in row ? (row.blogName ?? '') : (row.topic ?? '')
+}
+
+function reasonsOf(row: PendingRow): string {
   const parts: string[] = []
   if (row.spam) parts.push(`스팸 ${row.spam}`)
   if (row.abuse) parts.push(`욕설·혐오 ${row.abuse}`)
@@ -88,7 +112,7 @@ export default function EditorialPage() {
   }, [admin, reload])
 
   useEffect(() => {
-    if (!admin) return
+    if (!admin || tab === 'members') return
     const controller = new AbortController()
     const requestKey = `${tab}\n${page}`
     const load: Promise<Rows> =
@@ -96,7 +120,9 @@ export default function EditorialPage() {
         ? getPendingPosts(page, controller.signal)
         : tab === 'board'
           ? getPendingBoard(page, controller.signal)
-          : getActions(page, controller.signal)
+          : tab === 'comments'
+            ? getPendingComments(page, controller.signal)
+            : getActions(page, controller.signal)
     load
       .then((data) => setLoaded({ key: requestKey, data }))
       .catch((err: unknown) => {
@@ -123,6 +149,16 @@ export default function EditorialPage() {
 
   const current = loaded?.key === key ? loaded : null
 
+  async function restore(commentId: number) {
+    try {
+      const { restored } = await restoreComment(commentId)
+      done(restored ? '댓글을 되돌렸습니다. 다시 보여요' : '이미 보이는 댓글입니다')
+    } catch (err) {
+      setNotice(null)
+      setActionError(messageOf(err))
+    }
+  }
+
   async function unlock(postId: number) {
     try {
       const { unlocked } = await unlockPost(postId)
@@ -136,13 +172,20 @@ export default function EditorialPage() {
   return (
     <div className="editorial-page">
       <h1 className="editorial-title">편집실</h1>
-      <p className="hint">신고가 들어온 원고를 살펴보고 내리거나 반려합니다. 신고한 사람은 보이지 않습니다.</p>
+      <p className="hint">
+        신고가 들어온 원고와 댓글을 살펴보고 내리거나 가리거나 반려합니다. 신고한 사람은 보이지 않습니다.
+      </p>
       {summary && (
         <ul className="editorial-cards" aria-label="운영 현황">
-          {CARDS.map((card) => (
+          {/* 예전 서버가 모르는 숫자는 빼고 보인다 */}
+          {CARDS.filter((card) => typeof summary[card.key] === 'number').map((card) => (
             <li
               key={card.key}
-              className={card.key === 'pendingReports' && summary.pendingReports > 0 ? 'is-alert' : ''}
+              className={
+                (card.key === 'pendingReports' || card.key === 'pendingCommentReports') && summary[card.key] > 0
+                  ? 'is-alert'
+                  : ''
+              }
             >
               <span className="editorial-card-label">{card.label}</span>
               <strong className="editorial-card-value">{summary[card.key].toLocaleString('ko-KR')}</strong>
@@ -173,7 +216,9 @@ export default function EditorialPage() {
           {actionError}
         </p>
       )}
-      {!current ? (
+      {tab === 'members' ? (
+        <MembersPanel onDone={done} reload={reload} />
+      ) : !current ? (
         <p className="hint">불러오는 중</p>
       ) : 'error' in current ? (
         <p className="msg msg-error" role="alert">
@@ -193,8 +238,8 @@ export default function EditorialPage() {
                     <span className="editorial-row-main">
                       <strong>{row.title}</strong>
                       <span className="hint">
-                        {row.targetKind === 'post' ? '블로그 글' : '글마당'} · 신고 {row.reportCount}건 ·{' '}
-                        {formatDate(row.createdAt)}
+                        {TARGET_LABEL[row.targetKind]}
+                        {row.targetKind !== 'member' && ` · 신고 ${row.reportCount}건`} · {formatDate(row.createdAt)}
                         {row.reason && ` · 사유: ${row.reason}`}
                       </span>
                     </span>
@@ -203,10 +248,15 @@ export default function EditorialPage() {
                         잠금 풀기
                       </button>
                     )}
+                    {row.action === 'hidden' && row.commentId !== null && (
+                      <button type="button" className="btn btn-quiet btn-small" onClick={() => restore(row.commentId!)}>
+                        되돌리기
+                      </button>
+                    )}
                   </li>
                 ))
-              : (current.data.items as (PendingPostRow | PendingBoardRow)[]).map((row) => {
-                  const id = 'postId' in row ? row.postId : row.boardPostId
+              : (current.data.items as PendingRow[]).map((row) => {
+                  const id = rowIdOf(row)
                   const expanded = openId === id
                   return (
                     <li key={id} className={expanded ? 'editorial-row is-open' : 'editorial-row'}>
@@ -220,14 +270,19 @@ export default function EditorialPage() {
                           {row.reportCount}
                         </span>
                         <span className="editorial-row-main">
-                          <strong>{row.title ?? '(지워진 글)'}</strong>
+                          <strong>{('commentId' in row ? row.postTitle : row.title) ?? '(지워진 글)'}</strong>
                           <span className="hint">
-                            {'blogName' in row ? row.blogName : row.topic} · {reasonsOf(row)} · 마지막 신고{' '}
-                            {formatDate(row.lastAt)}
+                            {rowWhere(row)} · {reasonsOf(row)} · 마지막 신고 {formatDate(row.lastAt)}
                           </span>
                         </span>
                       </button>
-                      {expanded && <ReviewPanel kind={tab === 'board' ? 'board' : 'post'} id={id} onDone={done} />}
+                      {expanded && (
+                        <ReviewPanel
+                          kind={tab === 'board' ? 'board' : tab === 'comments' ? 'comment' : 'post'}
+                          id={id}
+                          onDone={done}
+                        />
+                      )}
                     </li>
                   )
                 })}

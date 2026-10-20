@@ -11,7 +11,13 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import Pagination from '../explore/Pagination'
 import '../explore/explore.css'
 import { pageFrom } from '../explore/rules'
-import { getManageComments, markCommentsRead, NEVER_READ, type ManageComment, type ManageCommentPage } from './manageApi'
+import {
+  getManageComments,
+  markCommentsRead,
+  NEVER_READ,
+  type ManageComment,
+  type ManageCommentPage,
+} from './manageApi'
 import { useNewCommentCount } from './newCommentCount'
 import './manage-pages.css'
 
@@ -129,12 +135,19 @@ export default function ManageCommentsPage() {
               <li key={comment.commentId} className="manage-row">
                 <div className="manage-row-main">
                   <span className="manage-row-author">
-                    {comment.author.withdrawn ? '탈퇴한 사용자' : comment.author.nickname}
+                    {comment.hidden
+                      ? '쓴 사람 가림'
+                      : comment.author.withdrawn
+                        ? '탈퇴한 사용자'
+                        : comment.author.nickname}
                   </span>
                   {comment.isNew && <span className="new-mark">NEW</span>}
                   {comment.reply && <span className="comment-tag">답글</span>}
                   {comment.secret && <span className="comment-tag is-secret">봉한 쪽지</span>}
-                  <span className="manage-comment-preview">{comment.preview}</span>
+                  {comment.hidden && <span className="comment-tag is-inked">편집실이 가림</span>}
+                  <span className="manage-comment-preview">
+                    {comment.hidden ? '편집실이 가린 댓글입니다' : comment.preview}
+                  </span>
                 </div>
                 <p className="manage-row-meta">
                   <time dateTime={comment.createdAt}>{timeFormat.format(new Date(comment.createdAt))}</time>

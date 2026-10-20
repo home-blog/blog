@@ -1,6 +1,7 @@
 package com.myblog.comment.controller;
 
 import com.myblog.comment.controller.dto.CommentRequests;
+import com.myblog.comment.service.CommentReportService;
 import com.myblog.comment.service.CommentService;
 import com.myblog.comment.service.CommentService.CommentList;
 import com.myblog.comment.service.CommentService.CommentView;
@@ -28,10 +29,13 @@ public class CommentController {
 
     private final LoggedInMember loggedInMember;
     private final CommentService commentService;
+    private final CommentReportService reportService;
 
-    public CommentController(LoggedInMember loggedInMember, CommentService commentService) {
+    public CommentController(LoggedInMember loggedInMember, CommentService commentService,
+            CommentReportService reportService) {
         this.loggedInMember = loggedInMember;
         this.commentService = commentService;
+        this.reportService = reportService;
     }
 
     @Operation(summary = "댓글 목록", description = "누구나 부른다.")
@@ -54,5 +58,24 @@ public class CommentController {
     public ResponseEntity<Void> delete(@PathVariable Long commentId, Authentication authentication) {
         commentService.delete(loggedInMember.requireIdOf(authentication), commentId);
         return ResponseEntity.noContent().build();
+    }
+
+    /** 댓글 신고 (specs/022 contracts 1). 서로 다른 회원의 대기 신고가 기준에 닿으면 저절로 가린다(hidden). */
+    @Operation(summary = "댓글 신고", description = "로그인, 읽을 수 있는 남의 댓글에 한 번. 대기 신고가 "
+            + "`moderation.comment.auto-hide-count`건 모이면 저절로 가린다(hidden: true).")
+    @PostMapping("/api/{version}/comments/{commentId}/reports")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReportReceived report(@PathVariable Long commentId, Authentication authentication,
+            @RequestBody(required = false) ReportInput input) {
+        Long memberId = loggedInMember.requireIdOf(authentication);
+        boolean hidden = reportService.report(memberId, commentId, input == null ? null : input.reason(),
+                input == null ? null : input.detail());
+        return new ReportReceived("신고가 접수되었습니다", hidden);
+    }
+
+    public record ReportInput(String reason, String detail) {
+    }
+
+    public record ReportReceived(String message, boolean hidden) {
     }
 }

@@ -191,6 +191,53 @@ describe('우편함', () => {
     expect(router.state.location.hash).toBe('#comments')
   })
 
+  it('방명록 소식은 엽서·답장 우표로 보이고, 누르면 그 블로그의 방명록으로 간다 (specs/021)', async () => {
+    server.use(
+      http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 2 })),
+      http.get('/api/v1/me/notifications', () =>
+        HttpResponse.json({
+          items: [
+            notice({
+              notificationId: 1,
+              kind: 'guestbook',
+              postId: null,
+              blogId: 7,
+              postTitle: '토요일의 대패밥',
+              actorName: '파도',
+            }),
+            notice({
+              notificationId: 2,
+              kind: 'gb_reply',
+              postId: null,
+              blogId: 9,
+              postTitle: '바다 마중 가는 길',
+              actorName: '바다마중',
+            }),
+          ],
+          page: 1,
+          totalPages: 1,
+          unreadCount: 2,
+        }),
+      ),
+      http.post('/api/v1/me/notifications/1/read', () => new HttpResponse(null, { status: 204 })),
+    )
+    const router = renderAt([
+      { path: '/', element: <Mailbox /> },
+      { path: '/blog/:id/guestbook', element: <p>방명록 화면</p> },
+    ])
+    fireEvent.click(await screen.findByRole('button', { name: /우편함/ }))
+    const written = await screen.findByRole('button', { name: /토요일의 대패밥/ })
+    expect(within(written).getByText('엽서')).toBeInTheDocument()
+    expect(within(written).getByText(/방명록에 엽서를 남겼어요/)).toBeInTheDocument()
+    expect(within(written).getByText(/토요일의 대패밥 방명록/)).toBeInTheDocument()
+    const replied = screen.getByRole('button', { name: /바다 마중 가는 길/ })
+    expect(within(replied).getByText('회신')).toBeInTheDocument()
+    expect(within(replied).getByText(/내 엽서에 답장했어요/)).toBeInTheDocument()
+    fireEvent.click(written)
+    expect(await screen.findByText('방명록 화면')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/blog/7/guestbook')
+  })
+
   it('모두 읽음을 누르면 수가 사라진다', async () => {
     server.use(
       http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 2 })),

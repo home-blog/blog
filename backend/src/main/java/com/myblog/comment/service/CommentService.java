@@ -78,7 +78,7 @@ public class CommentService {
 
     /**
      * 글의 댓글 (contracts 1, specs/019): 원댓글 오래된 순, 각 원댓글 바로 뒤에 그 답글 오래된 순.
-     * viewerId는 로그인하지 않았으면 null. count는 지운 칸을 뺀다.
+     * viewerId는 로그인하지 않았으면 null. count는 지운 칸과 가린 댓글(specs/022)을 뺀다.
      */
     @Transactional(readOnly = true)
     public CommentList list(Long postId, Long viewerId) {
@@ -104,7 +104,7 @@ public class CommentService {
                 .map(comment -> view(comment, comment.isReply() ? byId.get(comment.getParentId()) : null, names, post,
                         viewerId))
                 .toList();
-        long count = ordered.stream().filter(comment -> !comment.isDeleted()).count();
+        long count = ordered.stream().filter(comment -> !comment.isDeleted() && !comment.isHidden()).count();
         return new CommentList(count, views);
     }
 
@@ -142,14 +142,14 @@ public class CommentService {
 
     /**
      * 답글을 달 원댓글 (specs/019 S1-1, S1-2, S2-2). 답글을 가리키면 그 원댓글로 바꾼다.
-     * 없음·다른 글·지운 칸·읽을 수 없는 비밀 댓글은 모두 COMMENT_NOT_FOUND.
+     * 없음·다른 글·지운 칸·가린 댓글(specs/022)·읽을 수 없는 비밀 댓글은 모두 COMMENT_NOT_FOUND.
      */
     private Comment replyTarget(Long parentId, PostRef post, Long memberId) {
         Comment target = comments.findById(parentId).orElseThrow(CommentService::commentNotFound);
         Comment root = target.isReply()
                 ? comments.findById(target.getParentId()).orElseThrow(CommentService::commentNotFound)
                 : target;
-        if (!root.getPostId().equals(post.postId()) || root.isDeleted()
+        if (!root.getPostId().equals(post.postId()) || root.isDeleted() || root.isHidden() || target.isHidden()
                 || !root.readableBy(memberId, post.isOwnedBy(memberId), null)
                 || target.isReply() && !target.readableBy(memberId, post.isOwnedBy(memberId), root.getMemberId())) {
             throw commentNotFound();
@@ -185,6 +185,8 @@ public class CommentService {
                     });
         } else if (comments.countByParentId(comment.getId()) > 0) {
             comments.markDeleted(comment.getId(), Instant.now(clock));
+            // 지운 칸은 줄이 남아 신고가 CASCADE로 지워지지 않는다: 편집실 대기에 남지 않게 함께 지운다 (specs/022 S1-5)
+            jdbc.update("delete from comment_report where comment_id = ?", comment.getId());
         } else {
             comments.delete(comment);
             comments.flush();
@@ -201,6 +203,7 @@ public class CommentService {
 
     /**
      * 화면에 보낼 댓글. 지운 칸과 읽을 수 없는 비밀 댓글은 내용·쓴 사람을 빼고 보낸다 (specs/019 S2-1).
+     * 편집실이 가린 댓글도 누구에게나 내용·쓴 사람 없이 보내고, 쓴 사람·블로그 주인만 지울 수 있다 (specs/022 S1-3).
      *
      * @param parent 답글이면 원댓글 (원댓글이면 null)
      */
@@ -209,31 +212,40 @@ public class CommentService {
         boolean owner = viewerId != null && post.isOwnedBy(viewerId);
         Long parentWriterId = parent == null ? null : parent.getMemberId();
         boolean sealed = !comment.readableBy(viewerId, owner, parentWriterId);
+        boolean canDelete = viewerId != null && (viewerId.equals(comment.getMemberId()) || owner);
+        // 가린 댓글은 봉한 쪽지보다 먼저 본다: 누구에게나 같은 먹줄 칸이고, 화면의 댓글 수도 서버와 같이 뺀다
+        if (comment.isHidden() && !comment.isDeleted()) {
+            return new CommentView(comment.getId(), HIDDEN, "", comment.getCreatedAt(), canDelete,
+                    comment.getParentId(), comment.isSecret(), false, false, false, true, false);
+        }
         if (comment.isDeleted() || sealed) {
             // 지운 칸·봉한 쪽지에는 단추가 없다 (봉한 쪽지의 원댓글이 읽히면 답글은 원댓글의 단추로 단다)
             return new CommentView(comment.getId(), HIDDEN, "", comment.getCreatedAt(), false, comment.getParentId(),
-                    comment.isSecret(), !comment.isDeleted(), comment.isDeleted(), false);
+                    comment.isSecret(), !comment.isDeleted(), comment.isDeleted(), false, false, false);
         }
         MemberName author = names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember());
-        boolean canDelete = viewerId != null && (viewerId.equals(comment.getMemberId()) || owner);
         Comment root = parent == null ? comment : parent;
+        boolean canReport = viewerId != null && !viewerId.equals(comment.getMemberId());
         return new CommentView(comment.getId(), author, comment.getBody(), comment.getCreatedAt(), canDelete,
-                comment.getParentId(), comment.isSecret(), false, false, canReply(root, viewerId, owner));
+                comment.getParentId(), comment.isSecret(), false, false, canReply(root, viewerId, owner), false,
+                canReport);
     }
 
-    /** 원댓글에 답글을 달 수 있나: 로그인했고, 지운 칸이 아니고, 읽을 수 있다. */
+    /** 원댓글에 답글을 달 수 있나: 로그인했고, 지운 칸·가린 댓글이 아니고, 읽을 수 있다. */
     private static boolean canReply(Comment root, Long viewerId, boolean owner) {
-        return viewerId != null && !root.isDeleted() && root.readableBy(viewerId, owner, null);
+        return viewerId != null && !root.isDeleted() && !root.isHidden() && root.readableBy(viewerId, owner, null);
     }
 
     public record CommentList(long count, List<CommentView> comments) {
     }
 
     /**
-     * author는 탈퇴했으면 { id: null, nickname: null, withdrawn: true }. canDelete·canReply는 화면이 단추를 보일지만 정한다.
-     * sealed(읽을 수 없는 비밀 댓글)와 deleted(지운 칸)이면 body는 빈 글자, author는 모두 빈 값이다 (specs/019 contracts 1).
+     * author는 탈퇴했으면 { id: null, nickname: null, withdrawn: true }. canDelete·canReply·canReport는 화면이 단추를 보일지만 정한다.
+     * sealed(읽을 수 없는 비밀 댓글)·deleted(지운 칸)·hidden(편집실이 가림, specs/022)이면 body는 빈 글자, author는 모두 빈 값이다
+     * (specs/019 contracts 1, specs/022 contracts 2).
      */
     public record CommentView(Long id, MemberName author, String body, Instant createdAt, boolean canDelete,
-            Long parentId, boolean secret, boolean sealed, boolean deleted, boolean canReply) {
+            Long parentId, boolean secret, boolean sealed, boolean deleted, boolean canReply, boolean hidden,
+            boolean canReport) {
     }
 }

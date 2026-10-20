@@ -49,6 +49,18 @@ class DevDemoSeedTest {
     }
 
     @Test
+    void 방명록_예시_파일은_이미_있으면_넣지_않는_엽서_문장이다() throws Exception {
+        String script = Files.readString(Path.of("../deploy/seed/demo-guestbook.sql"), StandardCharsets.UTF_8);
+        List<String> statements = DevDemoSeed.statements(script);
+        // 엽서 6장, 모두 "이미 없을 때만" 넣고, 시각은 넣는 순간 기준 (방명록이 늘 최근 엽서로 보인다)
+        assertThat(statements).hasSize(6).allSatisfy(sql -> assertThat(sql.strip())
+                .startsWith("insert into guestbook_entry ")
+                .contains("and not exists (")
+                .contains("now() - interval '"));
+        assertThat(statements).filteredOn(sql -> sql.contains(", true, ")).hasSize(1);
+    }
+
+    @Test
     void 따옴표_안의_세미콜론과_줄바꿈은_문장을_나누지_않는다() {
         String script = """
                 \\set ON_ERROR_STOP on

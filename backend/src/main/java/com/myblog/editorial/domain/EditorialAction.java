@@ -10,7 +10,9 @@ import java.time.Instant;
 
 /**
  * 편집실 처리 기록 (editorial_action 표, specs/018 D-4). 대상이 지워져도 그때의 제목은 남고 대상 번호만 빈다.
- * targetKind는 post(블로그 글) · board(글마당 글), action은 taken_down · dismissed · removed · unlocked.
+ * targetKind는 post(블로그 글) · board(글마당 글) · comment(댓글) · member(회원, specs/022),
+ * action은 taken_down · dismissed · removed · unlocked · hidden · restored · suspended · unsuspended.
+ * 댓글이면 targetTitle은 그 글의 제목, 회원이면 그때의 닉네임이다.
  */
 @Entity
 @Table(name = "editorial_action")
@@ -29,6 +31,12 @@ public class EditorialAction {
 
     @Column(name = "board_post_id")
     private Long boardPostId;
+
+    @Column(name = "comment_id")
+    private Long commentId;
+
+    @Column(name = "member_id")
+    private Long memberId;
 
     @Column(name = "target_title", nullable = false, length = 100, updatable = false)
     private String targetTitle;
@@ -66,6 +74,22 @@ public class EditorialAction {
         return record;
     }
 
+    /** 댓글 가리기·반려·되돌리기 (specs/022 US1). title은 댓글이 달린 글의 제목. */
+    public static EditorialAction onComment(Long commentId, String postTitle, String action, String reason,
+            int reportCount, Long adminId, Instant now) {
+        EditorialAction record = base("comment", postTitle, action, reason, reportCount, adminId, now);
+        record.commentId = commentId;
+        return record;
+    }
+
+    /** 회원 정지·풀기 (specs/022 US2). title은 그때의 닉네임. */
+    public static EditorialAction onMember(Long memberId, String nickname, String action, String reason, Long adminId,
+            Instant now) {
+        EditorialAction record = base("member", nickname, action, reason, 0, adminId, now);
+        record.memberId = memberId;
+        return record;
+    }
+
     private static EditorialAction base(String kind, String title, String action, String reason, int reportCount,
             Long adminId, Instant now) {
         EditorialAction record = new EditorialAction();
@@ -93,6 +117,14 @@ public class EditorialAction {
 
     public Long getBoardPostId() {
         return boardPostId;
+    }
+
+    public Long getCommentId() {
+        return commentId;
+    }
+
+    public Long getMemberId() {
+        return memberId;
     }
 
     public String getTargetTitle() {

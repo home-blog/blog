@@ -6,15 +6,26 @@
 // - 지울 수 있는 댓글(canDelete)에만 삭제 버튼. 확인 창에서 취소하면 요청을 보내지 않는다 (US2, FR-004). 고치기 버튼은 없다 (FR-005)
 // - 답글·비밀 댓글 (specs/019): 답글은 원댓글 아래 붉은 교정선을 따라 한 단계. 비밀 댓글은 "봉한 쪽지"(읽을 수 없으면
 //   서버가 내용을 빼고 보내 봉인 도장만 보인다). 답글이 남은 댓글을 지우면 두 줄 그은 "지운 칸"으로 남는다
+// - 댓글 신고 (specs/022): 남의 보이는 댓글에 신고 단추. 신고가 모여 저절로 가려지거나 편집실이 가린 댓글은
+//   먹줄을 그은 원고지 칸("편집실이 가린 댓글입니다")으로 보이고, 쓴 사람·블로그 주인만 지울 수 있다
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useLoginPrompt } from '../auth/loginPrompt'
 import { useAuth } from '../auth/useAuth'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { deleteComment, getComments, writeComment, type CommentItem, type WriteOptions } from './commentApi'
+import ReportDialog from '../community/ReportDialog'
+import {
+  deleteComment,
+  getComments,
+  reportComment,
+  writeComment,
+  type CommentItem,
+  type CommentReportResult,
+  type WriteOptions,
+} from './commentApi'
 import { COMMENT_MAX_LENGTH, commentLength, commentMessages } from './rules'
-import { afterDelete, insertReply, liveCount, threads } from './thread'
+import { afterDelete, afterHidden, insertReply, liveCount, threads } from './thread'
 import './comment.css'
 
 type Loaded = { key: string; comments: CommentItem[] } | { key: string; error: string }
@@ -51,6 +62,7 @@ export default function CommentSection({ postId, initialCount }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [reportNotice, setReportNotice] = useState<string | null>(null)
 
   // 블로그 관리의 댓글 관리에서 글 제목을 눌러 오면(/posts/:id#comments) 댓글 자리로 옮겨 간다 (specs/006 FR-024)
   useEffect(() => {
@@ -152,6 +164,15 @@ export default function CommentSection({ postId, initialCount }: Props) {
     }
   }
 
+  /** 신고가 받아들여졌다. 저절로 가려졌으면 그 자리에서 먹줄 칸으로 바꾸고, 열어 둔 답글 칸을 닫는다 */
+  function reported(commentId: number, result: CommentReportResult) {
+    if (!result.hidden) return
+    setReplyTo((current) => (current === commentId ? null : current))
+    setLoaded((prev) =>
+      prev && 'comments' in prev ? { ...prev, comments: afterHidden(prev.comments, commentId) } : prev,
+    )
+  }
+
   /** 카드의 단추들. 답글 단추는 늘 원댓글에 단다 */
   function cardActions(rootId: number) {
     return {
@@ -160,6 +181,12 @@ export default function CommentSection({ postId, initialCount }: Props) {
       onDelete: (id: number) => setDeleteTarget(id),
       onReply: () => setReplyTo((current) => (current === rootId ? null : rootId)),
       replying: replyTo === rootId,
+      onReported: reported,
+      onReportNotice: setReportNotice,
+      // 그사이 지워지거나 가려진 댓글: 목록을 다시 읽어 지금 모습을 보여 준다
+      onReportFailed: (err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) load(key)
+      },
     }
   }
 
@@ -188,6 +215,11 @@ export default function CommentSection({ postId, initialCount }: Props) {
       {deleteError && (
         <p className="msg msg-error" role="alert">
           {deleteError}
+        </p>
+      )}
+      {reportNotice && (
+        <p className="msg msg-ok comment-report-notice" role="status">
+          {reportNotice}
         </p>
       )}
       {comments && comments.length > 0 && (
@@ -296,15 +328,52 @@ interface CardProps {
   replying: boolean
   onDelete: (id: number) => void
   onReply: () => void
+  onReported: (commentId: number, result: CommentReportResult) => void
+  onReportNotice: (message: string) => void
+  onReportFailed: (error: unknown) => void
 }
 
-/** 댓글 한 장: 지운 칸, 봉한 쪽지, 보통 댓글 */
-function CommentCard({ comment, rootId, deleting, replying, onDelete, onReply }: CardProps) {
+/** 댓글 한 장: 지운 칸, 가린 칸, 봉한 쪽지, 보통 댓글 */
+function CommentCard({
+  comment,
+  rootId,
+  deleting,
+  replying,
+  onDelete,
+  onReply,
+  onReported,
+  onReportNotice,
+  onReportFailed,
+}: CardProps) {
   const reply = comment.parentId !== null
   if (comment.deleted) {
     return (
       <article className="comment is-erased">
         <p className="comment-erased">{commentMessages.erased}</p>
+      </article>
+    )
+  }
+  if (comment.hidden) {
+    return (
+      <article className={reply ? 'comment is-reply is-inked' : 'comment is-inked'}>
+        <p className="comment-inked">
+          <span className="comment-ink-cells" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          {commentMessages.inked}
+          {comment.canDelete && (
+            <button
+              type="button"
+              className="btn btn-quiet btn-small comment-inked-delete"
+              disabled={deleting !== null}
+              onClick={() => onDelete(comment.id)}
+            >
+              {deleting === comment.id ? '삭제하는 중' : '삭제'}
+            </button>
+          )}
+        </p>
       </article>
     )
   }
@@ -354,6 +423,15 @@ function CommentCard({ comment, rootId, deleting, replying, onDelete, onReply }:
             >
               {deleting === comment.id ? '삭제하는 중' : '삭제'}
             </button>
+          )}
+          {comment.canReport && (
+            <ReportDialog<CommentReportResult>
+              title="댓글 신고"
+              send={(reason, detail) => reportComment(comment.id, reason, detail)}
+              onReported={(result) => onReported(comment.id, result)}
+              onDone={onReportNotice}
+              onFailed={onReportFailed}
+            />
           )}
         </span>
       </p>

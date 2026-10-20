@@ -23,7 +23,7 @@ public class CommentStatsQueryAdapter implements CommentStatsQuery {
 
     private static final String DAILY_COUNTS_SQL = "select cast(created_at at time zone :zone as date) as day, count(*) as cnt"
             + " from comment where post_id in (:postIds) and created_at >= :from and created_at < :to"
-            + " and deleted_at is null group by 1";
+            + " and deleted_at is null and hidden_at is null group by 1";
 
     private final NamedParameterJdbcTemplate jdbc;
 

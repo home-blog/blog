@@ -249,3 +249,134 @@
     transition: none;
   }
 }
+
+/* 운영 강화 (specs/022): 탭이 다섯이라 좁으면 줄을 바꾼다. 회원 탭의 찾기, 회원 줄, 정지 창의 기간 단추 */
+.editorial-tabs {
+  flex-wrap: wrap;
+}
+
+.members-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.members-search {
+  display: flex;
+  gap: 8px;
+  max-width: 28rem;
+}
+
+.members-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.members-list .editorial-row {
+  animation: rise-in 360ms var(--ease-out) both;
+}
+
+.members-list .editorial-row:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.members-list .editorial-row:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.members-list .editorial-row:nth-child(n + 4) {
+  animation-delay: 120ms;
+}
+
+.editorial-row.is-suspended {
+  border-left: 4px solid var(--seal);
+  background: color-mix(in srgb, var(--seal) 4%, var(--paper-raised));
+}
+
+.editorial-row .editorial-row-main {
+  min-width: 0;
+}
+
+.member-cell {
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--grid-strong);
+  background:
+    linear-gradient(var(--grid) 0 0) center / 1px 100% no-repeat,
+    linear-gradient(var(--grid) 0 0) center / 100% 1px no-repeat;
+  font-family: var(--font-letter);
+  font-weight: 700;
+}
+
+.member-role {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-field);
+  color: var(--accent);
+  font-size: var(--step--1);
+  font-weight: 500;
+}
+
+.suspend-days {
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.suspend-days legend {
+  margin-bottom: 6px;
+}
+
+.suspend-day {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 3.4rem;
+  padding: 6px 10px;
+  border: 1px solid var(--grid-strong);
+  font-family: var(--font-letter);
+  cursor: pointer;
+  transition:
+    background 0.15s var(--ease-out),
+    color 0.15s var(--ease-out),
+    transform 0.15s var(--ease-out);
+}
+
+.suspend-day input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.suspend-day:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.suspend-day.is-chosen {
+  border-color: var(--seal);
+  background: var(--seal);
+  color: var(--seal-ink);
+  transform: rotate(-3deg);
+}
+
+.suspend-dialog textarea {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .members-list .editorial-row {
+    animation: none;
+  }
+
+  .suspend-day {
+    transition: none;
+  }
+}

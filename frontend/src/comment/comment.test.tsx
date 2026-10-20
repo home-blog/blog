@@ -32,6 +32,8 @@ function item(over: Partial<CommentItem> & { id: number }): CommentItem {
     sealed: false,
     deleted: false,
     canReply: true,
+    hidden: false,
+    canReport: false,
     ...over,
   }
 }

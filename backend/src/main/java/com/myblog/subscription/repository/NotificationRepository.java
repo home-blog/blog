@@ -59,6 +59,24 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int insertEditorialNotice(@Param("memberId") Long memberId, @Param("postId") Long postId,
             @Param("title") String title, @Param("note") String note, @Param("now") Instant now);
 
+    /**
+     * 방명록 소식(specs/021): kind는 guestbook(내 방명록에 새 엽서) · gb_reply(내 엽서에 답장). 받는 사람 한 사람에게,
+     * 블로그 이름은 post_title 칸에. 그사이 엽서가 지워졌거나 받는 사람이 탈퇴했으면 넣지 않는다.
+     */
+    @Modifying
+    @Query(value = "insert into notification (users_id, kind, blog_id, guestbook_entry_id, post_title, actor_name,"
+            + " created_at)"
+            + " select :memberId, :kind, e.blog_id, e.guestbook_entry_id, :blogName, :actorName, :now"
+            + " from guestbook_entry e where e.guestbook_entry_id = :entryId"
+            + " and exists (select 1 from users u where u.users_id = :memberId and u.deleted_at is null)"
+            // 엽서마다 같은 소식은 한 번만: 답장을 지웠다 다시 써도 우편함을 채우지 않는다
+            + " and not exists (select 1 from notification n where n.users_id = :memberId"
+            + " and n.guestbook_entry_id = :entryId and n.kind = :kind)",
+            nativeQuery = true)
+    int insertGuestbookNotice(@Param("memberId") Long memberId, @Param("kind") String kind,
+            @Param("entryId") Long entryId, @Param("blogName") String blogName, @Param("actorName") String actorName,
+            @Param("now") Instant now);
+
     Page<Notification> findByMemberIdOrderByCreatedAtDescIdDesc(Long memberId, Pageable pageable);
 
     long countByMemberId(Long memberId);

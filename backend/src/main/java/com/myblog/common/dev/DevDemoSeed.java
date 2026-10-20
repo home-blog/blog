@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * 개발용: 내 컴퓨터 DB에 예시 글(블로거 12명, 글 108개)이 없으면 서버를 켤 때 넣는다 (2026-10-12 사용자: 로컬 DB에 따로 넣기 번거롭다).
  * 배포 DB와 같은 deploy/seed/demo-content.sql을 쓰므로 로컬과 배포 화면이 같아 보인다. dev 설정에서만 켜진다(배포에는 없음).
  * 끄려면 .env에 DEMO_SEED=false. 지우려면 deploy/seed/demo-remove.sql (지운 뒤에는 서버를 켤 때 다시 들어간다).
- * 예시 글 사진(demo-photos.sql)과 글마당 예시 글(demo-board.sql)은 켤 때마다 맞춘다: 이미 예시 글이 있는 DB에도 붙는다
+ * 예시 글 사진(demo-photos.sql), 글마당 예시 글(demo-board.sql), 방명록 예시 엽서(demo-guestbook.sql)는 켤 때마다 맞춘다: 이미 예시 글이 있는 DB에도 붙는다
  * (몇 번 실행해도 같다).
  */
 @Component
@@ -36,6 +36,7 @@ public class DevDemoSeed implements ApplicationRunner {
     private static final String CONTENT_FILE = "demo-content.sql";
     private static final String PHOTOS_FILE = "demo-photos.sql";
     private static final String BOARD_FILE = "demo-board.sql";
+    private static final String GUESTBOOK_FILE = "demo-guestbook.sql";
     /** psql 전용 머리(\set, 이미 있으면 멈추는 블록)가 끝나는 줄 */
     private static final String HEADER_END = "end $$;";
     private static final String BODY_END = "commit;";
@@ -72,9 +73,11 @@ public class DevDemoSeed implements ApplicationRunner {
                 log.info("예시 글 {}개에 사진을 넣었습니다", changed);
             }
         }
-        Optional<List<String>> board = read(BOARD_FILE);
-        if (board.isPresent()) {
-            transaction.executeWithoutResult(status -> board.get().forEach(jdbc::update));
+        for (String file : List.of(BOARD_FILE, GUESTBOOK_FILE)) {
+            Optional<List<String>> statements = read(file);
+            if (statements.isPresent()) {
+                transaction.executeWithoutResult(status -> statements.get().forEach(jdbc::update));
+            }
         }
     }
 
