@@ -201,7 +201,12 @@ public enum ErrorCode {
     ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "※ %s까지 이용이 정지된 계정입니다. 사유: %s"),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 회원입니다"),
     MEMBER_NOT_SUSPENDABLE(HttpStatus.CONFLICT, "※ 관리자는 정지할 수 없습니다"),
-    SUSPEND_DAYS_INVALID(HttpStatus.BAD_REQUEST, "※ 정지 기간을 골라 주세요");
+    SUSPEND_DAYS_INVALID(HttpStatus.BAD_REQUEST, "※ 정지 기간을 골라 주세요"),
+
+    // 글결 MCP OAuth (specs/023)
+    OAUTH_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 연결 요청이 없거나 시간이 지났습니다. 앱에서 다시 연결해 주세요"),
+    OAUTH_SCOPE_INVALID(HttpStatus.BAD_REQUEST, "※ 할 수 있는 일을 다시 골라 주세요"),
+    OAUTH_GRANT_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 없는 연결입니다");
 
     private final HttpStatus status;
     private final String message;

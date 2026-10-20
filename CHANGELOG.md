@@ -14,6 +14,29 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.17.0] - 2026-10-20
+
+Claude 앱에 주소 하나로: Claude 앱(웹·데스크톱·모바일)의 **커스텀 커넥터**에 글결 MCP 주소만 넣으면, 열쇠를 복사하지 않고 글결 **위임장**에서 허락해 붙습니다. 글결 서버가 작은 OAuth 2.1 인가 서버가 되었습니다.
+
+### 화면
+- **위임장** (`/connect/authorize`, `specs/023`): Claude 앱이 회원의 브라우저를 보내면 원고지 칸 표에 누가(앱 이름·돌아갈 곳)·누구의·무엇을(읽기만 / 읽기 + 초안 남기기, 처음엔 언제나 읽기만이 골라져 있고 앱이 읽기만 요청했으면 초안은 못 고른다)·언제까지가 적혀 있다. 제목은 칸마다 한 글자씩 써지고, 허락하면 붉은 "허락" 인장이 위에서 떨어져 쾅 찍힌 뒤 앱으로 돌아간다(넘어가지 않으면 누를 링크). 거절하면 앱에 알린다. 로그인하지 않았으면 로그인 창을 먼저 띄우고 같은 위임장으로 돌아온다. 시간이 지난 요청(10분)·모르는 앱은 먹줄 그은 안내만. 움직임 줄이기면 인장은 그 자리에 바로 찍힌다. 돌아갈 주소(호스트)를 크게 보이고 claude.ai·claude.com이면 "Claude 공식", 아니면 "확인되지 않은 앱"이라고 적는다. 다른 사이트의 틀 안에서는 허락 단추 없이 "새 창에서 열기"만. 위임장을 펴기 전에 난 오류(범위·PKCE 등)는 앱으로 바로 보내지 않고 오류 화면에서 "앱으로 돌아가기 (호스트)"를 눌러야 간다
+- 마이페이지 **AI 비서 연결**: 붙이는 법 첫 탭이 "Claude 앱(커넥터)"(주소만 복사, 열쇠 필요 없음). **연결된 앱** 목록(앱 이름·붉은 "위임" 도장·할 수 있는 일·허락한 날·마지막 사용)과 끊기(한 번 더 묻는다)
+- 공지사항: 0.17.0 업데이트 글(0.16.0 글의 고정을 푼다)
+
+### API
+- 새 주소(세션·CSRF 없음, CORS 모든 출처·쿠키 없음): `GET /.well-known/oauth-protected-resource(/api/v1/mcp)`(RFC 9728), `GET /.well-known/oauth-authorization-server`(RFC 8414), `POST /oauth/register`(동적 등록 RFC 7591, 공개 클라이언트, 돌아갈 주소는 https 또는 http 루프백), `GET /oauth/authorize`(PKCE S256만, `resource` RFC 8707, 돌아갈 때 `iss` RFC 9207), `POST /oauth/token`(authorization_code·refresh_token, 출입증 `go_` 1시간·갱신 토큰 `gr_` 30일, 갱신 토큰은 쓸 때마다 바뀐다), `POST /oauth/revoke`(RFC 7009)
+- 새 API(로그인 없이): `GET /api/v1/oauth/errors/{errorId}`(위임장 전 오류: 앱 이름·호스트·오류·서버가 만든 돌아갈 주소). `/oauth/authorize`는 앱과 돌아갈 주소를 확인한 뒤의 오류를 앱으로 302 하지 않고 `/connect/authorize?error=…&back=…`로 보낸다. `/oauth/token`·`/oauth/revoke`는 주소에 물음표 뒤(쿼리)가 붙으면 400 `invalid_request`
+- 새 API(로그인): `GET /api/v1/oauth/requests/{requestId}`, `POST /api/v1/oauth/requests/{requestId}/approve|deny`, `GET /api/v1/me/connected-apps`, `DELETE /api/v1/me/connected-apps/{grantId}`
+- `POST /api/v1/mcp`: OAuth 출입증(`Bearer go_…`)도 받는다(범위는 개인 열쇠와 같다). 401에 `WWW-Authenticate: Bearer realm="geulgyeol", resource_metadata="…"`
+- 오류 코드 `OAUTH_REQUEST_NOT_FOUND`, `OAUTH_SCOPE_INVALID`, `OAUTH_GRANT_NOT_FOUND`. OAuth 끝점의 오류는 RFC 6749 모양 `{ "error", "error_description" }`
+
+### 운영
+- 보안: 허락 코드는 한 번만(5분, Redis GETDEL), 같은 앱이 같은 코드를 다시 보내면 그 연결을 끊는다(쓴 표시는 커밋 뒤에, 다른 앱이 보낸 것이면 끊지 않는다). 이미 바뀐 갱신 토큰은 몇 대 전 것이든 기억해(`oauth_refresh_used`) 같은 앱이 다시 보내면 연결을 끊는다(도난 감지). 다만 바로 전 것이 바뀐 지 60초(`refresh-reuse-grace`) 안에 오면 겹친 요청일 수 있어 거절만 한다. 연결을 모두 끊은 뒤(`users.oauth_revoked_at`)에는 그 전에 받은 허락 코드도 못 쓴다. 앱 이름에서 보이지 않는 글자(서식·제어 문자)를 지운다. 화면 nginx가 `frame-ancestors 'none'`·`X-Frame-Options: DENY`로 틀 안에 띄우지 못하게 한다. 토큰은 SHA-256만 저장. 동적 등록은 IP마다 한 시간 20번. 회원마다 연결 10개(넘으면 가장 오래 쓰지 않은 연결을 끊는다). 비밀번호 변경·탈퇴·정지 때 연결도 모두 끊는다. 매일 지난 출입증·연결과 연결 없이 30일 동안 쓰이지 않은(`oauth_client.last_used_at`) 앱 등록을 지운다
+- 설정 `mcp.oauth.*`(발급자 `issuer`는 `MCP_OAUTH_ISSUER`, 없으면 `SITE_URL`, 그것도 없으면 요청 주소), Flyway V33(`oauth_client`·`oauth_grant`·`oauth_refresh_used`·`oauth_access_token`, `users.oauth_revoked_at`), V34(0.17.0 공지)
+- 화면 nginx·개발 vite가 `/.well-known/oauth-`·`/oauth/`를 서버로 넘긴다(소셜 로그인 `/oauth2/`와 다른 길)
+- 공식 MCP TypeScript SDK 클라이언트의 OAuth 흐름으로 끝까지 확인: 401 → 메타데이터 → 동적 등록 → 위임장 허락 → 토큰 → 도구 → 출입증이 망가지면 갱신 → 옛 갱신 토큰으로 연결 끊김
+- 테스트: 서버 OAuth 23개(S1-1~S2-3, 음수 경우·유예 경계·겹친 갱신·보안 검토 포함)·REST Docs 2개, 화면 위임장 13개·연결된 앱 3개. 0.16.0 main 품질 분석에서 한 번 흔들린 화면 테스트 두 개(엽서 뒤집기의 키보드 자리, 글마당 글 수 세어 올리기)를 바쁜 CI에서도 흔들리지 않게 고침
+
 ## [0.16.0] - 2026-10-20
 
 방명록과 운영 강화: 블로그마다 **엽서함**(방명록)이 생겼습니다. 댓글에도 신고 단추가 생겨 신고가 모이면 저절로 가리고, 편집실은 댓글을 가리거나 회원의 이용을 정지할 수 있습니다.

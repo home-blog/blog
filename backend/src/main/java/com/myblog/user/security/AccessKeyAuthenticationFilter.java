@@ -3,7 +3,9 @@ package com.myblog.user.security;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.error.JsonErrorWriter;
 import com.myblog.user.AccessKeyGrant;
+import com.myblog.user.oauth.OAuthService;
 import com.myblog.user.service.AccessKeyService;
+import com.myblog.user.service.AccessKeyService.Verified;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +15,7 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -20,7 +23,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * MCP 주소 전용: {@code Authorization: Bearer gk_…} 열쇠를 확인해 그 회원으로 로그인시킨다 (specs/020 D-2).
+ * MCP 주소 전용: {@code Authorization: Bearer gk_…} 열쇠나 OAuth 출입증({@code go_…}, specs/023)을 확인해
+ * 그 회원으로 로그인시킨다 (specs/020 D-2).
  * <ul>
  *   <li>세션을 만들지도 읽지도 않는다(이 요청 동안만의 로그인).</li>
  *   <li>Origin 머리글이 있고 요청이 들어온 호스트와 다르면 403: 다른 사이트의 웹 페이지가 부르는 요청을 막는다(MCP 권고).
@@ -34,10 +38,12 @@ public class AccessKeyAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER = "Bearer ";
 
     private final AccessKeyService accessKeys;
+    private final OAuthService oauth;
     private final Clock clock;
 
-    public AccessKeyAuthenticationFilter(AccessKeyService accessKeys, Clock clock) {
+    public AccessKeyAuthenticationFilter(AccessKeyService accessKeys, OAuthService oauth, Clock clock) {
         this.accessKeys = accessKeys;
+        this.oauth = oauth;
         this.clock = clock;
     }
 
@@ -50,7 +56,9 @@ public class AccessKeyAuthenticationFilter extends OncePerRequestFilter {
         }
         String header = request.getHeader("Authorization");
         if (header != null && header.regionMatches(true, 0, BEARER, 0, BEARER.length())) {
-            accessKeys.verify(header.substring(BEARER.length()).strip()).ifPresent(verified -> {
+            String token = header.substring(BEARER.length()).strip();
+            Optional<Verified> found = OAuthService.isAccessToken(token) ? oauth.verify(token) : accessKeys.verify(token);
+            found.ifPresent(verified -> {
                 MemberPrincipal principal = MemberPrincipal.of(verified.user(), Instant.now(clock));
                 principal.eraseCredentials();
                 AccessKeyGrant grant = verified.grant();
