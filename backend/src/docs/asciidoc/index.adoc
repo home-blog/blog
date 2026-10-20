@@ -389,6 +389,61 @@ operation::guestbook-write[snippets='path-parameters,request-headers,request-fie
 
 operation::guestbook-list[snippets='path-parameters,query-parameters,http-request,http-response,response-fields']
 
+== AI 앱 연결 (OAuth, Claude 앱 커넥터)
+Claude 앱의 **커스텀 커넥터**처럼 열쇠 칸이 없는 앱은 OAuth 2.1로 붙습니다 (0.17.0). 앱은 MCP 주소의 401 `WWW-Authenticate: Bearer resource_metadata="…"`를 보고
+메타데이터를 읽은 뒤, 스스로 등록하고(동적 등록), 회원의 브라우저를 글결 **위임장**(`/connect/authorize`)으로 보냅니다.
+회원이 허락하면 허락 코드를 PKCE(`S256`)와 함께 출입증(`go_…`, 1시간)·갱신 토큰(`gr_…`, 30일)으로 바꿉니다.
+갱신 토큰은 쓸 때마다 바뀌고, 옛 갱신 토큰이나 이미 쓴 허락 코드가 다시 오면 그 연결을 끊습니다. 오류는 RFC 6749 모양 `{ "error", "error_description" }`입니다.
+
+[[oauth-protected-resource]]
+=== 보호 자원 메타데이터 (RFC 9728)
+operation::oauth-protected-resource[snippets='http-request,http-response,response-fields']
+
+[[oauth-authorization-server]]
+=== 인가 서버 메타데이터 (RFC 8414)
+operation::oauth-authorization-server[snippets='http-request,http-response,response-fields']
+
+[[oauth-register]]
+=== 동적 등록 (RFC 7591)
+한 IP가 한 시간에 20번까지(`mcp.oauth.register-per-hour`, 넘으면 429).
+
+operation::oauth-register[snippets='request-fields,http-request,http-response,response-fields']
+
+[[oauth-authorize]]
+=== 인가
+모르는 앱이나 등록하지 않은 돌아갈 주소면 앱으로 돌려보내지 않고 `/connect/authorize?error=invalid_client`로, 그 밖의 잘못은 돌아갈 주소에 `error`·`state`·`iss`를 붙여 보냅니다.
+맞으면 `/connect/authorize?request=…`(위임장)으로 보냅니다.
+
+operation::oauth-authorize[snippets='query-parameters,http-request,http-response']
+
+[[oauth-request]]
+=== 위임장에 보일 요청
+로그인이 필요합니다. 요청은 10분 뒤 사라집니다(404 `OAUTH_REQUEST_NOT_FOUND`). 거절은 `POST /api/v1/oauth/requests/{requestId}/deny`(`error=access_denied`로 돌아갈 주소).
+
+operation::oauth-request[snippets='path-parameters,http-request,http-response,response-fields']
+
+[[oauth-approve]]
+=== 허락
+operation::oauth-approve[snippets='request-headers,request-fields,http-request,http-response,response-fields']
+
+[[oauth-token]]
+=== 토큰
+`grant_type=authorization_code`. `client_id`가 없거나 모르면 401 `invalid_client`, 코드·주소·verifier가 맞지 않으면 400 `invalid_grant`, `resource`가 글결 MCP가 아니면 `invalid_target`.
+
+operation::oauth-token[snippets='http-request,http-response,response-fields']
+
+[[oauth-refresh]]
+=== 갱신
+`grant_type=refresh_token`. 새 출입증과 **새 갱신 토큰**을 줍니다. 폐기는 `POST /oauth/revoke` `token`(갱신 토큰이면 연결을, 출입증이면 그 출입증만 끊고 늘 200).
+
+operation::oauth-refresh[snippets='http-request,http-response']
+
+[[connected-apps]]
+=== 연결된 앱
+로그인이 필요합니다. 끊기는 `DELETE /api/v1/me/connected-apps/{grantId}`(204, 남의 연결이면 404 `OAUTH_GRANT_NOT_FOUND`). 비밀번호를 바꾸거나 탈퇴하거나 정지되면 모두 끊깁니다.
+
+operation::connected-apps[snippets='http-request,http-response,response-fields']
+
 [[errors]]
 == 오류 예시
 

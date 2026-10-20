@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
  * 개인 열쇠로 들어온 요청이 받은 권한 (specs/020 US1). 회원 모듈이 MCP 주소에서 열쇠를 확인하면 로그인 정보의
  * details에 이것을 넣는다. 위 모듈(connect)은 열쇠 번호(요청 수 세기)와 범위(임시 저장 가능?)를 여기서만 읽는다.
  * 회원 번호는 지금처럼 {@link LoggedInMember}로 얻는다.
+ * OAuth 출입증으로 들어오면(specs/023) keyId는 연결 번호의 음수다: 열쇠 번호와 겹치지 않아 요청 수를 따로 센다.
  *
  * @param scope {@code read} 또는 {@code draft}
  */

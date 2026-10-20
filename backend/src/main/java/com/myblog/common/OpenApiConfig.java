@@ -70,7 +70,8 @@ public class OpenApiConfig {
                         tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장"),
                         tag("16. 편집실", "관리자만: 신고 검토(내림·반려), 글마당 신고, 처리 기록, 운영 현황"),
                         tag("17. AI 비서 연결 (MCP)", "개인 열쇠를 만들어 Claude 같은 AI 비서가 MCP로 내 블로그의 글·단락을 찾아 읽고 초안을 남기게 한다"),
-                        tag("18. 방명록", "블로그에 들른 회원이 우표 붙인 엽서를 남기고, 블로그 주인이 답장한다. 비밀 엽서는 쓴 사람과 주인만 읽는다")))
+                        tag("18. 방명록", "블로그에 들른 회원이 우표 붙인 엽서를 남기고, 블로그 주인이 답장한다. 비밀 엽서는 쓴 사람과 주인만 읽는다"),
+                        tag("19. AI 앱 연결(OAuth)", "Claude 앱 커스텀 커넥터처럼 OAuth 2.1(PKCE)로 글결 MCP에 붙는다. 메타데이터·동적 등록·인가·토큰·폐기는 세션 없이, 위임장과 연결된 앱은 로그인해서")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")
@@ -79,7 +80,8 @@ public class OpenApiConfig {
                                 .in(SecurityScheme.In.HEADER).name("X-XSRF-TOKEN")
                                 .description("GET이 아닌 요청에 싣는 CSRF 토큰 (쿠키 XSRF-TOKEN의 값)"))
                         .addSecuritySchemes(ACCESS_KEY, new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer")
-                                .description("마이페이지 → AI 비서 연결에서 만든 열쇠(gk_…). MCP 주소에서만 통하고 세션·CSRF는 쓰지 않는다")));
+                                .description("마이페이지 → AI 비서 연결에서 만든 열쇠(gk_…)나 OAuth 출입증(go_…, Claude 앱 커넥터). "
+                                        + "MCP 주소에서만 통하고 세션·CSRF는 쓰지 않는다")));
     }
 
     /**
@@ -107,7 +109,7 @@ public class OpenApiConfig {
     /**
      * 문서에 "로그인 필요"(세션 쿠키)와 "CSRF 토큰"을 표시한다. 로그인 없이 부르는 주소는 user/config/SecurityConfig의
      * permitAll 목록과 같다 (그쪽을 바꾸면 여기도 바꾼다). GET이 아닌 요청은 모두 CSRF 토큰을 싣는다.
-     * MCP 주소는 따로 선 보안 사슬(McpSecurityConfig)이라 개인 열쇠만 표시한다.
+     * MCP 주소는 따로 선 보안 사슬(McpSecurityConfig)이라 개인 열쇠만 표시하고, OAuth 끝점에는 아무것도 붙이지 않는다.
      */
     @Bean
     OpenApiCustomizer securityMarks() {
@@ -116,6 +118,9 @@ public class OpenApiConfig {
             SecurityRequirement requirement = new SecurityRequirement();
             if (MATCHER.match(MCP, path)) {
                 operation.addSecurityItem(requirement.addList(ACCESS_KEY));
+                return;
+            }
+            if (OAUTH.stream().anyMatch(pattern -> MATCHER.match(pattern, path))) {
                 return;
             }
             if (!isPublic(path, get)) {
@@ -137,6 +142,9 @@ public class OpenApiConfig {
             "/api/*/posts/summary", "/api/*/posts/{postId}", "/api/*/search/**", "/api/*/posts/{postId}/comments",
             "/api/*/tags/**", "/api/*/series/{seriesId}", "/api/*/posts/{postId}/series", "/api/*/posts/{postId}/related", "/api/*/notices", "/api/*/notices/**", "/api/*/board/**", "/api/images/**", "/og", "/og/", "/og/**",
             "/rss.xml", "/blog/*/rss.xml", "/sitemap.xml", "/robots.txt");
+
+    /** OAuth 끝점은 세션도 CSRF도 쓰지 않는 따로 선 사슬이다 (user/oauth/OAuthSecurityConfig, specs/023). */
+    private static final List<String> OAUTH = List.of("/.well-known/**", "/oauth/**");
 
     /** 보안 설정으로는 열려 있지만 로그인하지 않았으면 처리기가 401로 답하는 주소 (지금 로그인했는지 묻는 주소). */
     private static final List<String> ANSWERS_401_WITHOUT_LOGIN = List.of("/api/*/auth/me");

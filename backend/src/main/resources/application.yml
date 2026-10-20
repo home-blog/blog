@@ -314,6 +314,18 @@ mcp:
     max-passages: 8            # 단락 찾기 결과 상한
     passages-per-post: 2       # 글 하나에서 가져올 단락 상한
     max-posts: 10              # 글 찾기 결과 상한
+  oauth:                       # Claude 앱 커스텀 커넥터 (specs/023)
+    issuer: ${MCP_OAUTH_ISSUER:${SITE_URL:}}   # 비어 있으면 요청이 들어온 주소(Host·X-Forwarded-*)로 정한다
+    access-token-ttl: 1h       # 출입증
+    refresh-token-ttl: 30d     # 갱신 토큰 (쓸 때마다 바뀐다)
+    request-ttl: 10m           # 위임장을 기다리는 인가 요청 (Redis)
+    code-ttl: 5m               # 허락 코드 (Redis, 한 번만)
+    max-grants-per-member: 10  # 회원 한 사람의 연결된 앱. 넘으면 가장 오래 쓰지 않은 연결을 끊는다
+    register-per-hour: 20      # 동적 등록: 한 IP가 한 시간에
+    client-name-max-length: 100
+    max-redirect-uris: 5
+    unused-client-days: 30     # 연결이 없는 앱 등록은 이만큼 지나면 지운다
+    cleanup-cron: "0 17 4 * * *"   # 지난 출입증·연결·앱 정리 (매일 4시 17분)
 
 notice:
   title:

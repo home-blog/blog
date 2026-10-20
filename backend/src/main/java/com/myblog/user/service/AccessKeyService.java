@@ -7,6 +7,7 @@ import com.myblog.user.MemberWithdrawnEvent;
 import com.myblog.user.config.AccessKeyProperties;
 import com.myblog.user.domain.AccessKey;
 import com.myblog.user.domain.User;
+import com.myblog.user.oauth.OAuthService;
 import com.myblog.user.repository.AccessKeyRepository;
 import com.myblog.user.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -45,13 +46,16 @@ public class AccessKeyService {
     private final UserRepository users;
     private final AccessKeyProperties properties;
     private final Clock clock;
+    private final OAuthService oauth;
     private final SecureRandom random = new SecureRandom();
 
-    public AccessKeyService(AccessKeyRepository keys, UserRepository users, AccessKeyProperties properties, Clock clock) {
+    public AccessKeyService(AccessKeyRepository keys, UserRepository users, AccessKeyProperties properties, Clock clock,
+            OAuthService oauth) {
         this.keys = keys;
         this.users = users;
         this.properties = properties;
         this.clock = clock;
+        this.oauth = oauth;
     }
 
     @Transactional(readOnly = true)
@@ -113,21 +117,23 @@ public class AccessKeyService {
                 }));
     }
 
-    /** 탈퇴하면 그 회원의 열쇠를 모두 지운다 (data-model). 탈퇴와 같은 트랜잭션에서 듣는다. */
+    /** 탈퇴하면 그 회원의 열쇠와 OAuth로 연결된 앱을 모두 지운다 (data-model, specs/023 D-5). 탈퇴와 같은 트랜잭션에서 듣는다. */
     @EventListener
     public void on(MemberWithdrawnEvent event) {
         keys.deleteByMemberId(event.memberId());
+        oauth.revokeAll(event.memberId());
     }
 
     /**
-     * 그 회원의 열쇠를 모두 끊는다. 비밀번호를 바꾸면 부른다: 잠깐 세션을 얻은 사람이 만들어 둔 열쇠가
-     * 비밀번호를 바꾼 뒤에도 남아 있으면 안 된다(다른 기기 로그아웃과 같은 뜻).
+     * 그 회원의 열쇠와 OAuth로 연결된 앱(specs/023)을 모두 끊는다. 비밀번호를 바꾸거나 편집실이 정지하면 부른다:
+     * 잠깐 세션을 얻은 사람이 만들어 둔 열쇠·연결이 비밀번호를 바꾼 뒤에도 남아 있으면 안 된다(다른 기기 로그아웃과 같은 뜻).
      */
     @Transactional
     public void revokeAll(Long memberId) {
         // 회원 줄을 잡고 지운다: 열쇠 만들기도 같은 줄을 잡으므로, 그 사이에 끼어 만들어진 열쇠도 여기서 함께 지워진다
         users.findActiveByIdForUpdate(memberId);
         keys.deleteByMemberId(memberId);
+        oauth.revokeAll(memberId);
     }
 
     static String sha256(String value) {
