@@ -45,12 +45,15 @@ export function mcpEndpoint(origin = window.location.origin): string {
   return `${origin}/api/v1/mcp`
 }
 
-export type ClientKind = 'claude-code' | 'claude-desktop' | 'other'
+export type ClientKind = 'claude-app' | 'claude-code' | 'claude-desktop' | 'other'
 
 /** 앱마다 붙이는 법. 열쇠를 모르면 <열쇠> 자리로 둔다 */
 export function setupSnippet(kind: ClientKind, endpoint: string, token?: string): string {
   const key = token ?? '<열쇠>'
   switch (kind) {
+    case 'claude-app':
+      // 커스텀 커넥터는 주소만 넣는다: 열쇠 대신 글결 위임장에서 허락한다 (specs/023)
+      return endpoint
     case 'claude-code':
       return `claude mcp add --transport http geulgyeol ${endpoint} \\\n  --header "Authorization: Bearer ${key}"`
     case 'claude-desktop':

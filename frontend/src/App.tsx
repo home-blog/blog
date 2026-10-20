@@ -23,6 +23,7 @@ import BoardEditorPage from './board/BoardEditorPage'
 import BoardListPage from './board/BoardListPage'
 import BoardPostPage from './board/BoardPostPage'
 import GuestbookPage from './guestbook/GuestbookPage'
+import ConnectAuthorizePage from './connect/ConnectAuthorizePage'
 import EditorialPage from './editorial/EditorialPage'
 import NoticeAlertProvider from './notice/NoticeAlertProvider'
 import NoticeDetailPage from './notice/NoticeDetailPage'
@@ -253,6 +254,8 @@ const router = createBrowserRouter([
           </RequireLogin>
         ),
       },
+      // Claude 앱 커스텀 커넥터의 위임장 (specs/023): 로그인은 화면 안에서 묻는다(앱이 보낸 오류는 로그인 없이 보인다)
+      { path: '/connect/authorize', element: <ConnectAuthorizePage /> },
       { path: '/notices', element: <NoticeListPage /> },
       { path: '/notices/:noticeId', element: <NoticeDetailRoute /> },
       {

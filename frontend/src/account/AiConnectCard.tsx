@@ -14,10 +14,16 @@ import {
   type CreatedKey,
   type KeyScope,
 } from './connectApi'
+import ConnectedAppList from './ConnectedAppList'
 import './ai-connect.css'
 
 const SCOPE_LABEL: Record<KeyScope, string> = { read: '읽기만', draft: '읽기 + 초안' }
 const CLIENTS: { kind: ClientKind; label: string; note: string }[] = [
+  {
+    kind: 'claude-app',
+    label: 'Claude 앱(커넥터)',
+    note: 'Claude 앱(웹·데스크톱·모바일)의 설정 → 커넥터 → 커스텀 커넥터 추가에 이 주소만 붙여 넣으세요. 글결 위임장이 열리면 허락하면 됩니다. 열쇠는 필요 없어요.',
+  },
   { kind: 'claude-code', label: 'Claude Code', note: '터미널에서 한 줄을 붙여 넣습니다.' },
   {
     kind: 'claude-desktop',
@@ -60,7 +66,7 @@ export default function AiConnectCard() {
   const [issued, setIssued] = useState<CreatedKey | null>(null)
   const [confirming, setConfirming] = useState<number | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
-  const [tab, setTab] = useState<ClientKind>('claude-code')
+  const [tab, setTab] = useState<ClientKind>('claude-app')
   const [copied, setCopied] = useState<{ target: CopyTarget; text: string } | null>(null)
   const tokenRef = useRef<HTMLElement>(null)
   const snippetRef = useRef<HTMLElement>(null)
@@ -337,7 +343,7 @@ export default function AiConnectCard() {
 
       {/* 복사 결과를 화면 읽기 도구에 알린다 (단추 이름은 "열쇠 복사"·"설정 복사"로 그대로) */}
       <p className="visually-hidden" role="status" aria-live="polite">
-        {copied ? `${copied.target === 'token' ? '열쇠' : '설정'}: ${copied.text}` : ''}
+        {copied ? `${copied.target === 'token' ? '열쇠' : tab === 'claude-app' ? '주소' : '설정'}: ${copied.text}` : ''}
       </p>
 
       <div className="ai-setup">
@@ -370,14 +376,16 @@ export default function AiConnectCard() {
           <button
             type="button"
             className="btn btn-outline btn-small"
-            aria-label="설정 복사"
+            aria-label={tab === 'claude-app' ? '주소 복사' : '설정 복사'}
             onClick={() => copy('snippet', snippet)}
           >
             {copied?.target === 'snippet' ? copied.text : '복사'}
           </button>
-          {!issued && <p className="hint">&lt;열쇠&gt; 자리에 만든 열쇠를 넣으세요.</p>}
+          {!issued && tab !== 'claude-app' && <p className="hint">&lt;열쇠&gt; 자리에 만든 열쇠를 넣으세요.</p>}
         </div>
       </div>
+
+      <ConnectedAppList />
     </section>
   )
 }

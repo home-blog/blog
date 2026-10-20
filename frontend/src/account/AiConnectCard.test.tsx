@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { server } from '../test/server'
 import AiConnectCard from './AiConnectCard'
+import type { ConnectedApps } from '../connect/oauthApi'
 import type { AccessKey, AccessKeyList } from './connectApi'
 
 const TOKEN = 'gk_abcdEFGH1234567890abcdEFGH1234567890abcde'
@@ -23,9 +24,12 @@ function key(overrides: Partial<AccessKey> = {}): AccessKey {
   }
 }
 
-function serve(list: Partial<AccessKeyList> = {}) {
+function serve(list: Partial<AccessKeyList> = {}, apps: ConnectedApps = { items: [], max: 10 }) {
   const body: AccessKeyList = { items: [], maxCount: 5, allowedDays: [30, 90, 365], nameMaxLength: 40, ...list }
-  server.use(http.get('/api/v1/me/access-keys', () => HttpResponse.json(body)))
+  server.use(
+    http.get('/api/v1/me/access-keys', () => HttpResponse.json(body)),
+    http.get('/api/v1/me/connected-apps', () => HttpResponse.json(apps)),
+  )
 }
 
 afterEach(() => {
@@ -51,7 +55,12 @@ describe('AI 비서 연결', () => {
     expect(rows[1]).toHaveTextContent('읽기만')
     expect(rows[1]).toHaveTextContent('기한 지남')
     expect(rows[1]).toHaveTextContent('아직 안 씀')
-    // 붙이는 법은 열쇠 자리를 비워 둔 채 늘 보인다
+    // 붙이는 법은 Claude 앱(커넥터) 탭이 먼저: 주소만 붙이면 된다
+    expect(screen.getByRole('tab', { name: 'Claude 앱(커넥터)' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel')).toHaveTextContent(`${window.location.origin}/api/v1/mcp`)
+    expect(screen.getByRole('tabpanel')).not.toHaveTextContent('Bearer')
+    // Claude Code 탭은 열쇠 자리를 비워 둔 채 늘 보인다
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Claude Code' }))
     expect(screen.getByText(/claude mcp add --transport http geulgyeol/)).toHaveTextContent(
       `${window.location.origin}/api/v1/mcp`,
     )
@@ -90,6 +99,7 @@ describe('AI 비서 연결', () => {
     expect(sent).toEqual({ name: '데스크톱', scope: 'draft', days: 90 })
     expect(within(issued).getByText(TOKEN)).toBeInTheDocument()
     expect(within(issued).getByText(/지금 한 번만 보입니다/)).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Claude Code' }))
     expect(screen.getByText(/claude mcp add/)).toHaveTextContent(`Bearer ${TOKEN}`)
     expect(screen.getByLabelText('열쇠 이름')).toHaveValue('')
     expect(within(screen.getByRole('list', { name: '내 열쇠' })).getAllByRole('listitem')).toHaveLength(1)
@@ -164,6 +174,66 @@ describe('AI 비서 연결', () => {
     expect(rows[0]).toHaveTextContent('집')
   })
 
+  it('Claude 앱 탭은 MCP 주소만 복사하고 열쇠 자리 안내가 없다', async () => {
+    serve()
+    const user = userEvent.setup()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+    render(<AiConnectCard />)
+    const panel = await screen.findByRole('tabpanel')
+    expect(panel).toHaveTextContent('커스텀 커넥터 추가')
+    expect(within(panel).queryByText(/<열쇠> 자리에/)).toBeNull()
+    await user.click(within(panel).getByRole('button', { name: '주소 복사' }))
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/api/v1/mcp`)
+    expect(screen.getByText('주소: 복사했어요')).toHaveAttribute('role', 'status')
+  })
+
+  it('연결된 앱을 보이고, 끊기는 한 번 더 묻고 끊으면 목록에서 빠진다', async () => {
+    serve(
+      {},
+      {
+        items: [
+          { grantId: 7, clientName: 'Claude', scope: 'draft', createdAt: '2026-10-20T00:00:00Z', lastUsedAt: null },
+          {
+            grantId: 8,
+            clientName: 'MCP Inspector',
+            scope: 'read',
+            createdAt: '2026-10-19T00:00:00Z',
+            lastUsedAt: '2026-10-20T01:00:00Z',
+          },
+        ],
+        max: 10,
+      },
+    )
+    const deleted: string[] = []
+    server.use(
+      http.delete('/api/v1/me/connected-apps/:id', ({ params }) => {
+        deleted.push(String(params.id))
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const user = userEvent.setup()
+    render(<AiConnectCard />)
+    const list = await screen.findByRole('list', { name: '연결된 앱' })
+    const rows = within(list).getAllByRole('listitem')
+    expect(rows[0]).toHaveTextContent('Claude')
+    expect(rows[0]).toHaveTextContent('읽기 + 초안')
+    expect(rows[0]).toHaveTextContent('아직 안 씀')
+    expect(rows[1]).toHaveTextContent('마지막 사용')
+
+    await user.click(screen.getByRole('button', { name: 'Claude 연결 끊기' }))
+    const confirm = screen.getByRole('group', { name: 'Claude 연결을 끊을까요?' })
+    await user.click(within(confirm).getByRole('button', { name: '끊기' }))
+    expect(await screen.findByText('Claude 연결을 끊었습니다')).toHaveAttribute('role', 'status')
+    expect(deleted).toEqual(['7'])
+    expect(within(screen.getByRole('list', { name: '연결된 앱' })).getAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('연결된 앱이 없으면 붙이는 법을 안내한다', async () => {
+    serve()
+    render(<AiConnectCard />)
+    expect(await screen.findByText(/아직 연결된 앱이 없어요/)).toBeInTheDocument()
+  })
+
   it('복사 단추는 열쇠를 클립보드에 넣고, 앱마다 붙이는 법을 탭으로 바꿔 본다', async () => {
     serve({ items: [] })
     server.use(
@@ -207,6 +277,7 @@ describe('AI 비서 연결', () => {
           ? HttpResponse.json({ code: 'INTERNAL', message: '잠시 뒤' }, { status: 500 })
           : HttpResponse.json({ items: [key()], maxCount: 5, allowedDays: [30], nameMaxLength: 40 })
       }),
+      http.get('/api/v1/me/connected-apps', () => HttpResponse.json({ items: [], max: 10 })),
     )
     const user = userEvent.setup()
     render(<AiConnectCard />)

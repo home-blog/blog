@@ -1,0 +1,276 @@
+/* 위임장 (specs/023 D-8): 원고지 칸 표에 누가·무엇을·언제까지, 허락하면 붉은 인장이 쾅 */
+.warrant-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-block: 2.5rem 4rem;
+  padding-inline: max(1rem, env(safe-area-inset-left, 0px)) max(1rem, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 1.25rem;
+}
+
+.warrant-kicker {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft, var(--ink));
+  opacity: 0.75;
+}
+
+.warrant-title {
+  margin: 0;
+}
+
+.warrant-title-cells {
+  display: inline-flex;
+  gap: 0;
+}
+
+.warrant-title-cells > span {
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--grid-strong, var(--grid));
+  margin-left: -1px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: var(--paper);
+  animation: warrant-cell 520ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 110ms);
+}
+
+@keyframes warrant-cell {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.warrant {
+  position: relative;
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--grid-strong, var(--grid));
+  background: var(--paper);
+  border-radius: 6px;
+  /* 인장은 크게 떠 있다가 내려와 찍힌다: 카드 밖으로 넘쳐 화면을 넓히지 않게 */
+  overflow: clip;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.warrant-table {
+  margin: 0;
+  display: grid;
+  border-top: 2px solid var(--ink);
+}
+
+.warrant-row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  border-bottom: 1px solid var(--grid-strong, var(--grid));
+}
+
+.warrant-row dt {
+  display: grid;
+  place-items: center;
+  padding: 0.8rem 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  border-right: 1px solid var(--grid-strong, var(--grid));
+  background: color-mix(in srgb, var(--accent) 7%, var(--paper));
+}
+
+.warrant-row dd {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  min-width: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.warrant-row dd > .hint {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.warrant-client {
+  font-size: 1.15rem;
+  background: linear-gradient(transparent 60%, var(--highlight) 60%) no-repeat 0 0 / 100% 100%;
+}
+
+.warrant-scope {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.warrant-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    background 160ms;
+}
+
+.warrant-option.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--paper));
+}
+
+.warrant-option span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.warrant-option small {
+  color: var(--ink-soft, var(--ink));
+  opacity: 0.8;
+}
+
+.warrant-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.warrant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.warrant-approve {
+  background: var(--seal);
+  border-color: var(--seal);
+  color: var(--seal-ink);
+}
+
+.warrant-approve:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+/* 붉은 인장: 허락하면 위에서 떨어져 쾅 찍힌다 */
+.warrant-seal {
+  position: absolute;
+  right: 1.5rem;
+  top: 1.6rem;
+  width: 4.6rem;
+  height: 4.6rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  place-content: center;
+  border: 3px solid var(--seal);
+  border-radius: 8px;
+  color: var(--seal);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  text-align: center;
+  opacity: 0;
+  transform: scale(2.2) rotate(-14deg);
+  pointer-events: none;
+}
+
+.warrant.is-sealed .warrant-seal {
+  animation: warrant-stamp 520ms var(--ease-out) forwards;
+}
+
+@keyframes warrant-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2.2) rotate(-14deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  100% {
+    opacity: 0.92;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+.warrant.is-sealed .warrant-table {
+  animation: warrant-thud 260ms 300ms;
+}
+
+@keyframes warrant-thud {
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+.warrant-leaving {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.warrant-problem,
+.warrant-login {
+  padding: 1.25rem;
+  border: 1px dashed var(--seal);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--seal) 5%, var(--paper));
+}
+
+.warrant-problem p {
+  margin: 0.25rem 0;
+}
+
+.warrant-problem-title {
+  font-weight: 700;
+  text-decoration: line-through;
+  text-decoration-color: var(--seal);
+  text-decoration-thickness: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .warrant-title-cells > span,
+  .warrant.is-sealed .warrant-table {
+    animation: none;
+  }
+  .warrant.is-sealed .warrant-seal {
+    animation: none;
+    opacity: 0.92;
+    transform: rotate(-8deg);
+  }
+}
+
+@media (max-width: 30rem) {
+  .warrant {
+    padding: 1rem;
+  }
+  .warrant-row {
+    grid-template-columns: 4.4rem minmax(0, 1fr);
+  }
+  .warrant-row dt {
+    padding-inline: 0.25rem;
+    font-size: 0.88rem;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .warrant-row dd {
+    padding-inline: 0.7rem;
+  }
+  .warrant-title-cells > span {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.5rem;
+  }
+  .warrant-seal {
+    width: 3.8rem;
+    height: 3.8rem;
+    font-size: 1.1rem;
+    right: 0.8rem;
+    top: 1.2rem;
+  }
+}

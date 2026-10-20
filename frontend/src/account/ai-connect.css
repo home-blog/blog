@@ -411,10 +411,41 @@
   }
 }
 
+/* 연결된 앱 (specs/023 US2): 열쇠 꼬리표와 같은 모양에 붉은 "위임" 도장 */
+.ai-apps {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--grid);
+}
+
+.ai-app-seal {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.05rem 0.35rem;
+  border: 1.5px solid var(--seal);
+  border-radius: 3px;
+  color: var(--seal);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transform: rotate(-6deg);
+  animation: ai-app-stamp 420ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 200ms);
+}
+
+@keyframes ai-app-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.8) rotate(-14deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ai-key-issued,
   .ai-once-seal,
-  .ai-key {
+  .ai-key,
+  .ai-app-seal {
     animation: none;
   }
 }
