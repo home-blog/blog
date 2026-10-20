@@ -1,10 +1,12 @@
-// 마이페이지 (specs/002 US1, T017): 내 정보 보기, 내 정보 수정, 비밀번호 변경·탈퇴로 가는 길. 연결된 계정 (specs/010 US4)
+// 마이페이지 (specs/002 US1, T017): 내 정보 보기, 내 정보 수정, 비밀번호 변경·탈퇴로 가는 길. 연결된 계정 (specs/010 US4),
+// AI 비서 연결 (specs/020 US1)
 // 주소에 회원 번호가 없다. 서버가 세션의 회원만 돌려준다 (FR-002)
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { ApiError } from '../api/client'
 import { getAccount, type Account } from '../account/accountApi'
 import ProfileForm from '../account/ProfileForm'
+import AiConnectCard from '../account/AiConnectCard'
 import SocialAccountsCard from '../account/SocialAccountsCard'
 import './auth-layout.css'
 import './mypage.css'
@@ -48,7 +50,9 @@ export default function MyPage() {
       </header>
 
       <section className="mypage-card" aria-labelledby="info-title">
-        <h2 id="info-title" className="mypage-card-title">내 정보</h2>
+        <h2 id="info-title" className="mypage-card-title">
+          내 정보
+        </h2>
         <dl className="mypage-info">
           <div>
             <dt>이메일</dt>
@@ -75,7 +79,9 @@ export default function MyPage() {
       </section>
 
       <section className="mypage-card" aria-labelledby="profile-title">
-        <h2 id="profile-title" className="mypage-card-title">내 정보 수정</h2>
+        <h2 id="profile-title" className="mypage-card-title">
+          내 정보 수정
+        </h2>
         <p className="hint mypage-note">이메일은 바꿀 수 없습니다.</p>
         <ProfileForm
           nickname={account.nickname}
@@ -86,8 +92,12 @@ export default function MyPage() {
 
       <SocialAccountsCard />
 
+      <AiConnectCard />
+
       <section className="mypage-card" aria-labelledby="security-title">
-        <h2 id="security-title" className="mypage-card-title">계정</h2>
+        <h2 id="security-title" className="mypage-card-title">
+          계정
+        </h2>
         <ul className="mypage-links">
           <li>
             <Link to="/mypage/password" className="mypage-link">

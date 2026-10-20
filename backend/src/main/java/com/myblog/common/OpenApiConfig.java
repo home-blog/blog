@@ -68,14 +68,17 @@ public class OpenApiConfig {
                         tag("13. AI", "빨간 펜 교정(Claude), 비슷한 글(Voyage 임베딩). 열쇠가 없으면 빨간 펜은 꺼지고 비슷한 글은 태그로 대신한다"),
                         tag("14. 구독·알림", "원고 받아 보기(블로그 구독), 우편함, 원고 편지(새 글 메일)"),
                         tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장"),
-                        tag("16. 편집실", "관리자만: 신고 검토(내림·반려), 글마당 신고, 처리 기록, 운영 현황")))
+                        tag("16. 편집실", "관리자만: 신고 검토(내림·반려), 글마당 신고, 처리 기록, 운영 현황"),
+                        tag("17. AI 비서 연결 (MCP)", "개인 열쇠를 만들어 Claude 같은 AI 비서가 MCP로 내 블로그의 글·단락을 찾아 읽고 초안을 남기게 한다")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")
                                 .description("로그인하면 생기는 세션 쿠키 (HttpOnly, SameSite=Lax, 배포에서는 Secure)"))
                         .addSecuritySchemes(CSRF, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER).name("X-XSRF-TOKEN")
-                                .description("GET이 아닌 요청에 싣는 CSRF 토큰 (쿠키 XSRF-TOKEN의 값)")));
+                                .description("GET이 아닌 요청에 싣는 CSRF 토큰 (쿠키 XSRF-TOKEN의 값)"))
+                        .addSecuritySchemes(ACCESS_KEY, new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer")
+                                .description("마이페이지 → AI 비서 연결에서 만든 열쇠(gk_…). MCP 주소에서만 통하고 세션·CSRF는 쓰지 않는다")));
     }
 
     /**
@@ -103,12 +106,17 @@ public class OpenApiConfig {
     /**
      * 문서에 "로그인 필요"(세션 쿠키)와 "CSRF 토큰"을 표시한다. 로그인 없이 부르는 주소는 user/config/SecurityConfig의
      * permitAll 목록과 같다 (그쪽을 바꾸면 여기도 바꾼다). GET이 아닌 요청은 모두 CSRF 토큰을 싣는다.
+     * MCP 주소는 따로 선 보안 사슬(McpSecurityConfig)이라 개인 열쇠만 표시한다.
      */
     @Bean
     OpenApiCustomizer securityMarks() {
         return openApi -> openApi.getPaths().forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
             boolean get = method == PathItem.HttpMethod.GET;
             SecurityRequirement requirement = new SecurityRequirement();
+            if (MATCHER.match(MCP, path)) {
+                operation.addSecurityItem(requirement.addList(ACCESS_KEY));
+                return;
+            }
             if (!isPublic(path, get)) {
                 requirement.addList(SESSION);
             }
@@ -122,6 +130,7 @@ public class OpenApiConfig {
     }
 
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
+    private static final String MCP = "/api/*/mcp";
     private static final List<String> PUBLIC_ANY_METHOD = List.of("/api/*/auth/**");
     private static final List<String> PUBLIC_GET = List.of("/api/*/blogs/**", "/api/*/posts", "/api/*/posts/popular",
             "/api/*/posts/summary", "/api/*/posts/{postId}", "/api/*/search/**", "/api/*/posts/{postId}/comments",
@@ -145,6 +154,7 @@ public class OpenApiConfig {
 
     static final String SESSION = "세션 쿠키";
     static final String CSRF = "CSRF 토큰";
+    static final String ACCESS_KEY = "개인 열쇠";
 
     /** 처리기 주소의 {version} 칸을 지금 버전(v1)으로 채워 문서에서 바로 불러 볼 수 있게 한다. */
     @Bean
