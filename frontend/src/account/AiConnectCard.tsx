@@ -16,7 +16,6 @@ import {
 } from './connectApi'
 import './ai-connect.css'
 
-const NAME_MAX = 40
 const SCOPE_LABEL: Record<KeyScope, string> = { read: '읽기만', draft: '읽기 + 초안' }
 const CLIENTS: { kind: ClientKind; label: string; note: string }[] = [
   { kind: 'claude-code', label: 'Claude Code', note: '터미널에서 한 줄을 붙여 넣습니다.' },
@@ -121,7 +120,9 @@ export default function AiConnectCard() {
       const created = await createAccessKey(trimmed, scope, chosenDays)
       setIssued(created)
       setCopied(null)
-      setList((prev) => prev && { ...prev, items: [{ ...created, lastUsedAt: null }, ...prev.items] })
+      // 목록에는 원문을 넣지 않는다: "다 적어 두었어요" 뒤에는 화면 상태 어디에도 원문이 남지 않게
+      const { token: _token, ...view } = created
+      setList((prev) => prev && { ...prev, items: [{ ...view, lastUsedAt: null }, ...prev.items] })
       setName('')
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : '※ 잠시 뒤 다시 시도해 주세요')
@@ -220,7 +221,7 @@ export default function AiConnectCard() {
           <input
             id={`${titleId}-name`}
             value={name}
-            maxLength={NAME_MAX}
+            maxLength={list.nameMaxLength}
             placeholder="예: 노트북 Claude Code"
             disabled={busy || full}
             onChange={(e) => {

@@ -125,6 +125,7 @@ class AccessKeyTest {
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].hint").value(hint))
                 .andExpect(jsonPath("$.maxCount").value(5))
+                .andExpect(jsonPath("$.nameMaxLength").value(40))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(list).doesNotContain(token);
         assertThat((Object) JsonPath.read(list, "$.items[0].lastUsedAt")).isNull();
@@ -183,7 +184,8 @@ class AccessKeyTest {
     @Test
     void S1_4_이름_범위_기한을_검사하고_다섯_개까지만_만들며_남의_열쇠는_끊을_수_없다() throws Exception {
         create(session, "name", " ", "scope", "read", "days", 30).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("ACCESS_KEY_INVALID"));
+                .andExpect(jsonPath("$.code").value("ACCESS_KEY_INVALID"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("1~40자")));
         create(session, "name", "가".repeat(41), "scope", "read", "days", 30).andExpect(status().isBadRequest());
         create(session, "name", "범위", "scope", "admin", "days", 30).andExpect(status().isBadRequest());
         create(session, "name", "기한", "scope", "read", "days", 7).andExpect(status().isBadRequest());

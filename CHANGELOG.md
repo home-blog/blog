@@ -25,7 +25,7 @@ AI 비서 연결: 마이페이지에서 **개인 열쇠**를 만들면 Claude �
 - 공지사항: 0.15.0 업데이트 글(0.14.0 글의 고정을 푼다)
 
 ### API (v1 그대로, 깨지지 않는 변경)
-- 새 주소(로그인): `GET /api/v1/me/access-keys`(→ `items[]`(`keyId`, `name`, `hint`, `scope`, `createdAt`, `expiresAt`, `lastUsedAt`), `maxCount`, `allowedDays`), `POST /api/v1/me/access-keys` `{ name, scope, days }`(201, 응답의 `token`은 이때만), `DELETE /api/v1/me/access-keys/{keyId}`(204)
+- 새 주소(로그인): `GET /api/v1/me/access-keys`(→ `items[]`(`keyId`, `name`, `hint`, `scope`, `createdAt`, `expiresAt`, `lastUsedAt`), `maxCount`, `allowedDays`, `nameMaxLength`), `POST /api/v1/me/access-keys` `{ name, scope, days }`(201, 응답의 `token`은 이때만), `DELETE /api/v1/me/access-keys/{keyId}`(204)
 - 새 주소(개인 열쇠): `POST /api/v1/mcp` MCP Streamable HTTP(상태 없음, JSON 한 번에 답, 프로토콜 2025-06-18·2025-03-26·2025-11-25). 머리글 `Authorization: Bearer <열쇠>`, 세션·CSRF 없음. `initialize`, `ping`, `tools/list`, `tools/call`, 알림은 202, `GET`·`DELETE`는 405. 도구 `search_posts`, `search_passages`, `read_post`, `list_my_posts`, `my_blog_stats`, `save_draft`(draft 열쇠만, 발행하지 않음). 결과는 `content`(출처 주소가 붙은 글)와 `structuredContent`
 - 열쇠가 없거나 틀리거나 기한이 지나거나 끊겼거나 탈퇴한 회원이면 401과 `WWW-Authenticate: Bearer`, 다른 사이트의 브라우저 요청(Origin)은 403, 열쇠마다 1분 60번을 넘으면 429(JSON-RPC `-32000`)
 - 새 오류 코드: `ACCESS_KEY_INVALID`(400), `ACCESS_KEY_LIMIT`(409), `ACCESS_KEY_NOT_FOUND`(404), `MCP_TOO_MANY_REQUESTS`(429)
@@ -37,10 +37,10 @@ AI 비서 연결: 마이페이지에서 **개인 열쇠**를 만들면 Claude �
 - 단락 찾기: 후보 글(볼 수 있는 글, 최근 50개) 안에서 마크다운을 빈 줄로 나눈 단락(코드 블록은 한 덩어리, 사진 줄은 빼고, 제목 줄은 다음 단락에 붙임)마다 낱말 수(최대 3) × 드문 정도 + 제목 덤으로 점수를 매겨 글마다 2개·전체 8개, 600자를 넘으면 맞은 곳 둘레로 자른다
 - 요청 수 제한은 Redis(`myblog:mcp:rate:{열쇠}`, 1분). INCR과 EXPIRE를 한 스크립트로 묶고 만료가 빠진 키는 다시 건다(영원히 429가 되지 않게). Redis가 멈추면 막지 않는다
 - JSON-RPC 요청 `id`는 글자나 정수만(null·참거짓·소수는 400 `-32600`)
-- 설정 `access-key.*`(5개, 30·90·365일, 사용 시각 1분), `mcp.rate-limit.per-minute`(60), `mcp.search.*`
+- 설정 `access-key.*`(5개, 30·90·365일, 사용 시각 1분, 이름 40자: 칸 길이보다 길게 정하면 서버가 켜지지 않는다), `mcp.rate-limit.per-minute`(60), `mcp.search.*`
 - 공식 MCP SDK(TypeScript 1.32.1) 클라이언트로 로컬 서버에 붙어 확인: 프로토콜 맞추기, 도구 6개, 없는 글은 `isError`
 - Flyway V28: 0.15.0 업데이트 공지. 예시 데이터 지우기에 열쇠 지우기를 더했다
-- 테스트: 서버 개인 열쇠 5개·MCP 8개·단락 찾기 7개, 화면 AI 비서 연결 7개·우편함 2개 (별도 리뷰 지적 반영: 비밀번호 변경 시 열쇠 끊기, 요청 수 키 만료, id 모양, 단락 찾기의 소문자 한 번만·원문 위에서 찾기, 우편함 키보드 자리, 복사 알림)
+- 테스트: 서버 개인 열쇠 5개·MCP 8개·단락 찾기 7개, 화면 AI 비서 연결 7개·우편함 2개 (별도 리뷰 지적 반영: 비밀번호 변경 시 열쇠 끊기, 요청 수 키 만료, id 모양, 단락 찾기의 소문자 한 번만·원문 위에서 찾기, 우편함 키보드 자리, 복사 알림. CodeRabbit 지적 반영: 이름 글자 수를 설정에서 읽어 화면에도 보내기, 만든 열쇠 원문을 목록 상태에 남기지 않기, 우편함 나눠 보기 단추의 포커스 테두리를 안쪽에)
 
 ## [0.14.0] - 2026-10-19
 

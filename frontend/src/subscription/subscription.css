@@ -282,6 +282,12 @@
   border-left: 1px solid var(--grid-strong);
 }
 
+/* 판이 overflow: hidden이라 바깥에 그리는 포커스 테두리가 잘린다: 단추 안쪽에 그린다 */
+.mailbox-filter button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -3px;
+}
+
 .mailbox-filter button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-ink);

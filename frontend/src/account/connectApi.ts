@@ -19,6 +19,8 @@ export interface AccessKeyList {
   items: AccessKey[]
   maxCount: number
   allowedDays: number[]
+  /** 열쇠 이름 글자 수 상한 (서버 설정 access-key.name-max-length) */
+  nameMaxLength: number
 }
 
 export interface CreatedKey extends Omit<AccessKey, 'lastUsedAt'> {

@@ -163,7 +163,7 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 우편함에 없는 소식입니다"),
 
     // 개인 열쇠·글결 MCP (specs/020)
-    ACCESS_KEY_INVALID(HttpStatus.BAD_REQUEST, "※ 열쇠 이름(1~40자), 할 수 있는 일, 기한을 다시 확인해 주세요"),
+    ACCESS_KEY_INVALID(HttpStatus.BAD_REQUEST, "※ 열쇠 이름(1~%d자), 할 수 있는 일, 기한을 다시 확인해 주세요"),
     ACCESS_KEY_LIMIT(HttpStatus.CONFLICT, "※ 열쇠는 %d개까지 만들 수 있습니다. 쓰지 않는 열쇠를 끊어 주세요"),
     ACCESS_KEY_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 없는 열쇠입니다"),
     MCP_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "※ 요청이 너무 잦습니다. 1분 뒤 다시 시도해 주세요"),

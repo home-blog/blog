@@ -39,7 +39,6 @@ public class AccessKeyService {
     static final String PREFIX = "gk_";
     private static final int TOKEN_BYTES = 32;
     private static final int HINT_LENGTH = 8;
-    private static final int NAME_MAX = 40;
     private static final Set<String> SCOPES = Set.of(AccessKeyGrant.READ, AccessKeyGrant.DRAFT);
 
     private final AccessKeyRepository keys;
@@ -58,7 +57,7 @@ public class AccessKeyService {
     @Transactional(readOnly = true)
     public KeyList list(Long memberId) {
         List<KeyView> items = keys.findByMemberIdOrderByCreatedAtDescIdDesc(memberId).stream().map(KeyView::of).toList();
-        return new KeyList(items, properties.maxPerMember(), properties.allowedDays());
+        return new KeyList(items, properties.maxPerMember(), properties.allowedDays(), properties.nameMaxLength());
     }
 
     /** 새 열쇠. 원문(token)은 이 응답에만 실린다. */
@@ -66,9 +65,10 @@ public class AccessKeyService {
     public Issued create(Long memberId, String name, String scope, Integer days) {
         String trimmed = name == null ? "" : name.strip();
         int length = trimmed.codePointCount(0, trimmed.length());
-        if (length < 1 || length > NAME_MAX || scope == null || !SCOPES.contains(scope) || days == null
+        if (length < 1 || length > properties.nameMaxLength() || scope == null || !SCOPES.contains(scope) || days == null
                 || !properties.allowedDays().contains(days)) {
-            throw new ApiException(ErrorCode.ACCESS_KEY_INVALID);
+            throw new ApiException(ErrorCode.ACCESS_KEY_INVALID,
+                    ErrorCode.ACCESS_KEY_INVALID.message().formatted(properties.nameMaxLength()));
         }
         users.findActiveByIdForUpdate(memberId).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
         if (keys.countByMemberId(memberId) >= properties.maxPerMember()) {
@@ -134,7 +134,7 @@ public class AccessKeyService {
         }
     }
 
-    public record KeyList(List<KeyView> items, int maxCount, List<Integer> allowedDays) {
+    public record KeyList(List<KeyView> items, int maxCount, List<Integer> allowedDays, int nameMaxLength) {
     }
 
     /** 화면에 보이는 열쇠 한 줄. 원문·해시는 없다. */

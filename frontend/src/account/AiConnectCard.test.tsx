@@ -24,7 +24,7 @@ function key(overrides: Partial<AccessKey> = {}): AccessKey {
 }
 
 function serve(list: Partial<AccessKeyList> = {}) {
-  const body: AccessKeyList = { items: [], maxCount: 5, allowedDays: [30, 90, 365], ...list }
+  const body: AccessKeyList = { items: [], maxCount: 5, allowedDays: [30, 90, 365], nameMaxLength: 40, ...list }
   server.use(http.get('/api/v1/me/access-keys', () => HttpResponse.json(body)))
 }
 
@@ -80,7 +80,8 @@ describe('AI 비서 연결', () => {
     )
     const user = userEvent.setup()
     render(<AiConnectCard />)
-    await user.type(await screen.findByLabelText('열쇠 이름'), '  데스크톱 ')
+    expect(await screen.findByLabelText('열쇠 이름')).toHaveAttribute('maxLength', '40')
+    await user.type(screen.getByLabelText('열쇠 이름'), '  데스크톱 ')
     await user.click(screen.getByRole('radio', { name: /읽기 \+ 초안 남기기/ }))
     await user.selectOptions(screen.getByLabelText('기한'), '90')
     await user.click(screen.getByRole('button', { name: '열쇠 만들기' }))
@@ -204,7 +205,7 @@ describe('AI 비서 연결', () => {
         calls++
         return calls === 1
           ? HttpResponse.json({ code: 'INTERNAL', message: '잠시 뒤' }, { status: 500 })
-          : HttpResponse.json({ items: [key()], maxCount: 5, allowedDays: [30] })
+          : HttpResponse.json({ items: [key()], maxCount: 5, allowedDays: [30], nameMaxLength: 40 })
       }),
     )
     const user = userEvent.setup()
