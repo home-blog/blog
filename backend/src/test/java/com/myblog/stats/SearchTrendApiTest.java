@@ -13,7 +13,6 @@ import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,9 +66,8 @@ class SearchTrendApiTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-        // 2040년대의 아무 10분 칸: 다른 실행과 겹치지 않는다
-        start = Instant.parse("2040-01-01T00:00:00Z")
-                .plus(Duration.ofMinutes(10L * ThreadLocalRandom.current().nextInt(1, 500_000)));
+        // 먼 미래의 10분 칸: 다른 실행·같은 실행의 다른 테스트와 겹치지 않는다
+        start = TestClock.distinctFarFutureSlot();
         clock.set(start);
         word = "검색" + UUID.randomUUID().toString().substring(0, 6);
         Member writer = members.register("trend");
