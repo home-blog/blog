@@ -55,4 +55,21 @@ describe('먹 한 방울', () => {
     fireEvent.pointerDown(screen.getByText('글마당'), { button: 0, clientX: 1, clientY: 1 })
     expect(drops()).toHaveLength(0)
   })
+
+  it('페이지를 연 뒤 설정을 바꾸면 누를 때 바로 따른다', () => {
+    const media = { matches: false, media: '(prefers-reduced-motion: reduce)' }
+    vi.stubGlobal('matchMedia', () => media)
+    render(
+      <>
+        <InkTouch />
+        <button type="button">누르기</button>
+      </>,
+    )
+    media.matches = true
+    fireEvent.pointerDown(screen.getByText('누르기'), { button: 0, clientX: 1, clientY: 1 })
+    expect(drops()).toHaveLength(0)
+    media.matches = false
+    fireEvent.pointerDown(screen.getByText('누르기'), { button: 0, clientX: 1, clientY: 1 })
+    expect(drops()).toHaveLength(1)
+  })
 })
