@@ -31,11 +31,11 @@ Claude 앱에 주소 하나로: Claude 앱(웹·데스크톱·모바일)의 **�
 - 오류 코드 `OAUTH_REQUEST_NOT_FOUND`, `OAUTH_SCOPE_INVALID`, `OAUTH_GRANT_NOT_FOUND`. OAuth 끝점의 오류는 RFC 6749 모양 `{ "error", "error_description" }`
 
 ### 운영
-- 보안: 허락 코드는 한 번만(5분, Redis GETDEL), 같은 앱이 같은 코드를 다시 보내면 그 연결을 끊는다(쓴 표시는 커밋 뒤에, 다른 앱이 보낸 것이면 끊지 않는다). 옛 갱신 토큰이 다시 오면 연결을 끊는다(도난 감지). 다만 바뀐 지 60초(`refresh-reuse-grace`) 안이면 겹친 요청일 수 있어 거절만 한다. 연결을 모두 끊은 뒤(`users.oauth_revoked_at`)에는 그 전에 받은 허락 코드도 못 쓴다. 앱 이름에서 보이지 않는 글자(서식·제어 문자)를 지운다. 화면 nginx가 `frame-ancestors 'none'`·`X-Frame-Options: DENY`로 틀 안에 띄우지 못하게 한다. 토큰은 SHA-256만 저장. 동적 등록은 IP마다 한 시간 20번. 회원마다 연결 10개(넘으면 가장 오래 쓰지 않은 연결을 끊는다). 비밀번호 변경·탈퇴·정지 때 연결도 모두 끊는다. 매일 지난 출입증·연결과 연결 없이 30일 동안 쓰이지 않은(`oauth_client.last_used_at`) 앱 등록을 지운다
-- 설정 `mcp.oauth.*`(발급자 `issuer`는 `MCP_OAUTH_ISSUER`, 없으면 `SITE_URL`, 그것도 없으면 요청 주소), Flyway V33(`oauth_client`·`oauth_grant`·`oauth_access_token`, `users.oauth_revoked_at`), V34(0.17.0 공지)
+- 보안: 허락 코드는 한 번만(5분, Redis GETDEL), 같은 앱이 같은 코드를 다시 보내면 그 연결을 끊는다(쓴 표시는 커밋 뒤에, 다른 앱이 보낸 것이면 끊지 않는다). 이미 바뀐 갱신 토큰은 몇 대 전 것이든 기억해(`oauth_refresh_used`) 같은 앱이 다시 보내면 연결을 끊는다(도난 감지). 다만 바로 전 것이 바뀐 지 60초(`refresh-reuse-grace`) 안에 오면 겹친 요청일 수 있어 거절만 한다. 연결을 모두 끊은 뒤(`users.oauth_revoked_at`)에는 그 전에 받은 허락 코드도 못 쓴다. 앱 이름에서 보이지 않는 글자(서식·제어 문자)를 지운다. 화면 nginx가 `frame-ancestors 'none'`·`X-Frame-Options: DENY`로 틀 안에 띄우지 못하게 한다. 토큰은 SHA-256만 저장. 동적 등록은 IP마다 한 시간 20번. 회원마다 연결 10개(넘으면 가장 오래 쓰지 않은 연결을 끊는다). 비밀번호 변경·탈퇴·정지 때 연결도 모두 끊는다. 매일 지난 출입증·연결과 연결 없이 30일 동안 쓰이지 않은(`oauth_client.last_used_at`) 앱 등록을 지운다
+- 설정 `mcp.oauth.*`(발급자 `issuer`는 `MCP_OAUTH_ISSUER`, 없으면 `SITE_URL`, 그것도 없으면 요청 주소), Flyway V33(`oauth_client`·`oauth_grant`·`oauth_refresh_used`·`oauth_access_token`, `users.oauth_revoked_at`), V34(0.17.0 공지)
 - 화면 nginx·개발 vite가 `/.well-known/oauth-`·`/oauth/`를 서버로 넘긴다(소셜 로그인 `/oauth2/`와 다른 길)
 - 공식 MCP TypeScript SDK 클라이언트의 OAuth 흐름으로 끝까지 확인: 401 → 메타데이터 → 동적 등록 → 위임장 허락 → 토큰 → 도구 → 출입증이 망가지면 갱신 → 옛 갱신 토큰으로 연결 끊김
-- 테스트: 서버 OAuth 22개(S1-1~S2-3, 음수 경우·유예 경계·겹친 갱신·보안 검토 포함)·REST Docs 2개, 화면 위임장 13개·연결된 앱 3개. 0.16.0 main 품질 분석에서 한 번 흔들린 화면 테스트 두 개(엽서 뒤집기의 키보드 자리, 글마당 글 수 세어 올리기)를 바쁜 CI에서도 흔들리지 않게 고침
+- 테스트: 서버 OAuth 23개(S1-1~S2-3, 음수 경우·유예 경계·겹친 갱신·보안 검토 포함)·REST Docs 2개, 화면 위임장 13개·연결된 앱 3개. 0.16.0 main 품질 분석에서 한 번 흔들린 화면 테스트 두 개(엽서 뒤집기의 키보드 자리, 글마당 글 수 세어 올리기)를 바쁜 CI에서도 흔들리지 않게 고침
 
 ## [0.16.0] - 2026-10-20
 

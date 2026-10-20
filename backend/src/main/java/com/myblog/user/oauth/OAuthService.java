@@ -445,13 +445,13 @@ public class OAuthService {
         Optional<Grant> rotated = store.rotateRefresh(hash, client.clientId(), OAuthTokens.sha256Hex(next),
                 now.plus(properties.refreshTokenTtl()), now);
         if (rotated.isEmpty()) {
-            // 옛 갱신 토큰이 다시 왔다 (S1-5). 바뀐 지 유예 시간 안이면 같은 앱이 겹쳐 보낸 요청일 수 있어 거절만 하고,
-            // 그 뒤면 도난으로 보고 연결을 끊는다
-            store.grantByPreviousRefresh(hash)
-                    .filter(previous -> previous.clientId().equals(client.clientId()))
-                    .filter(previous -> previous.rotatedAt() == null
-                            || !now.isBefore(previous.rotatedAt().plus(properties.refreshReuseGrace())))
-                    .ifPresent(previous -> store.deleteGrant(previous.grantId()));
+            // 이미 바뀐 갱신 토큰이 다시 왔다 (S1-5). 몇 대 전 것이든 도난으로 보고 연결을 끊는다. 다만 바로 전 것이
+            // 바뀐 지 유예 시간 안에 오면 같은 앱이 겹쳐 보낸 요청일 수 있어 거절만 한다. 다른 앱이 보낸 것이면 끊지 않는다
+            store.usedRefresh(hash)
+                    .filter(used -> used.clientId().equals(client.clientId()))
+                    .filter(used -> !used.latest()
+                            || !now.isBefore(used.rotatedAt().plus(properties.refreshReuseGrace())))
+                    .ifPresent(used -> store.deleteGrant(used.grantId()));
             throw OAuthError.invalidGrant("갱신 토큰이 없거나, 지났거나, 이미 바뀌었습니다");
         }
         Grant grant = rotated.get();

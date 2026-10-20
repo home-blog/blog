@@ -393,7 +393,7 @@ operation::guestbook-list[snippets='path-parameters,query-parameters,http-reques
 Claude 앱의 **커스텀 커넥터**처럼 열쇠 칸이 없는 앱은 OAuth 2.1로 붙습니다 (0.17.0). 앱은 MCP 주소의 401 `WWW-Authenticate: Bearer resource_metadata="…"`를 보고
 메타데이터를 읽은 뒤, 스스로 등록하고(동적 등록), 회원의 브라우저를 글결 **위임장**(`/connect/authorize`)으로 보냅니다.
 회원이 허락하면 허락 코드를 PKCE(`S256`)와 함께 출입증(`go_…`, 1시간)·갱신 토큰(`gr_…`, 30일)으로 바꿉니다.
-갱신 토큰은 쓸 때마다 바뀌고, 옛 갱신 토큰이나 이미 쓴 허락 코드가 다시 오면 그 연결을 끊습니다. 오류는 RFC 6749 모양 `{ "error", "error_description" }`입니다.
+갱신 토큰은 쓸 때마다 바뀌고, 몇 대 전 것이든 이미 바뀐 갱신 토큰이나 이미 쓴 허락 코드를 같은 앱이 다시 보내면 그 연결을 끊습니다(바로 전 갱신 토큰은 바뀐 지 60초 안이면 거절만). 오류는 RFC 6749 모양 `{ "error", "error_description" }`입니다.
 
 [[oauth-protected-resource]]
 === 보호 자원 메타데이터 (RFC 9728)
@@ -411,7 +411,9 @@ operation::oauth-register[snippets='request-fields,http-request,http-response,re
 
 [[oauth-authorize]]
 === 인가
-모르는 앱이나 등록하지 않은 돌아갈 주소면 앱으로 돌려보내지 않고 `/connect/authorize?error=invalid_client`로, 그 밖의 잘못은 돌아갈 주소에 `error`·`state`·`iss`를 붙여 보냅니다.
+모르는 앱이나 등록하지 않은 돌아갈 주소면 앱으로 돌려보내지 않고 `/connect/authorize?error=invalid_client`로 보냅니다.
+앱과 돌아갈 주소를 확인한 뒤의 잘못(범위, PKCE 등)도 앱으로 바로 보내지 않고 `/connect/authorize?error=…&back=…` 오류 화면으로 보냅니다.
+오류 화면은 `GET /api/v1/oauth/errors/{errorId}`(로그인 없이, 10분)로 서버가 만든 돌아갈 주소(`error`·`state`·`iss`를 붙인 것)를 읽고, 회원이 "앱으로 돌아가기"를 눌러야 앱으로 갑니다.
 맞으면 `/connect/authorize?request=…`(위임장)으로 보냅니다.
 
 operation::oauth-authorize[snippets='query-parameters,http-request,http-response']

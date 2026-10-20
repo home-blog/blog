@@ -1,7 +1,8 @@
 -- 글결 MCP OAuth (specs/023 data-model, ERD E-20): Claude 앱의 커스텀 커넥터처럼 OAuth로 붙는 AI 앱.
 --   oauth_client: 동적 등록(RFC 7591)으로 스스로 등록한 공개 클라이언트(비밀 없음). 돌아갈 주소는 줄바꿈으로 나눈 1~5개.
 --   oauth_grant: 회원이 위임장에서 허락한 연결. 갱신 토큰은 쓸 때마다 바뀌고(SHA-256만 저장),
---                바로 전 갱신 토큰이 다시 오면 도난으로 보고 연결을 지운다.
+--                이미 바뀐 갱신 토큰이 다시 오면 도난으로 보고 연결을 지운다.
+--   oauth_refresh_used: 이미 바뀐 갱신 토큰 전부(연결이 지워지면 함께). 몇 대 전 것이든 다시 오면 알아챈다.
 --   oauth_access_token: 1시간짜리 출입증(SHA-256만). 연결을 지우면 함께 지운다.
 --   users.oauth_revoked_at: 비밀번호 변경·탈퇴·정지로 연결을 모두 끊은 시각. 그 전에 받은 허락 코드는 토큰으로 바꿀 수 없다.
 --   허락을 기다리는 요청(10분)과 허락 코드(5분)는 잃어도 되는 짧은 값이라 Redis에 둔다.
@@ -25,8 +26,6 @@ CREATE TABLE oauth_grant (
     client_id             VARCHAR(64) NOT NULL,
     scope                 VARCHAR(10) NOT NULL,
     refresh_hash          CHAR(64)    NOT NULL,
-    previous_refresh_hash CHAR(64),
-    refresh_rotated_at    TIMESTAMPTZ,
     refresh_expires_at    TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     last_used_at          TIMESTAMPTZ,
@@ -38,11 +37,22 @@ CREATE TABLE oauth_grant (
 );
 CREATE INDEX idx_oauth_grant_users ON oauth_grant (users_id, created_at);
 CREATE INDEX idx_oauth_grant_client ON oauth_grant (client_id);
-CREATE INDEX idx_oauth_grant_previous ON oauth_grant (previous_refresh_hash) WHERE previous_refresh_hash IS NOT NULL;
 COMMENT ON TABLE oauth_grant IS '회원이 위임장에서 허락한 AI 앱 연결';
 COMMENT ON COLUMN oauth_grant.refresh_hash IS '지금 갱신 토큰의 SHA-256';
-COMMENT ON COLUMN oauth_grant.previous_refresh_hash IS '바로 전 갱신 토큰의 SHA-256 (유예 시간이 지나 다시 오면 도난으로 보고 연결을 끊는다)';
-COMMENT ON COLUMN oauth_grant.refresh_rotated_at IS '갱신 토큰을 마지막으로 바꾼 시각 (겹친 갱신 요청을 도난과 가르는 유예의 기준)';
+
+CREATE TABLE oauth_refresh_used (
+    refresh_hash      CHAR(64)    NOT NULL,
+    oauth_grant_id    BIGINT      NOT NULL,
+    next_refresh_hash CHAR(64)    NOT NULL,
+    rotated_at        TIMESTAMPTZ NOT NULL,
+    CONSTRAINT oauth_refresh_used_pk PRIMARY KEY (refresh_hash),
+    CONSTRAINT fk_oauth_refresh_used_grant FOREIGN KEY (oauth_grant_id) REFERENCES oauth_grant (oauth_grant_id)
+        ON DELETE CASCADE
+);
+CREATE INDEX idx_oauth_refresh_used_grant ON oauth_refresh_used (oauth_grant_id);
+COMMENT ON TABLE oauth_refresh_used IS '이미 바뀐 갱신 토큰(SHA-256). 다시 오면 도난으로 보고 연결을 끊는다';
+COMMENT ON COLUMN oauth_refresh_used.next_refresh_hash IS '이 토큰을 바꿔 준 다음 토큰. 그것이 지금 토큰이면 바로 전 것이라 유예를 준다';
+COMMENT ON COLUMN oauth_refresh_used.rotated_at IS '바뀐 시각 (겹친 갱신 요청을 도난과 가르는 유예의 기준)';
 
 CREATE TABLE oauth_access_token (
     token_hash     CHAR(64)    NOT NULL,

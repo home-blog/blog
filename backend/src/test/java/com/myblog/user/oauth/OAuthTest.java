@@ -534,6 +534,40 @@ class OAuthTest {
     }
 
     @Test
+    void S1_5_두_번_넘게_바뀐_옛_갱신_토큰이_오면_유예_안이어도_바로_연결을_끊는다() throws Exception {
+        // 훔친 T1으로 T2·T3까지 돌렸어도, 피해자가 T1을 보내면 알아챈다 (바로 전 것만 보면 놓친다)
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        clock.set(start);
+        Connected connected = connect(mySession, "read");
+        String t1 = connected.refresh();
+        String t2 = JsonPath.read(token("grant_type", "refresh_token", "refresh_token", t1, "client_id",
+                connected.clientId()).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
+                "$.refresh_token");
+        String body = token("grant_type", "refresh_token", "refresh_token", t2, "client_id", connected.clientId())
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String t3 = JsonPath.read(body, "$.refresh_token");
+        String access = JsonPath.read(body, "$.access_token");
+
+        // 바로 전 것(T2)은 유예 안이면 거절만 한다
+        clock.set(start.plusSeconds(10));
+        token("grant_type", "refresh_token", "refresh_token", t2, "client_id", connected.clientId())
+                .andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(access, "ping").getResponse().getStatus()).isEqualTo(200);
+        // 다른 앱이 보낸 T1으로는 끊지 않는다
+        token("grant_type", "refresh_token", "refresh_token", t1, "client_id", newClient())
+                .andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(access, "ping").getResponse().getStatus()).isEqualTo(200);
+        // 같은 앱이 그보다 옛것(T1)을 보내면 유예 안이어도 끊는다
+        token("grant_type", "refresh_token", "refresh_token", t1, "client_id", connected.clientId())
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(mcp(access, "ping").getResponse().getStatus()).isEqualTo(401);
+        token("grant_type", "refresh_token", "refresh_token", t3, "client_id", connected.clientId())
+                .andExpect(jsonPath("$.error").value("invalid_grant"));
+        assertThat(jdbc.queryForObject("select count(*) from oauth_grant where client_id = ?", Integer.class,
+                connected.clientId())).isZero();
+    }
+
+    @Test
     void S1_5_같은_갱신_토큰으로_거의_동시에_두_번_갱신해도_하나만_받고_연결은_그대로다() throws Exception {
         Connected connected = connect(mySession, "read");
         java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);

@@ -86,24 +86,34 @@ class OAuthStore {
      * 갱신 토큰 돌리기: 지금 갱신 토큰이 oldHash인 연결만 한 줄로 바꾼다(같은 토큰으로 겹쳐 와도 하나만 통과).
      * 바뀐 연결을 돌려준다.
      */
+    /** 갱신 토큰을 바꾼다. 바뀐 옛 토큰은 같은 트랜잭션에서 oauth_refresh_used에 남긴다. */
     Optional<Grant> rotateRefresh(String oldHash, String clientId, String newHash, Instant newExpiresAt, Instant now) {
-        List<Long> ids = jdbc.queryForList("update oauth_grant set previous_refresh_hash = refresh_hash,"
-                        + " refresh_hash = ?, refresh_expires_at = ?, last_used_at = ?, refresh_rotated_at = ?"
-                        + " where refresh_hash = ? and client_id = ? and refresh_expires_at > ? returning oauth_grant_id",
-                Long.class, newHash, Timestamp.from(newExpiresAt), Timestamp.from(now), Timestamp.from(now), oldHash,
-                clientId, Timestamp.from(now));
-        return ids.stream().findFirst().flatMap(this::grant);
+        List<Long> ids = jdbc.queryForList("update oauth_grant set refresh_hash = ?, refresh_expires_at = ?,"
+                        + " last_used_at = ? where refresh_hash = ? and client_id = ? and refresh_expires_at > ?"
+                        + " returning oauth_grant_id",
+                Long.class, newHash, Timestamp.from(newExpiresAt), Timestamp.from(now), oldHash, clientId,
+                Timestamp.from(now));
+        if (ids.isEmpty()) {
+            return Optional.empty();
+        }
+        jdbc.update("insert into oauth_refresh_used (refresh_hash, oauth_grant_id, next_refresh_hash, rotated_at)"
+                + " values (?, ?, ?, ?)", oldHash, ids.get(0), newHash, Timestamp.from(now));
+        return grant(ids.get(0));
     }
 
-    /** 이미 바뀐(옛) 갱신 토큰이 다시 왔을 때 그 연결과, 갱신 토큰을 바꾼 시각·앱. */
-    record PreviousRefresh(long grantId, String clientId, Instant rotatedAt) {
+    /**
+     * 이미 바뀐 갱신 토큰이 다시 왔을 때: 그 연결, 앱, 바뀐 시각, 바로 전 것인가(다음 토큰이 지금 토큰인가).
+     */
+    record UsedRefresh(long grantId, String clientId, Instant rotatedAt, boolean latest) {
     }
 
-    Optional<PreviousRefresh> grantByPreviousRefresh(String hash) {
-        return jdbc.query("select oauth_grant_id, client_id, refresh_rotated_at from oauth_grant"
-                        + " where previous_refresh_hash = ?",
-                (rs, rowNum) -> new PreviousRefresh(rs.getLong("oauth_grant_id"), rs.getString("client_id"),
-                        instant(rs, "refresh_rotated_at")), hash).stream().findFirst();
+    Optional<UsedRefresh> usedRefresh(String hash) {
+        return jdbc.query("select u.oauth_grant_id, g.client_id, u.rotated_at,"
+                        + " (u.next_refresh_hash = g.refresh_hash) as latest"
+                        + " from oauth_refresh_used u join oauth_grant g on g.oauth_grant_id = u.oauth_grant_id"
+                        + " where u.refresh_hash = ?",
+                (rs, rowNum) -> new UsedRefresh(rs.getLong("oauth_grant_id"), rs.getString("client_id"),
+                        instant(rs, "rotated_at"), rs.getBoolean("latest")), hash).stream().findFirst();
     }
 
     Optional<Long> grantByRefresh(String hash) {
