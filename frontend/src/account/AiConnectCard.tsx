@@ -68,6 +68,12 @@ export default function AiConnectCard() {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const [tab, setTab] = useState<ClientKind>('claude-app')
   const [copied, setCopied] = useState<{ target: CopyTarget; text: string } | null>(null)
+
+  /** 탭을 바꾸면 앞 탭의 "복사했어요"를 지운다 (열쇠 복사는 탭과 상관없어 그대로) */
+  function selectTab(next: ClientKind) {
+    setTab(next)
+    setCopied((current) => (current?.target === 'snippet' ? null : current))
+  }
   const tokenRef = useRef<HTMLElement>(null)
   const snippetRef = useRef<HTMLElement>(null)
   const tabRefs = useRef<Partial<Record<ClientKind, HTMLButtonElement | null>>>({})
@@ -102,6 +108,8 @@ export default function AiConnectCard() {
         ) : (
           <p className="hint">불러오는 중</p>
         )}
+        {/* 열쇠를 불러오지 못해도 연결된 앱은 따로 보고 끊을 수 있다 (불러오는 동안에는 두 번 부르지 않게 그리지 않는다) */}
+        {loadFailed && <ConnectedAppList />}
       </section>
     )
   }
@@ -168,7 +176,7 @@ export default function AiConnectCard() {
     if (step === 0) return
     event.preventDefault()
     const next = CLIENTS[(index + step + CLIENTS.length) % CLIENTS.length].kind
-    setTab(next)
+    selectTab(next)
     tabRefs.current[next]?.focus()
   }
 
@@ -361,7 +369,7 @@ export default function AiConnectCard() {
               aria-selected={tab === c.kind}
               aria-controls={`${titleId}-panel`}
               tabIndex={tab === c.kind ? 0 : -1}
-              onClick={() => setTab(c.kind)}
+              onClick={() => selectTab(c.kind)}
               onKeyDown={(e) => moveTab(e, index)}
             >
               {c.label}

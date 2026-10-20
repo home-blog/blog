@@ -185,6 +185,10 @@ describe('AI 비서 연결', () => {
     await user.click(within(panel).getByRole('button', { name: '주소 복사' }))
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/api/v1/mcp`)
     expect(screen.getByText('주소: 복사했어요')).toHaveAttribute('role', 'status')
+    // 다른 탭으로 가면 앞 탭의 "복사했어요"가 남지 않는다
+    await user.click(screen.getByRole('tab', { name: 'Claude Desktop' }))
+    expect(screen.queryByText(/복사했어요/)).toBeNull()
+    expect(within(screen.getByRole('tabpanel')).getByRole('button', { name: '설정 복사' })).toHaveTextContent('복사')
   })
 
   it('연결된 앱을 보이고, 끊기는 한 번 더 묻고 끊으면 목록에서 빠진다', async () => {
@@ -277,12 +281,51 @@ describe('AI 비서 연결', () => {
           ? HttpResponse.json({ code: 'INTERNAL', message: '잠시 뒤' }, { status: 500 })
           : HttpResponse.json({ items: [key()], maxCount: 5, allowedDays: [30], nameMaxLength: 40 })
       }),
-      http.get('/api/v1/me/connected-apps', () => HttpResponse.json({ items: [], max: 10 })),
+      http.get('/api/v1/me/connected-apps', () =>
+        HttpResponse.json({
+          items: [
+            { grantId: 3, clientName: 'Claude', scope: 'read', createdAt: '2026-10-20T00:00:00Z', lastUsedAt: null },
+          ],
+          max: 10,
+        }),
+      ),
     )
     const user = userEvent.setup()
     render(<AiConnectCard />)
     expect(await screen.findByRole('alert')).toHaveTextContent('열쇠를 불러오지 못했습니다')
+    // 열쇠를 못 불러와도 연결된 앱은 따로 보고 끊을 수 있다
+    expect(await screen.findByRole('list', { name: '연결된 앱' })).toHaveTextContent('Claude')
     await user.click(screen.getByRole('button', { name: '다시 시도' }))
     expect(await screen.findByRole('list', { name: '내 열쇠' })).toBeInTheDocument()
+  })
+
+  it('연결된 앱을 불러오지 못하면 다시 시도할 수 있다', async () => {
+    serve()
+    let calls = 0
+    server.use(
+      http.get('/api/v1/me/connected-apps', () => {
+        calls++
+        return calls === 1
+          ? HttpResponse.json({ code: 'INTERNAL', message: '잠시 뒤' }, { status: 500 })
+          : HttpResponse.json({
+              items: [
+                {
+                  grantId: 9,
+                  clientName: 'Claude',
+                  scope: 'read',
+                  createdAt: '2026-10-20T00:00:00Z',
+                  lastUsedAt: null,
+                },
+              ],
+              max: 10,
+            })
+      }),
+    )
+    const user = userEvent.setup()
+    render(<AiConnectCard />)
+    expect(await screen.findByText('※ 연결된 앱을 불러오지 못했습니다')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+    expect(await screen.findByRole('list', { name: '연결된 앱' })).toHaveTextContent('Claude')
+    expect(screen.queryByText('※ 연결된 앱을 불러오지 못했습니다')).toBeNull()
   })
 })
