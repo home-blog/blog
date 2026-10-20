@@ -7,10 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.myblog.support.TestClock;
 import com.myblog.support.TestMembers;
 import com.myblog.support.TestMembers.Member;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,8 +45,7 @@ class SearchTrendMinCountTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-        clock.set(Instant.parse("2040-01-01T00:00:00Z")
-                .plus(Duration.ofMinutes(10L * ThreadLocalRandom.current().nextInt(1, 500_000))));
+        clock.set(TestClock.distinctFarFutureSlot());
         word = "드문말" + UUID.randomUUID().toString().substring(0, 6);
         Member writer = members.register("trendmin");
         jdbc.update("insert into post (category_id, topic_id, title, content, visibility, created_at)"
