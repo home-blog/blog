@@ -75,9 +75,15 @@
   font-size: var(--step--1);
 }
 
-/* 머리글 우편함 */
+/* 머리글 우편함 (0.15.0 다시 그림): 항공우편 띠 + 편지봉투 덮개 머리 + 톱니 우표 + 소인 */
 .mailbox {
   position: relative;
+  /* 우표 색: 종류마다 다른 잉크 */
+  --stamp-post: var(--accent);
+  --stamp-comment: var(--seal);
+  --stamp-board: var(--category-2);
+  --stamp-accepted: var(--category-4);
+  --stamp-editorial: var(--category-5);
 }
 
 .mailbox-button {
@@ -92,13 +98,18 @@
   color: var(--ink);
   font: inherit;
   cursor: pointer;
+  transition:
+    border-color 0.2s,
+    transform 0.3s var(--ease-out);
 }
 
-.mailbox-button:hover {
+.mailbox-button:hover,
+.mailbox-button[aria-expanded='true'] {
   border-color: var(--grid-strong);
+  transform: rotate(-8deg);
 }
 
-/* 안 읽은 수: 톱니 테두리 우표 */
+/* 안 읽은 수: 톱니 테두리 우표. 수가 바뀌면 한 번 통통 튄다 */
 .mailbox-badge {
   position: absolute;
   top: -0.45rem;
@@ -115,127 +126,444 @@
   font-variant-numeric: tabular-nums;
   outline: 2px dotted var(--seal);
   outline-offset: 1px;
+  animation: badge-pop 0.5s var(--ease-out) both;
 }
 
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.4) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.18) rotate(6deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 판: 위에 항공우편 빗금 띠, 안쪽은 옅은 원고지 칸 */
 .mailbox-panel {
   position: absolute;
   right: 0;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.6rem);
   z-index: 30;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: min(70vh, 32rem);
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(74vh, 36rem);
   overflow-y: auto;
-  padding: 0.85rem;
-  border: 1px solid var(--grid);
+  overscroll-behavior: contain;
+  border: 1px solid var(--grid-strong);
   border-radius: 10px;
-  background: var(--paper-raised);
+  background:
+    repeating-linear-gradient(
+        135deg,
+        var(--seal) 0 10px,
+        transparent 10px 16px,
+        var(--category-2) 16px 26px,
+        transparent 26px 32px
+      )
+      top / 100% 6px no-repeat,
+    linear-gradient(color-mix(in srgb, var(--grid) 22%, transparent) 1px, transparent 1px) 0 0 / 100% 1.6rem,
+    linear-gradient(90deg, color-mix(in srgb, var(--grid) 22%, transparent) 1px, transparent 1px) 0 0 / 1.6rem 100%,
+    var(--paper-raised);
   box-shadow: var(--shadow-raised);
-  display: grid;
-  gap: 0.6rem;
+  transform-origin: top right;
+  animation: letter-out 0.32s var(--ease-out) both;
 }
 
-.mailbox-head {
+@keyframes letter-out {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+/* 편지봉투 덮개: 아래 끝이 V자로 접힌 머리 */
+.mailbox-flap {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  margin-top: 6px;
+  padding: 0.85rem 1rem 1.1rem;
+  background: color-mix(in srgb, var(--accent) 9%, var(--paper-raised));
+}
+
+.mailbox-flap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 0.75rem;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 1px 0 var(--grid));
+}
+
+.mailbox-heading {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.mailbox-kicker {
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+}
+
+.mailbox-name {
   font-family: var(--font-letter);
+  font-size: var(--step-1);
+}
+
+.mailbox-count {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+}
+
+.mailbox-count b {
+  color: var(--seal);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 오늘 날짜 소인: 붉은 이중 원 */
+.postmark-today {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  border: 2px solid var(--seal);
+  border-radius: 50%;
+  outline: 1px solid var(--seal);
+  outline-offset: -6px;
+  color: var(--seal);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  line-height: 1.05;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+
+.postmark-today small {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+}
+
+.mailbox-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.1rem 1rem 0.35rem;
+}
+
+/* 전체·안 읽음: 원고지 칸 두 개 */
+.mailbox-filter {
+  display: inline-flex;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  overflow: hidden;
+}
+
+.mailbox-filter button {
+  padding: 0.2rem 0.7rem;
+  border: 0;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--step--1);
+  cursor: pointer;
+}
+
+.mailbox-filter button + button {
+  border-left: 1px solid var(--grid-strong);
+}
+
+/* 판이 overflow: hidden이라 바깥에 그리는 포커스 테두리가 잘린다: 단추 안쪽에 그린다 */
+.mailbox-filter button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.mailbox-filter button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .mailbox-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0.35rem 0.75rem 0.25rem;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
-.mailbox-item {
+.mailbox-list > li {
+  animation: rise-in 0.42s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 45ms);
+}
+
+/* 편지 한 통: 엽서처럼 점선 테두리, 왼쪽에 우표, 오른쪽 위에 봉랍 */
+.letter {
+  position: relative;
   width: 100%;
   display: grid;
-  grid-template-columns: 2.6rem minmax(0, 1fr);
-  gap: 0.65rem;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0.8rem;
   align-items: start;
-  padding: 0.5rem;
-  border: 0;
-  border-radius: var(--radius-field);
-  background: color-mix(in srgb, var(--highlight) 30%, transparent);
+  padding: 0.65rem 1.6rem 0.65rem 0.65rem;
+  border: 1px dashed var(--grid-strong);
+  border-radius: 4px;
+  background: var(--paper-raised);
   color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    transform 0.25s var(--ease-out),
+    box-shadow 0.25s,
+    border-color 0.2s;
 }
 
-.mailbox-item.is-read {
-  background: transparent;
+.letter:hover,
+.letter:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-style: solid;
+}
+
+.letter.is-read {
+  background: color-mix(in srgb, var(--paper) 70%, var(--paper-raised));
   color: var(--ink-soft);
 }
 
-.mailbox-item:hover {
-  background: color-mix(in srgb, var(--grid) 22%, transparent);
+/* 톱니 우표: 바깥 3px은 구멍 뚫린 종이, 안쪽은 종류 색의 우표 면 */
+.stamp {
+  --stamp: var(--stamp-post);
+  display: block;
+  width: 3rem;
+  height: 3.5rem;
+  padding: 4px;
+  background: radial-gradient(circle at 4px 4px, transparent 2.2px, var(--paper) 2.6px) -4px -4px / 8px 8px;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.18));
+  transform: rotate(-3deg);
+  transition: transform 0.3s var(--ease-out);
 }
 
-/* 우표: 톱니 테두리(점선)와 가운데 글자. 읽으면 소인(둥근 물결 선)이 찍힌다 */
-.stamp {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 3rem;
-  border: 2px dotted var(--accent);
-  outline: 1px solid var(--accent);
-  outline-offset: -5px;
-  background: var(--paper);
-  color: var(--accent);
-  font-family: var(--font-letter);
-  font-size: 0.72rem;
-  font-weight: 700;
+.letter:hover .stamp {
+  transform: rotate(4deg) scale(1.05);
 }
 
 .stamp-comment,
-.stamp-reply,
-.stamp-board,
-.stamp-accepted,
-.stamp-editorial {
-  border-color: var(--seal);
-  outline-color: var(--seal);
-  color: var(--seal);
+.stamp-reply {
+  --stamp: var(--stamp-comment);
 }
 
-.is-read .stamp::after {
-  content: '';
+.stamp-board {
+  --stamp: var(--stamp-board);
+}
+
+.stamp-accepted {
+  --stamp: var(--stamp-accepted);
+}
+
+.stamp-editorial {
+  --stamp: var(--stamp-editorial);
+}
+
+.stamp-face {
+  height: 100%;
+  display: grid;
+  align-content: space-between;
+  justify-items: center;
+  padding: 0.2rem 0.1rem;
+  background: var(--stamp);
+  color: var(--paper-raised);
+  outline: 1px solid color-mix(in srgb, var(--paper-raised) 55%, transparent);
+  outline-offset: -3px;
+}
+
+.stamp-tiny {
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+}
+
+.stamp-word {
+  font-family: var(--font-letter);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.is-read .stamp {
+  filter: grayscale(0.35) drop-shadow(0 1px 1px rgb(0 0 0 / 0.12));
+}
+
+/* 소인: 우표 오른쪽 아래에 걸친 둥근 날짜 도장 + 왼쪽으로 우표를 지나는 물결선 세 줄(글자는 가리지 않는다).
+   이번에 읽었으면 쾅 찍힌다 */
+.postmark {
   position: absolute;
-  inset: 0.35rem -0.6rem auto auto;
+  left: 2.3rem;
+  top: 2.45rem;
+  display: grid;
+  place-items: center;
   width: 1.9rem;
   height: 1.9rem;
-  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 70%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 80%, transparent);
   border-radius: 50%;
-  transform: rotate(-12deg);
+  color: color-mix(in srgb, var(--ink-soft) 90%, transparent);
+  font-size: 0.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--paper-raised) 55%, transparent);
+  transform: rotate(-14deg);
+  pointer-events: none;
 }
 
-.mailbox-text {
+.postmark::after {
+  content: '';
+  position: absolute;
+  right: 80%;
+  top: 0.4rem;
+  width: 1.7rem;
+  height: 1rem;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='18'%3E%3Cpath d='M0 3q4.5-3 9 0t9 0t9 0t9 0M0 9q4.5-3 9 0t9 0t9 0t9 0M0 15q4.5-3 9 0t9 0t9 0t9 0' fill='none' stroke='%23000' stroke-width='1.3'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='18'%3E%3Cpath d='M0 3q4.5-3 9 0t9 0t9 0t9 0M0 9q4.5-3 9 0t9 0t9 0t9 0M0 15q4.5-3 9 0t9 0t9 0t9 0' fill='none' stroke='%23000' stroke-width='1.3'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+}
+
+.postmark.is-stamping {
+  animation: postmark-in 0.45s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 90ms);
+}
+
+@keyframes postmark-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-30deg) scale(1.9);
+  }
+  70% {
+    opacity: 1;
+    transform: rotate(-12deg) scale(0.92);
+  }
+  100% {
+    transform: rotate(-14deg) scale(1);
+  }
+}
+
+.letter-text {
   display: grid;
   gap: 0.15rem;
   min-width: 0;
 }
 
-.mailbox-line {
+.letter-from {
   font-size: var(--step--1);
 }
 
-.mailbox-title {
-  font-weight: 600;
+.letter-subject {
+  font-family: var(--font-letter);
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mailbox-time {
+/* 안 읽은 편지 제목: 형광펜이 왼쪽에서 오른쪽으로 그어진다 */
+.letter:not(.is-read) .letter-subject-ink {
+  padding: 0 0.1em;
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat 0 88% / 100% 50%;
+  animation: ink-highlight 0.7s var(--ease-out) both;
+  animation-delay: calc(200ms + min(var(--i, 0), 10) * 60ms);
+}
+
+.letter-note {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.letter-time {
   color: var(--ink-soft);
   font-size: 0.75rem;
 }
 
+/* 봉랍: 안 읽은 편지 오른쪽 위의 붉은 점 */
+.letter-seal {
+  position: absolute;
+  right: 0.6rem;
+  top: 0.65rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--seal) 55%, var(--paper-raised)), var(--seal));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--seal) 25%, transparent);
+}
+
+.mailbox-loading {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* 빈 우편함: 빈 봉투 그림 / 다 읽었으면 "다 읽음" 소인 */
+.mailbox-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  text-align: center;
+}
+
+.mailbox-empty .hint {
+  margin: 0;
+}
+
+.empty-envelope {
+  position: relative;
+  width: 4rem;
+  height: 2.6rem;
+  border: 1.5px solid var(--grid-strong);
+  border-radius: 3px;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--grid-strong) 50%, transparent calc(50% + 1px)) 0
+      0 / 50% 100% no-repeat,
+    linear-gradient(to top left, transparent calc(50% - 1px), var(--grid-strong) 50%, transparent calc(50% + 1px)) 100%
+      0 / 50% 100% no-repeat;
+  animation: envelope-float 3s ease-in-out infinite;
+}
+
+@keyframes envelope-float {
+  50% {
+    transform: translateY(-4px) rotate(-2deg);
+  }
+}
+
+.postmark-done {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  outline: 1px solid var(--accent);
+  outline-offset: -6px;
+  color: var(--accent);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  transform: rotate(-12deg);
+  animation: postmark-in 0.45s var(--ease-out) both;
+}
+
 .mailbox-foot {
   margin: 0;
+  padding: 0.5rem 1rem 0.85rem;
   text-align: right;
   font-size: var(--step--1);
 }
@@ -258,11 +586,14 @@
     right: max(16px, env(safe-area-inset-right, 0px));
     bottom: max(16px, env(safe-area-inset-bottom, 0px));
     width: auto;
+    transform-origin: bottom center;
+    animation-name: sheet-up;
   }
 }
 
-.mailbox-note {
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  overflow-wrap: anywhere;
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
 }

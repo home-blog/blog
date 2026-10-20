@@ -336,6 +336,25 @@ operation::editorial-review[snippets='path-parameters,http-request,http-response
 
 operation::editorial-take-down[snippets='path-parameters,request-headers,request-fields,http-request,http-response']
 
+[[ai-connect]]
+== AI 비서 연결 (MCP)
+
+마이페이지에서 만든 **개인 열쇠**로 Claude 같은 AI 비서가 `POST /api/v1/mcp`(MCP Streamable HTTP, 상태 없음, JSON 한 번에 답)에 붙습니다.
+도구는 `search_posts`(글 찾기), `search_passages`(단락 찾기 + 출처), `read_post`, `list_my_posts`, `my_blog_stats`, `save_draft`(초안 열쇠만, 발행하지 않음)입니다.
+열쇠마다 1분에 60번까지(넘으면 429와 JSON-RPC 오류 `-32000`), 다른 사이트의 브라우저 요청(Origin)은 403입니다.
+
+[[access-key-create]]
+=== 개인 열쇠 만들기
+목록은 `GET /api/v1/me/access-keys`(원문 없음, 힌트·마지막 사용 시각), 끊기는 `DELETE /api/v1/me/access-keys/{keyId}`입니다. 회원마다 5개까지(넘으면 409 `ACCESS_KEY_LIMIT`).
+
+operation::access-key-create[snippets='request-headers,request-fields,http-request,http-response,response-fields']
+
+[[mcp-search-passages]]
+=== 단락 찾기 (RAG의 찾기)
+서버는 맞는 단락을 출처와 함께 고르기만 하고, 답은 사용자의 AI가 씁니다. 제목 줄만 있는 덩어리는 다음 단락에 붙습니다.
+
+operation::mcp-search-passages[snippets='request-headers,request-fields,http-request,http-response,response-fields']
+
 [[errors]]
 == 오류 예시
 

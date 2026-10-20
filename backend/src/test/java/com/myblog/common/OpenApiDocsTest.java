@@ -59,7 +59,8 @@ class OpenApiDocsTest {
             }
             String path = ((String) operation.get("_path")).replaceAll("\\{[^}]+}", "1");
             int status = mvc.perform(get(path).session(new MockHttpSession())).andReturn().getResponse().getStatus();
-            boolean locked = String.valueOf(operation.get("security")).contains("세션 쿠키");
+            String security = String.valueOf(operation.get("security"));
+            boolean locked = security.contains("세션 쿠키") || security.contains("개인 열쇠");
             if (locked) {
                 assertThat(status).as("GET %s는 로그인해야 한다", path).isEqualTo(401);
             } else {

@@ -287,6 +287,24 @@ editorial:
   reason-max-length: 200   # 내림·지우기 사유 (post.lock_reason 칸 200자보다 길게 정하면 서버가 켜지지 않는다)
   day-zone: ${stats.day-zone}   # 운영 현황의 "오늘"
 
+# 개인 열쇠 (specs/020 US1): AI 비서(MCP)가 내 블로그에 붙는 열쇠
+access-key:
+  max-per-member: 5            # 회원 한 사람이 둘 수 있는 열쇠
+  allowed-days: [30, 90, 365]  # 고를 수 있는 기한
+  touch-interval: 1m           # 마지막 사용 시각은 이 간격보다 자주 고치지 않는다
+  name-max-length: 40          # 열쇠 이름 (access_key.name 칸 40자보다 길게 정하면 서버가 켜지지 않는다)
+
+# 글결 MCP (specs/020 US2·US3)
+mcp:
+  rate-limit:
+    per-minute: 60             # 열쇠마다 1분에 받는 요청 (Redis, 잃어도 되는 값)
+  search:
+    candidates: 50             # 단락 찾기가 살펴볼 후보 글 (최근 순)
+    passage-length: 600        # 단락이 이보다 길면 맞은 낱말 둘레로 자른다
+    max-passages: 8            # 단락 찾기 결과 상한
+    passages-per-post: 2       # 글 하나에서 가져올 단락 상한
+    max-posts: 10              # 글 찾기 결과 상한
+
 notice:
   title:
     max-length: 100

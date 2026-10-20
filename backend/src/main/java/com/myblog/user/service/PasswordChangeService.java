@@ -26,14 +26,16 @@ public class PasswordChangeService {
     private final PasswordEncoder passwordEncoder;
     private final MemberSessions memberSessions;
     private final TransactionTemplate transaction;
+    private final AccessKeyService accessKeys;
 
     public PasswordChangeService(UserRepository users, CurrentPasswordChecker currentPassword, PasswordEncoder passwordEncoder,
-            MemberSessions memberSessions, TransactionTemplate transaction) {
+            MemberSessions memberSessions, TransactionTemplate transaction, AccessKeyService accessKeys) {
         this.users = users;
         this.currentPassword = currentPassword;
         this.passwordEncoder = passwordEncoder;
         this.memberSessions = memberSessions;
         this.transaction = transaction;
+        this.accessKeys = accessKeys;
     }
 
     /** keepSessionId: 지금 기기의 세션. 이 세션만 로그인이 유지된다 (FR-020). */
@@ -60,8 +62,13 @@ public class PasswordChangeService {
                 throw mismatch();
             }
             locked.changePasswordHash(hash);
+            // 다른 기기 로그아웃처럼 AI 비서 열쇠도 모두 끊는다 (specs/020)
+            accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
+        // 한 번 더 끊는다: 바꾸기 전에 로그인해 둔 다른 세션의 "열쇠 만들기"가 비밀번호 변경을 기다렸다가
+        // 바로 뒤에 열쇠를 만들 수 있다. 다른 세션을 끝낸 뒤 지우면 그 열쇠도 남지 않는다
+        accessKeys.revokeAll(member.getId());
     }
 
     /**
@@ -77,8 +84,13 @@ public class PasswordChangeService {
                 throw required();
             }
             locked.changePasswordHash(hash);
+            // 다른 기기 로그아웃처럼 AI 비서 열쇠도 모두 끊는다 (specs/020)
+            accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
+        // 한 번 더 끊는다: 바꾸기 전에 로그인해 둔 다른 세션의 "열쇠 만들기"가 비밀번호 변경을 기다렸다가
+        // 바로 뒤에 열쇠를 만들 수 있다. 다른 세션을 끝낸 뒤 지우면 그 열쇠도 남지 않는다
+        accessKeys.revokeAll(member.getId());
     }
 
     /** 칸 오류 모양은 @Valid와 같다 (VALIDATION_FAILED + 칸). */

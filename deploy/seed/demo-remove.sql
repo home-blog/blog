@@ -29,6 +29,8 @@ delete from post where post_id in (select post_id from demo_posts);
 delete from blog_daily_stat where blog_id in (select blog_id from demo_blogs);
 delete from category where blog_id in (select blog_id from demo_blogs);
 delete from blog where blog_id in (select blog_id from demo_blogs);
+-- 0.15.0 개인 열쇠 (AI 비서 연결)
+delete from access_key where users_id in (select users_id from demo_users);
 delete from users where users_id in (select users_id from demo_users);
 
 commit;

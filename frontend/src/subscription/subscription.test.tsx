@@ -201,8 +201,75 @@ describe('우편함', () => {
     )
     renderAt([{ path: '/', element: <Mailbox /> }])
     fireEvent.click(await screen.findByRole('button', { name: '우편함, 안 읽은 소식 2개' }))
+    // 목록이 오기 전에는 모두 읽음을 누를 수 없다
+    expect(await screen.findAllByRole('listitem')).toHaveLength(2)
     fireEvent.click(await screen.findByRole('button', { name: '모두 읽음' }))
     expect(await screen.findByRole('button', { name: '우편함' })).toBeInTheDocument()
+    // 이번에 읽은 편지마다 소인이 찍히고, 머리에는 "모두 읽었어요"
+    const panel = screen.getByRole('dialog', { name: '우편함' })
+    expect(panel.querySelectorAll('.postmark.is-stamping')).toHaveLength(2)
+    expect(within(panel).getByText('모두 읽었어요')).toBeInTheDocument()
+  })
+
+  it('안 읽음만 고르면 읽은 편지는 빠지고, 다 읽었으면 그렇게 알려 준다 (0.15.0)', async () => {
+    server.use(
+      http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 1 })),
+      http.get('/api/v1/me/notifications', () =>
+        HttpResponse.json({
+          items: [
+            notice({ postTitle: '안 읽은 원고' }),
+            notice({ notificationId: 2, postTitle: '읽은 원고', read: true }),
+          ],
+          page: 1,
+          totalPages: 1,
+          unreadCount: 1,
+        }),
+      ),
+      http.post('/api/v1/me/notifications/read-all', () => new HttpResponse(null, { status: 204 })),
+    )
+    renderAt([{ path: '/', element: <Mailbox /> }])
+    fireEvent.click(await screen.findByRole('button', { name: /우편함/ }))
+    const panel = await screen.findByRole('dialog', { name: '우편함' })
+    expect(await within(panel).findAllByRole('listitem')).toHaveLength(2)
+    // 처음부터 읽은 편지는 소인이 조용히 찍혀 있다 (움직임 없음)
+    expect(panel.querySelectorAll('.postmark')).toHaveLength(1)
+    expect(panel.querySelectorAll('.postmark.is-stamping')).toHaveLength(0)
+
+    fireEvent.click(within(panel).getByRole('button', { name: '안 읽음' }))
+    expect(within(panel).getByRole('button', { name: '안 읽음' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(panel).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(panel).getByText('안 읽은 원고')).toBeInTheDocument()
+    expect(within(panel).queryByText('읽은 원고')).not.toBeInTheDocument()
+
+    fireEvent.click(within(panel).getByRole('button', { name: '모두 읽음' }))
+    expect(await within(panel).findByText('최근 편지 중에는 안 읽은 편지가 없어요.')).toBeInTheDocument()
+    expect(within(panel).queryAllByRole('listitem')).toHaveLength(0)
+  })
+
+  it('"안 읽음"에서 볼 수 없는 글의 편지를 읽으면 목록에서 빠지고 키보드 자리는 "안 읽음" 단추로 간다', async () => {
+    loggedIn()
+    server.use(
+      http.get('/api/v1/me/notifications/unread-count', () => HttpResponse.json({ unreadCount: 1 })),
+      http.get('/api/v1/me/notifications', () =>
+        HttpResponse.json({
+          items: [notice({ postTitle: '지운 원고', available: false })],
+          page: 1,
+          totalPages: 1,
+          unreadCount: 1,
+        }),
+      ),
+      http.post('/api/v1/me/notifications/1/read', () => new HttpResponse(null, { status: 204 })),
+    )
+    renderAt([{ path: '/', element: <Mailbox /> }])
+    fireEvent.click(await screen.findByRole('button', { name: /우편함/ }))
+    const panel = await screen.findByRole('dialog', { name: '우편함' })
+    await within(panel).findAllByRole('listitem')
+    fireEvent.click(within(panel).getByRole('button', { name: '안 읽음' }))
+    const letter = within(panel).getByText('볼 수 없는 글').closest('button')!
+    letter.focus()
+    fireEvent.click(letter)
+    expect(await within(panel).findByText('최근 편지 중에는 안 읽은 편지가 없어요.')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: '안 읽음' })).toHaveFocus()
   })
 })
 
