@@ -12,19 +12,121 @@
   max-width: 44rem;
 }
 
+/* 머리: 원고지 칸 바탕 띠 위에 칸마다 한 글자씩 써지는 "글마당" */
 .board-head {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
+  padding: 1.5rem clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(color-mix(in srgb, var(--grid) 28%, transparent) 1px, transparent 1px) 0 0 / 100% 1.75rem,
+    linear-gradient(90deg, color-mix(in srgb, var(--grid) 28%, transparent) 1px, transparent 1px) 0 0 / 1.75rem 100%,
+    var(--paper-raised);
+}
+
+/* 오른쪽 위의 큰 "마당" 도장 그림자 (꾸밈) */
+.board-head::after {
+  content: '마당';
+  position: absolute;
+  right: -0.5rem;
+  top: -1.4rem;
+  font-family: var(--font-letter);
+  font-size: 5.5rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--seal) 9%, transparent);
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.board-head-text {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+  text-align: left;
 }
 
 .board-heading {
-  margin: 0 0 4px;
+  margin: 0;
   font-family: var(--font-letter);
   font-size: var(--step-2);
-  text-wrap: balance;
+}
+
+.board-heading-cells {
+  display: inline-flex;
+}
+
+.board-heading-cells > span {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1.5px solid var(--grid-strong);
+  margin-right: -1.5px;
+  background: var(--paper);
+  animation: cell-write 0.5s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 120ms + 100ms);
+}
+
+.board-heading-cells > span:first-child {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@keyframes cell-write {
+  from {
+    color: transparent;
+    transform: translateY(6px);
+  }
+}
+
+.board-lead {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* 형광펜이 왼쪽부터 한 번 그어진다 */
+.board-lead-mark {
+  padding: 0 0.1em;
+  color: var(--ink);
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat 0 85% / 100% 55%;
+  animation: ink-highlight 700ms var(--ease-out) 500ms both;
+}
+
+.board-total {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.board-total strong {
+  font-family: var(--font-letter);
+  font-size: var(--step-1);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.board-write {
+  position: relative;
+  z-index: 1;
+  transition:
+    transform 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
+}
+
+.board-write:hover {
+  transform: translateY(-2px) rotate(-1deg);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.board-write:active {
+  transform: scale(0.95);
 }
 
 .board-tabs,
@@ -38,37 +140,91 @@
   border-bottom: 1px solid var(--grid);
 }
 
+/* 주제 탭: 올리면 살짝 떠오르고, 고른 탭은 형광펜 바탕 + 초록 밑줄이 그어진다 */
 .board-tab {
-  padding: 8px 14px;
+  position: relative;
+  padding: 8px 16px;
+  border-radius: 8px 8px 0 0;
   color: var(--ink-soft);
   text-decoration: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  transition:
+    color 0.2s,
+    transform 0.2s var(--ease-out),
+    background-color 0.2s;
 }
 
 .board-tab:hover {
   color: var(--ink);
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--highlight) 45%, transparent);
+}
+
+.board-tab:active {
+  transform: translateY(0) scale(0.95);
 }
 
 .board-tab[aria-current='page'] {
   color: var(--ink);
-  font-weight: 600;
-  border-bottom-color: var(--accent);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--highlight) 70%, transparent);
 }
 
+.board-tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+  transform-origin: left;
+  animation: pen-line 0.4s var(--ease-out) both;
+}
+
+/* 종류 고르기: 칩. 고르면 먹색으로 차면서 통 튄다 */
 .board-kind-link {
-  padding: 4px 12px;
+  padding: 4px 14px;
   border: 1px solid var(--grid);
   border-radius: var(--radius-button);
   color: var(--ink-soft);
   font-size: var(--step--1);
   text-decoration: none;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    color 0.2s,
+    transform 0.2s var(--ease-out);
+}
+
+.board-kind-link:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.board-kind-link:active {
+  transform: scale(0.92);
 }
 
 .board-kind-link[aria-current='page'] {
   border-color: var(--ink);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
   font-weight: 600;
+  animation: chip-pop 0.35s var(--ease-out);
+}
+
+@keyframes chip-pop {
+  40% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes pen-line {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 /* 표: 좁은 화면에서는 표만 옆으로 밀린다. 위에 카드와 같은 원고지 칸 띠 */
@@ -105,8 +261,35 @@
   vertical-align: middle;
 }
 
+/* 줄: 위에서부터 차례로 떠오르고, 올리면 왼쪽에 초록 책갈피가 서고 제목에 형광펜이 그어진다 */
+.board-row {
+  animation: rise-in 0.4s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+  transition: background-color 0.2s;
+}
+
 .board-table tbody tr:hover {
   background: var(--paper-raised);
+}
+
+.board-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.board-topic-chip {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: var(--radius-button);
+  border: 1px solid color-mix(in srgb, var(--topic, var(--accent)) 55%, transparent);
+  background: color-mix(in srgb, var(--topic, var(--accent)) 10%, transparent);
+  color: var(--topic, var(--accent));
+  font-weight: 600;
+  font-size: 0.78rem;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.board-row:hover .board-topic-chip {
+  transform: rotate(-4deg) scale(1.06);
 }
 
 .board-topic,
@@ -132,14 +315,38 @@
   text-decoration: none;
 }
 
-.board-title-link:hover {
-  background: linear-gradient(transparent 55%, var(--highlight) 55%);
+.board-title-link {
+  background: linear-gradient(var(--highlight), var(--highlight)) no-repeat 0 88% / 0% 50%;
+  transition: background-size 0.35s var(--ease-out);
 }
 
+.board-row:hover .board-title-link,
+.board-title-link:focus-visible {
+  background-size: 100% 50%;
+}
+
+/* 댓글 수: 작은 말풍선 */
 .board-comment-count {
-  margin-left: 6px;
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.board-comment-count::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  bottom: 3px;
+  border: 4px solid transparent;
+  border-right-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-left-width: 0;
 }
 
 .board-title-cell .seal {
@@ -368,4 +575,23 @@
 
 .board-keyword strong {
   color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-tab:hover,
+  .board-kind-link:hover,
+  .board-write:hover,
+  .board-row:hover .board-topic-chip {
+    transform: none;
+  }
+}
+
+@media (max-width: 30rem) {
+  .board-head::after {
+    font-size: 3.5rem;
+  }
+  .board-heading-cells > span {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
 }

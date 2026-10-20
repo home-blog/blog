@@ -1,0 +1,46 @@
+/* 누른 자리의 먹 한 방울: 먹색 테두리가 번지며 옅어지고, 가운데 형광펜 점이 먼저 사라진다 */
+.ink-touch {
+  position: fixed;
+  z-index: 9999;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: -1.3rem 0 0 -1.3rem;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--accent) 75%, transparent);
+  background: radial-gradient(circle, color-mix(in srgb, var(--highlight) 90%, transparent) 0 28%, transparent 30%);
+  animation: ink-touch 560ms var(--ease-out) forwards;
+}
+
+.ink-touch::after {
+  /* 튄 먹 점 셋 */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 12% 30%, var(--accent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 88% 22%, var(--seal) 0 1.8px, transparent 2.3px),
+    radial-gradient(circle at 70% 92%, var(--accent) 0 1.6px, transparent 2.1px);
+  animation: ink-splash 560ms var(--ease-out) forwards;
+}
+
+@keyframes ink-touch {
+  from {
+    opacity: 1;
+    transform: scale(0.25);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes ink-splash {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1.5) rotate(25deg);
+  }
+}

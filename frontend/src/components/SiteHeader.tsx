@@ -42,12 +42,26 @@ export default function SiteHeader() {
       {/* 글 검색은 누구나 (specs/004 US5) */}
       <SearchBox />
       <nav className="site-nav" aria-label="계정">
-        {/* 글마당 (specs/017) */}
-        <Link to="/board" className="header-notice">
-          글마당
+        {/* 글마당 (specs/017), 공지 (specs/012): 원고지 칸 머리글자 탭. 지금 보는 곳이면 칸이 채워지고 붉은 펜 밑줄 */}
+        <Link
+          to="/board"
+          className="header-tab"
+          aria-current={location.pathname.startsWith('/board') ? 'page' : undefined}
+        >
+          <span className="header-tab-cell" aria-hidden="true">
+            마
+          </span>
+          <span className="header-tab-name">글마당</span>
         </Link>
-        <Link to="/notices" className="header-notice">
-          공지
+        <Link
+          to="/notices"
+          className="header-tab"
+          aria-current={location.pathname.startsWith('/notices') ? 'page' : undefined}
+        >
+          <span className="header-tab-cell" aria-hidden="true">
+            알
+          </span>
+          <span className="header-tab-name">공지</span>
           {hasNewNotice && (
             <>
               <span className="header-notice-dot" aria-hidden="true" />

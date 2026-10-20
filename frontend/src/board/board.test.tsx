@@ -111,6 +111,23 @@ describe('글마당 목록', () => {
     expect(screen.getByRole('link', { name: '여행' })).toHaveAttribute('href', '/board?topic=%EC%97%AC%ED%96%89')
   })
 
+  it('머리에는 원고지 칸 제목과 세어 올라가는 글 수, 주제마다 색 칩이 보인다', async () => {
+    server.use(
+      http.get('/api/v1/board/posts', () =>
+        HttpResponse.json(page([row(), row({ boardPostId: 2, topic: '개발' })], { totalCount: 27 })),
+      ),
+    )
+    renderAt([{ path: '/board', element: <BoardListPage /> }])
+    expect(await screen.findByRole('heading', { level: 1, name: '글마당' })).toBeInTheDocument()
+    await waitFor(() => expect(document.querySelector('.board-total')).toHaveTextContent('모든 주제에 글 27편'), {
+      timeout: 3000,
+    })
+    const chips = [...document.querySelectorAll<HTMLElement>('.board-topic-chip')]
+    expect(chips.map((chip) => chip.textContent)).toEqual(['여행', '개발'])
+    expect(chips[0].style.getPropertyValue('--topic')).toBe('var(--category-2)')
+    expect(chips[1].style.getPropertyValue('--topic')).toBe('var(--category-4)')
+  })
+
   it('고른 주제와 종류를 서버에 묻고, 글이 없으면 안내한다', async () => {
     const asked: string[] = []
     server.use(

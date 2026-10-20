@@ -1,5 +1,5 @@
 # 실습 서버의 배포 DB에 예시 데이터(deploy/seed)를 넣거나 지운다. 서버에 직접 들어가지 않아도 된다.
-# 실행: Actions → 예시 데이터 → Run workflow → add(넣기), photos(넣은 글에 사진만 맞추기) 또는 remove(지우기)
+# 실행: Actions → 예시 데이터 → Run workflow → add(넣기), photos(넣은 글에 사진만 맞추기), board(글마당 예시 글 맞추기) 또는 remove(지우기)
 # 서버의 ~/<DEPLOY_NAME>/.env.deploy(배포가 만든 접속 정보)를 쓰므로 배포가 한 번은 끝나 있어야 한다.
 # Secrets는 배포(deploy.yml)와 같은 SSH_ADDRESS, SSH_PORT, SSH_ID, SSH_PASSWORD, SSH_KNOWN_HOSTS만 쓴다.
 name: 예시 데이터
@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "add = 넣기 (한 번만 된다), photos = 넣은 예시 글에 사진만 맞추기, remove = 지우기"
+        description: "add = 넣기 (한 번만 된다), photos = 넣은 예시 글에 사진만 맞추기, board = 글마당 예시 글 맞추기, remove = 지우기"
         type: choice
-        options: [add, photos, remove]
+        options: [add, photos, board, remove]
         default: add
 
 # 배포와 겹치지 않게 같은 줄에 선다
@@ -59,7 +59,7 @@ jobs:
         run: |
           remote() { sshpass -e ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "$SSH_ID@$SSH_ADDRESS" "$@"; }
           dir="\$HOME/$DEPLOY_NAME"   # 서버 쪽 홈 폴더 (서버에서 풀린다)
-          case "$ACTION" in add|photos|remove) ;; *) echo "::error::add, photos, remove만 됩니다"; exit 1 ;; esac
+          case "$ACTION" in add|photos|board|remove) ;; *) echo "::error::add, photos, board, remove만 됩니다"; exit 1 ;; esac
           # 이 커밋의 예시 데이터 파일을 올린 뒤 실행한다 (서버의 다른 파일은 건드리지 않는다)
           tar czf - deploy/seed | remote "mkdir -p $dir && tar xzf - -C $dir"
           remote "bash $dir/deploy/seed/run.sh $ACTION"
