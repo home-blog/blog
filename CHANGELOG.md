@@ -14,6 +14,33 @@
   - 칸을 빼거나 이름·뜻을 바꾸는 변경일 때만 `/api/v2`를 엽니다. 예전 `/api/v1`은 한동안 같이 둡니다.
   - 지금 버전은 화면 맨 아래 바닥글과 API 문서(개발 서버 `/swagger-ui.html`) 머리에 보입니다.
 
+## [0.16.0] - 준비 중
+
+방명록과 운영 강화: 블로그마다 **엽서함**(방명록)이 생겼습니다. 댓글에도 신고 단추가 생겨 신고가 모이면 저절로 가리고, 편집실은 댓글을 가리거나 회원의 이용을 정지할 수 있습니다.
+
+### 화면
+- **방명록, 엽서함** (`specs/021`): 블로그 머리에 원고·방명록 탭. 들른 회원이 우표 다섯 가지(소나무·파도·달·매화·학) 중 하나를 붙여 원고지 엽서를 남긴다(1~300자, 30초 간격, 한 블로그 하루 3장). 엽서는 조금씩 기울어 종이테이프로 꽂히고, 새 엽서는 떨어지며 소인이 찍힌다
+- 비밀 엽서는 쓴 사람과 블로그 주인만 읽고, 남에게는 밀랍으로 봉한 엽서로 보인다. 주인은 엽서를 뒤집어 답장을 쓰고 고친다. 쓴 사람과 주인은 엽서를 지울 수 있다
+- 우편함에 "엽서"(내 방명록에 새 엽서)·"회신"(내 엽서에 답장) 소식, 누르면 그 방명록으로 간다
+- **댓글 신고** (`specs/022`): 댓글·답글마다 신고 단추. 서로 다른 회원의 신고가 3건 모이면 저절로 가리고, 가린 댓글은 먹줄 그은 원고지 칸으로 보인다(댓글 수에서 빠지고 답글을 달 수 없다). 블로그 관리의 댓글 목록도 가린 댓글의 내용을 비운다
+- **편집실 댓글 탭**: 신고된 댓글 가리기(쓴 사람 우편함에 사유와 함께 소식)·반려(저절로 가린 댓글은 다시 보인다), 처리 기록에서 되돌리기
+- **편집실 회원 탭**: 닉네임으로 찾기, 기간(1·3·7·30·365일)과 사유를 정해 이용 정지·풀기, 정지된 회원 줄에 붉은 "정지" 도장. 정지하면 그 회원의 로그인 세션이 모두 끝나고 AI 비서 열쇠가 끊긴다
+- 로그인: 정지된 회원은 비밀번호가 맞을 때만 언제까지·사유가 보인다(틀리면 지금처럼 401). 소셜 로그인도 막힌다. 기한이 지나면 저절로 풀린다
+- 운영 현황에 "댓글 신고 대기"·"정지 중 회원" 카드
+- 공지사항: 0.16.0 업데이트 글(0.15.1 글의 고정을 푼다)
+
+### API
+- 새 API: `GET·POST /api/v1/blogs/{blogId}/guestbook`, `DELETE /api/v1/guestbook/{entryId}`, `PUT·DELETE /api/v1/guestbook/{entryId}/reply`
+- 새 API: `POST /api/v1/comments/{commentId}/reports`, `GET /api/v1/editorial/reports/comments(/{commentId})`, `POST /api/v1/editorial/comments/{commentId}/hide|dismiss|restore`, `GET /api/v1/editorial/members`, `POST /api/v1/editorial/members/{memberId}/suspend|unsuspend`
+- 칸 더하기(v1 그대로): 댓글 목록 `hidden`·`canReport`, 블로그 관리 댓글 목록 `hidden`, 편집실 현황 `pendingCommentReports`·`suspendedMembers`(`pendingReports`는 댓글 신고도 센다), 처리 기록 `commentId`·`memberId`, 우편함 소식 `blogId`와 kind `guestbook`·`gb_reply`
+- 로그인 `POST /api/v1/auth/login`: 정지된 회원은 403 `ACCOUNT_SUSPENDED`
+
+### 운영
+- Flyway V30(방명록 `guestbook_entry`, 소식 칸), V31(`comment_report`, `comment.hidden_*`, `users.suspended_*`, 처리 기록 칸), V32(0.16.0 업데이트 공지)
+- 설정 `guestbook.*`, `moderation.comment.*`, `moderation.member.*`
+- 예시 엽서 6장: `deploy/seed/guestbook.json` → `demo-guestbook.sql`, Actions `예시 데이터`에 `guestbook`(`add`에도 들어간다)
+- 테스트: 서버 방명록 15개·댓글 신고 10개·편집실 운영 9개 등, 화면 방명록 13개·운영 강화 14개
+
 ## [0.15.1] - 준비 중
 
 누를 때마다 재미를: 단추·링크를 누르면 먹 한 방울이 번지고, 머리글 메뉴와 글마당에 형광펜·도장 움직임을 더했습니다. 우편함이 넓어지고, 글마당에 예시 글이 생겼습니다.
