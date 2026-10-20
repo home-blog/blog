@@ -165,6 +165,8 @@ describe('위임장', () => {
     const { go } = renderPage()
     fireEvent.click(await screen.findByRole('button', { name: '거절' }))
     await waitFor(() => expect(go).toHaveBeenCalledWith('https://claude.ai/cb?error=access_denied'))
+    // 거절에는 허락 인장을 찍지 않는다
+    expect(document.querySelector('.warrant.is-sealed')).toBeNull()
   })
 
   it('시간이 지난 요청과 모르는 앱은 알려 주기만 한다', async () => {

@@ -15,6 +15,7 @@ export default function ConnectedAppList() {
   const [failed, setFailed] = useState(false)
   const [confirming, setConfirming] = useState<number | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -24,7 +25,7 @@ export default function ConnectedAppList() {
         if (!controller.signal.aborted) setFailed(true)
       })
     return () => controller.abort()
-  }, [])
+  }, [reload])
 
   async function disconnect(grantId: number, name: string) {
     try {
@@ -42,9 +43,21 @@ export default function ConnectedAppList() {
     <div className="ai-apps">
       <h3 className="ai-setup-title">연결된 앱</h3>
       {failed && (
-        <p className="msg msg-error" role="alert">
-          ※ 연결된 앱을 불러오지 못했습니다
-        </p>
+        <>
+          <p className="msg msg-error" role="alert">
+            ※ 연결된 앱을 불러오지 못했습니다
+          </p>
+          <button
+            type="button"
+            className="btn btn-outline btn-small"
+            onClick={() => {
+              setFailed(false)
+              setReload((n) => n + 1)
+            }}
+          >
+            다시 시도
+          </button>
+        </>
       )}
       {apps && apps.items.length === 0 && (
         <p className="hint">아직 연결된 앱이 없어요. 위 “Claude 앱(커넥터)” 탭의 주소로 붙여 보세요.</p>

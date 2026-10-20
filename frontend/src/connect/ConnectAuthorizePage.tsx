@@ -70,7 +70,9 @@ export default function ConnectAuthorizePage({
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [scope, setScope] = useState<OAuthScope | null>(null)
   const [busy, setBusy] = useState(false)
+  // sealed: 떠나는 주소(넘어가지 않으면 누를 링크), stamped: 허락 인장을 찍었나 (거절에는 찍지 않는다)
   const [sealed, setSealed] = useState<string | null>(null)
+  const [stamped, setStamped] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -159,11 +161,11 @@ export default function ConnectAuthorizePage({
     setActionError(null)
     try {
       const { redirectTo } = approve ? await approveConnect(requestId, chosen) : await denyConnect(requestId)
+      setSealed(redirectTo)
+      setStamped(approve)
       if (approve && !reducedMotion()) {
-        setSealed(redirectTo)
         window.setTimeout(() => go(redirectTo), STAMP_MS)
       } else {
-        setSealed(redirectTo)
         go(redirectTo)
       }
     } catch (err) {
@@ -175,7 +177,7 @@ export default function ConnectAuthorizePage({
   return (
     <Shell titleId={titleId}>
       <form
-        className={sealed ? 'warrant is-sealed' : 'warrant'}
+        className={stamped ? 'warrant is-sealed' : 'warrant'}
         aria-labelledby={titleId}
         onSubmit={(event) => {
           event.preventDefault()
