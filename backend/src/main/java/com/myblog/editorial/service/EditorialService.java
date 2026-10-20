@@ -8,6 +8,7 @@ import com.myblog.common.error.ApiException;
 import com.myblog.common.error.ErrorCode;
 import com.myblog.common.paging.PageNumbers;
 import com.myblog.common.paging.PageNumbers.PageSlice;
+import com.myblog.comment.CommentReports;
 import com.myblog.community.PostReports;
 import com.myblog.community.PostReports.PendingPost;
 import com.myblog.community.PostReports.ReportLine;
@@ -18,6 +19,7 @@ import com.myblog.editorial.repository.EditorialActionRepository;
 import com.myblog.editorial.repository.EditorialSummaryRepository;
 import com.myblog.post.PostModeration;
 import com.myblog.post.PostModeration.PostBrief;
+import com.myblog.user.MemberModeration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -40,6 +42,8 @@ public class EditorialService {
 
     private final PostReports postReports;
     private final BoardReports boardReports;
+    private final CommentReports commentReports;
+    private final MemberModeration members;
     private final PostModeration moderation;
     private final EditorialActionRepository actions;
     private final EditorialSummaryRepository summary;
@@ -47,11 +51,14 @@ public class EditorialService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
-    public EditorialService(PostReports postReports, BoardReports boardReports, PostModeration moderation,
-            EditorialActionRepository actions, EditorialSummaryRepository summary, EditorialProperties properties,
-            ApplicationEventPublisher events, Clock clock) {
+    public EditorialService(PostReports postReports, BoardReports boardReports, CommentReports commentReports,
+            MemberModeration members, PostModeration moderation, EditorialActionRepository actions,
+            EditorialSummaryRepository summary, EditorialProperties properties, ApplicationEventPublisher events,
+            Clock clock) {
         this.postReports = postReports;
         this.boardReports = boardReports;
+        this.commentReports = commentReports;
+        this.members = members;
         this.moderation = moderation;
         this.actions = actions;
         this.summary = summary;
@@ -60,8 +67,9 @@ public class EditorialService {
         this.clock = clock;
     }
 
+    /** pendingReports는 글·글마당·댓글 신고를 모두 센다. pendingCommentReports·suspendedMembers는 specs/022 US3. */
     public record Summary(long members, long membersToday, long publicPosts, long publicPostsToday, long boardPosts,
-            long pendingReports) {
+            long pendingReports, long pendingCommentReports, long suspendedMembers) {
     }
 
     /** 블로그 글 검토 대기 한 줄. 글이 사라졌으면 title이 비어 있다(드물다: 글을 지우면 신고도 지워진다). */
@@ -87,17 +95,19 @@ public class EditorialService {
     public record BoardReview(Long boardPostId, String topic, String title, String excerpt, List<ReportView> reports) {
     }
 
-    public record ActionRow(Long actionId, String targetKind, Long postId, Long boardPostId, String title,
-            String action, String reason, int reportCount, Instant createdAt) {
+    public record ActionRow(Long actionId, String targetKind, Long postId, Long boardPostId, Long commentId,
+            Long memberId, String title, String action, String reason, int reportCount, Instant createdAt) {
     }
 
     @Transactional(readOnly = true)
     public Summary summary() {
         Instant todayStart = LocalDate.ofInstant(Instant.now(clock), properties.dayZone()).atStartOfDay(properties.dayZone())
                 .toInstant();
+        long commentPending = commentReports.pendingReportCount();
         return new Summary(summary.members(), summary.membersSince(todayStart), summary.publicPosts(),
                 summary.publicPostsSince(todayStart), summary.boardPosts(),
-                postReports.pendingReportCount() + boardReports.pendingReportCount());
+                postReports.pendingReportCount() + boardReports.pendingReportCount() + commentPending, commentPending,
+                members.suspendedCount());
     }
 
     @Transactional(readOnly = true)
@@ -214,7 +224,8 @@ public class EditorialService {
         List<ActionRow> rows = actions.findAllByOrderByCreatedAtDescIdDesc(PageRequest.of(slice.page() - 1,
                         slice.pageSize())).stream()
                 .map(a -> new ActionRow(a.getId(), a.getTargetKind(), a.getPostId(), a.getBoardPostId(),
-                        a.getTargetTitle(), a.getAction(), a.getReason(), a.getReportCount(), a.getCreatedAt()))
+                        a.getCommentId(), a.getMemberId(), a.getTargetTitle(), a.getAction(), a.getReason(),
+                        a.getReportCount(), a.getCreatedAt()))
                 .toList();
         return new Pending<>(total, slice.page(), slice.totalPages(), slice.pageSize(), rows);
     }
@@ -249,8 +260,8 @@ public class EditorialService {
         return new ReportView(line.reason(), line.detail(), line.createdAt());
     }
 
-    /** 사유: 앞뒤 공백을 지우고 1~reasonMaxLength자. */
-    private String checkReason(String raw) {
+    /** 사유: 앞뒤 공백을 지우고 1~reasonMaxLength자. 운영 강화(ModerationDeskService)도 같은 규칙을 쓴다. */
+    String checkReason(String raw) {
         String reason = raw == null ? "" : raw.replace("\r\n", "\n").strip();
         int length = reason.codePointCount(0, reason.length());
         if (length == 0 || length > properties.reasonMaxLength()) {

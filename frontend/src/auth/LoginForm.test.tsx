@@ -88,4 +88,25 @@ describe('로그인 입력', () => {
     await fillAndSubmit(user, 'writer@example.com', 'abc123!@')
     expect(await screen.findByRole('alert')).toHaveTextContent(expected)
   })
+
+  it('예외: 정지된 계정이면 언제까지·사유를 정지 도장과 함께 보여 준다 (specs/022 S2-2)', async () => {
+    server.use(
+      http.post('/api/v1/auth/login', () =>
+        HttpResponse.json(
+          {
+            code: 'ACCOUNT_SUSPENDED',
+            message: '※ 2026-10-27 15:00까지 이용이 정지된 계정입니다. 사유: 광고 댓글',
+            retryAfterSeconds: 604800,
+          },
+          { status: 403 },
+        ),
+      ),
+    )
+    const { onLoggedIn, user } = renderForm()
+    await fillAndSubmit(user, 'writer@example.com', 'abc123!@')
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('2026-10-27 15:00까지 이용이 정지된 계정입니다. 사유: 광고 댓글')
+    expect(alert.querySelector('.suspend-seal')).toHaveTextContent('정지')
+    expect(onLoggedIn).not.toHaveBeenCalled()
+  })
 })

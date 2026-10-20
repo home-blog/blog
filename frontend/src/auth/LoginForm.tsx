@@ -1,6 +1,7 @@
 // 로그인 입력 (로그인 화면과 로그인 창이 함께 쓴다)
 import { useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
+import '../components/suspend-seal.css'
 import { useAuth } from './useAuth'
 
 interface Props {
@@ -14,6 +15,8 @@ export default function LoginForm({ onLoggedIn, idPrefix }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // 정지된 계정 (specs/022 S2-2): 서버 문구(언제까지·사유) 앞에 붉은 정지 도장
+  const [suspended, setSuspended] = useState(false)
   const [busy, setBusy] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -22,6 +25,7 @@ export default function LoginForm({ onLoggedIn, idPrefix }: Props) {
     e.preventDefault()
     if (busy) return
     setError(null)
+    setSuspended(false)
     if (!email.trim() || !password) {
       setError('이메일과 비밀번호를 입력해 주세요')
       ;(email.trim() ? passwordRef : emailRef).current?.focus()
@@ -38,6 +42,7 @@ export default function LoginForm({ onLoggedIn, idPrefix }: Props) {
         const minutes = Math.max(1, Math.ceil(err.retryAfterSeconds / 60))
         setError(err.message.replace(/\d+분 뒤에/, `${minutes}분 뒤에`))
       } else if (err instanceof ApiError) {
+        setSuspended(err.code === 'ACCOUNT_SUSPENDED')
         setError(err.message)
       } else {
         setError('※ 잠시 뒤 다시 시도해 주세요')
@@ -80,7 +85,8 @@ export default function LoginForm({ onLoggedIn, idPrefix }: Props) {
       </div>
 
       {error && (
-        <p id={errorId} className="msg msg-error" role="alert">
+        <p id={errorId} className={suspended ? 'msg msg-error is-suspended' : 'msg msg-error'} role="alert">
+          {suspended && <span className="suspend-seal">정지</span>}
           {error}
         </p>
       )}

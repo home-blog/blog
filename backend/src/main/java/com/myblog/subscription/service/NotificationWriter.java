@@ -4,6 +4,8 @@ import com.myblog.board.BoardAnswerAcceptedEvent;
 import com.myblog.board.BoardCommentWrittenEvent;
 import com.myblog.comment.CommentWrittenEvent;
 import com.myblog.editorial.EditorialNoticeEvent;
+import com.myblog.guestbook.GuestbookRepliedEvent;
+import com.myblog.guestbook.GuestbookWrittenEvent;
 import com.myblog.post.PostLookup;
 import com.myblog.post.PostPublishedEvent;
 import com.myblog.subscription.config.SubscriptionProperties;
@@ -174,6 +176,29 @@ public class NotificationWriter {
                         event.postId(), clip(event.title(), 100), clip(event.reason(), 200), Instant.now(clock)));
             } catch (RuntimeException e) {
                 log.warn("우편함: 편집실 소식을 만들지 못했습니다: {}", e.toString());
+            }
+        });
+    }
+
+    /** 내 방명록에 새 엽서 (specs/021 US1-5). 비밀 엽서여도 내용은 싣지 않으니 그대로 알린다. */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(GuestbookWrittenEvent event) {
+        guestbookNotice(event.ownerId(), "guestbook", event.entryId(), event.blogName(), event.writerId());
+    }
+
+    /** 내 엽서에 주인이 처음 답장함 (specs/021 US2-2). 보낸 이름은 블로그 주인의 닉네임. */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void on(GuestbookRepliedEvent event) {
+        guestbookNotice(event.writerId(), "gb_reply", event.entryId(), event.blogName(), event.ownerId());
+    }
+
+    private void guestbookNotice(Long memberId, String kind, Long entryId, String blogName, Long actorId) {
+        worker.execute(() -> {
+            try {
+                transaction.executeWithoutResult(status -> notifications.insertGuestbookNotice(memberId, kind, entryId,
+                        clip(blogName, 100), writerName(actorId), Instant.now(clock)));
+            } catch (RuntimeException e) {
+                log.warn("우편함: 엽서 {}의 소식({})을 만들지 못했습니다: {}", entryId, kind, e.toString());
             }
         });
     }

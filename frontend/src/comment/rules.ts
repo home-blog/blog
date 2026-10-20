@@ -11,6 +11,7 @@ export const commentMessages = {
   withdrawn: '탈퇴한 사용자',
   sealed: '봉한 쪽지입니다. 주고받는 사람만 읽어요',
   erased: '지운 댓글입니다',
+  inked: '편집실이 가린 댓글입니다',
   failed: '※ 잠시 뒤 다시 시도해 주세요',
 } as const
 

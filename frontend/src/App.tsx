@@ -22,6 +22,7 @@ import NewCommentCountProvider from './manage/NewCommentCountProvider'
 import BoardEditorPage from './board/BoardEditorPage'
 import BoardListPage from './board/BoardListPage'
 import BoardPostPage from './board/BoardPostPage'
+import GuestbookPage from './guestbook/GuestbookPage'
 import EditorialPage from './editorial/EditorialPage'
 import NoticeAlertProvider from './notice/NoticeAlertProvider'
 import NoticeDetailPage from './notice/NoticeDetailPage'
@@ -164,6 +165,7 @@ const router = createBrowserRouter([
       // 원고 편지의 그만 받기 링크 (specs/016 US3). 로그인 없이
       { path: '/letters/stop', element: <LetterStopPage /> },
       { path: '/blog/:blogId', element: <BlogHomePage /> },
+      { path: '/blog/:blogId/guestbook', element: <GuestbookPage /> },
       { path: '/search', element: <SearchPage /> },
       { path: '/tags/:tagName', element: <TagPostsPage /> },
       { path: '/series/:seriesId', element: <SeriesPage /> },

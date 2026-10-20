@@ -251,3 +251,110 @@
   border-color: var(--grid-strong);
   color: var(--ink);
 }
+
+/* 블로그 탭 (specs/021): 원고 · 방명록. 칸 글자 하나 + 이름, 지금 있는 곳은 칸이 채워지고 붉은 펜 밑줄 */
+.blog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin: 0.25rem 0 0.9rem;
+}
+
+.blog-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.32rem;
+  border: 1px solid var(--grid);
+  border-radius: 10px;
+  background-color: var(--paper-raised);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--highlight) 90%, transparent),
+    color-mix(in srgb, var(--highlight) 35%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  color: var(--ink-soft);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-size 0.35s var(--ease-out),
+    color 0.2s,
+    border-color 0.2s,
+    transform 0.2s var(--ease-out);
+}
+
+.blog-tab:hover,
+.blog-tab:focus-visible {
+  background-size: 100% 100%;
+  color: var(--ink);
+  border-color: var(--grid-strong);
+}
+
+.blog-tab:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.blog-tab-cell {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1.5px solid var(--grid-strong);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--accent);
+  font-family: var(--font-letter);
+  font-size: 0.82rem;
+  line-height: 1;
+  transition:
+    transform 0.3s var(--ease-out),
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.blog-tab:hover .blog-tab-cell {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.blog-tab[aria-current='page'] {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.blog-tab[aria-current='page'] .blog-tab-cell {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.blog-tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 2.3rem;
+  right: 0.7rem;
+  bottom: 0.18rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--seal);
+  transform-origin: left;
+  animation: blog-tab-pen 0.45s var(--ease-out) both;
+}
+
+@keyframes blog-tab-pen {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blog-tab:is(:hover, :active),
+  .blog-tab:hover .blog-tab-cell {
+    transform: none;
+  }
+}

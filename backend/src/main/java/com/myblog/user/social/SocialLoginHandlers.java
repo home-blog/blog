@@ -35,6 +35,8 @@ public class SocialLoginHandlers implements AuthenticationSuccessHandler, Authen
     static final String HOME = "/";
     static final String SOCIAL_SIGNUP = "/signup/social";
     static final String LOGIN_FAILED = "/login?socialError=" + ErrorCode.SOCIAL_LOGIN_FAILED.name();
+    /** 정지된 회원 (specs/022 S2-2): 로그인시키지 않고 로그인 창이 정지를 알린다. */
+    static final String LOGIN_SUSPENDED = "/login?socialError=" + ErrorCode.ACCOUNT_SUSPENDED.name();
 
     private final SocialAccountService socialAccounts;
     private final UserRepository users;
@@ -77,6 +79,10 @@ public class SocialLoginHandlers implements AuthenticationSuccessHandler, Authen
             return;
         }
         switch (socialAccounts.signIn(profile)) {
+            case SocialAccountService.SignIn.Member member when member.user().isSuspended(now) -> {
+                memberLogin.clear(request, response);
+                redirect.sendRedirect(request, response, LOGIN_SUSPENDED);
+            }
             case SocialAccountService.SignIn.Member member -> {
                 memberLogin.logIn(member.user(), request, response);
                 redirect.sendRedirect(request, response, HOME);

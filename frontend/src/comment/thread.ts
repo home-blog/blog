@@ -23,9 +23,27 @@ export function threads(comments: CommentItem[]): Thread[] {
   return result
 }
 
-/** 지운 칸을 뺀 수 (서버의 count와 같다) */
+/** 지운 칸·가린 댓글을 뺀 수 (서버의 count와 같다) */
 export function liveCount(comments: CommentItem[]): number {
-  return comments.filter((c) => !c.deleted).length
+  return comments.filter((c) => !c.deleted && !c.hidden).length
+}
+
+/** 신고로 저절로 가려진 댓글: 서버가 보내는 가린 댓글과 같은 모양으로 바꾼다 (답글도 원댓글에 달 수 없게) */
+export function afterHidden(comments: CommentItem[], id: number): CommentItem[] {
+  return comments.map((c) =>
+    c.id === id
+      ? {
+          ...c,
+          hidden: true,
+          body: '',
+          author: { id: null, nickname: null, withdrawn: false },
+          canReply: false,
+          canReport: false,
+        }
+      : c.parentId === id
+        ? { ...c, canReply: false }
+        : c,
+  )
 }
 
 /** 새 답글을 그 원댓글의 마지막 답글 뒤에 넣는다. 원댓글이 없으면 맨 뒤 */

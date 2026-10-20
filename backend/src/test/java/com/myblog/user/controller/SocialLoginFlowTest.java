@@ -164,6 +164,19 @@ class SocialLoginFlowTest {
     }
 
     @Test
+    void 정지된_회원은_소셜_로그인도_막히고_로그인_창이_정지를_알린다() throws Exception {
+        User member = emailMember("s");
+        assertThat(returnFromProvider(profile(member.getEmail(), true, "x"), new MockHttpSession())).isEqualTo("/");
+        jdbc.update("update users set suspended_until = now() + interval '1 day', suspend_reason = '광고' where users_id = ?",
+                member.getId());
+        MockHttpSession session = new MockHttpSession();
+
+        assertThat(returnFromProvider(profile(member.getEmail(), true, "x"), session))
+                .isEqualTo("/login?socialError=ACCOUNT_SUSPENDED");
+        mvc.perform(get("/api/v1/auth/me").session(session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void 인증되지_않은_이메일은_연결하지_않고_이메일_인증을_거쳐야_한다() throws Exception {
         User member = emailMember("b");
         MockHttpSession session = new MockHttpSession();

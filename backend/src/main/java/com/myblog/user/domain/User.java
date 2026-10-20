@@ -56,6 +56,13 @@ public class User {
     @Column(name = "role", nullable = false, length = 10)
     private String role = ROLE_MEMBER;
 
+    /** 이 시각 전까지 이용 정지 (specs/022 D-4). 지나면 저절로 풀린다. */
+    @Column(name = "suspended_until")
+    private Instant suspendedUntil;
+
+    @Column(name = "suspend_reason", length = 200)
+    private String suspendReason;
+
     static final String ROLE_MEMBER = "member";
     static final String ROLE_ADMIN = "admin";
 
@@ -123,6 +130,25 @@ public class User {
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
 
+    /** 정지 중인가 (specs/022 S2-5): 정지 시각이 아직 오지 않았다. 바로 그 시각부터는 정지가 아니다. */
+    public boolean isSuspended(Instant now) {
+        return suspendedUntil != null && suspendedUntil.isAfter(now);
+    }
+
+    /** 정지한다 (specs/022 US2). 다시 정지하면 기간과 사유를 새로 정한다 (S2-4). */
+    public void suspend(Instant until, String reason) {
+        this.suspendedUntil = until;
+        this.suspendReason = reason;
+    }
+
+    /** 정지를 푼다. 정지 중이 아니었으면(없거나 기한이 지남) 거짓. 기한이 지난 칸도 함께 비운다. */
+    public boolean unsuspend(Instant now) {
+        boolean was = isSuspended(now);
+        this.suspendedUntil = null;
+        this.suspendReason = null;
+        return was;
+    }
+
     /** 관리자인지 (specs/012). 요청마다 DB에서 읽은 값으로 본다 (D-2). */
     public boolean isAdmin() {
         return ROLE_ADMIN.equals(role);
@@ -162,5 +188,17 @@ public class User {
 
     public Instant getDeletedAt() {
         return deletedAt;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public Instant getSuspendedUntil() {
+        return suspendedUntil;
+    }
+
+    public String getSuspendReason() {
+        return suspendReason;
     }
 }

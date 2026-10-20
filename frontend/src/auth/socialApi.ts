@@ -22,6 +22,8 @@ export const SOCIAL_ERROR_MESSAGE: Record<string, string> = {
   SOCIAL_LOGIN_FAILED: '※ 소셜 로그인을 마치지 못했습니다. 다시 시도해 주세요',
   SOCIAL_ACCOUNT_IN_USE: '※ 이미 다른 회원과 연결된 계정입니다',
   SOCIAL_ALREADY_LINKED: '※ 이미 이 회사의 다른 계정과 연결되어 있습니다. 연결을 해제한 뒤 다시 시도해 주세요',
+  // 정지된 회원 (specs/022 S2-2). 언제까지·사유는 주소에 싣지 않는다 (이메일 로그인 창은 서버 문구로 알린다)
+  ACCOUNT_SUSPENDED: '※ 이용이 정지된 계정입니다. 정지 기간이 지나면 다시 로그인할 수 있어요',
 }
 
 export function socialErrorMessage(code: string | null): string | null {

@@ -71,11 +71,16 @@ public class ManageCommentQueryService {
         Map<Long, String> titles = postSummary.titlesOf(found.stream().map(Comment::getPostId).distinct().toList());
         List<ManageCommentRow> items = found.stream().map(comment -> new ManageCommentRow(
                 comment.getId(),
-                author(names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember())),
+                // 가린 댓글은 블로그 주인에게도 쓴 사람을 보이지 않는다 (specs/022 US1-3)
+                comment.isHidden() ? new Author(null, false)
+                        : author(names.getOrDefault(comment.getMemberId(), MemberName.withdrawnMember())),
                 comment.getCreatedAt(),
-                preview(comment.getBody()),
+                comment.isHidden() ? "" : preview(comment.getBody()),
                 new PostRef(comment.getPostId(), titles.get(comment.getPostId())),
-                newSince.isNew(comment, blog.ownerId()), comment.isSecret(), comment.isReply())).toList();
+                // 가린 댓글은 새 댓글 수에서 빠지므로 NEW도 붙이지 않는다
+                !comment.isHidden() && newSince.isNew(comment, blog.ownerId()), comment.isSecret(), comment.isReply(),
+                comment.isHidden()))
+                .toList();
         return new ManageCommentPage(items, page, pageSize, totalCount);
     }
 
@@ -125,8 +130,9 @@ public class ManageCommentQueryService {
     public record ManageCommentPage(List<ManageCommentRow> items, int page, int pageSize, long totalCount) {
     }
 
+    /** hidden: 편집실이 가린 댓글 (specs/022). 미리보기는 비우고, 주인은 그래도 지울 수 있다. */
     public record ManageCommentRow(Long commentId, Author author, Instant createdAt, String preview, PostRef post,
-            boolean isNew, boolean secret, boolean reply) {
+            boolean isNew, boolean secret, boolean reply, boolean hidden) {
     }
 
     /** 탈퇴한 작성자는 nickname이 null이고 withdrawn이 참 (화면은 "탈퇴한 사용자"). */

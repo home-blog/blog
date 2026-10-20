@@ -70,7 +70,10 @@ public class AccessKeyService {
             throw new ApiException(ErrorCode.ACCESS_KEY_INVALID,
                     ErrorCode.ACCESS_KEY_INVALID.message().formatted(properties.nameMaxLength()));
         }
-        users.findActiveByIdForUpdate(memberId).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        // 줄을 잠근 뒤 정지를 다시 본다: 정지(열쇠 모두 끊기)와 겹쳐 기다렸다면 새 열쇠를 만들지 않는다 (specs/022 D-5)
+        Instant locked = Instant.now(clock);
+        users.findActiveByIdForUpdate(memberId).filter(user -> !user.isSuspended(locked))
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
         if (keys.countByMemberId(memberId) >= properties.maxPerMember()) {
             throw new ApiException(ErrorCode.ACCESS_KEY_LIMIT,
                     ErrorCode.ACCESS_KEY_LIMIT.message().formatted(properties.maxPerMember()));
@@ -104,7 +107,7 @@ public class AccessKeyService {
         Instant now = Instant.now(clock);
         return keys.findByTokenHash(sha256(token))
                 .filter(key -> !key.isExpiredAt(now))
-                .flatMap(key -> users.findActiveById(key.getMemberId()).map(user -> {
+                .flatMap(key -> users.findLoggedInById(key.getMemberId(), now).map(user -> {
                     keys.touch(key.getId(), now, now.minus(properties.touchInterval()));
                     return new Verified(user, new AccessKeyGrant(key.getId(), key.getScope()));
                 }));

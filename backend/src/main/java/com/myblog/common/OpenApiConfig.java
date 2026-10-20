@@ -69,7 +69,8 @@ public class OpenApiConfig {
                         tag("14. 구독·알림", "원고 받아 보기(블로그 구독), 우편함, 원고 편지(새 글 메일)"),
                         tag("15. 글마당", "블로그와 따로 서는 주제별 게시판. 이야기·물음, 댓글, 물음의 채택 도장"),
                         tag("16. 편집실", "관리자만: 신고 검토(내림·반려), 글마당 신고, 처리 기록, 운영 현황"),
-                        tag("17. AI 비서 연결 (MCP)", "개인 열쇠를 만들어 Claude 같은 AI 비서가 MCP로 내 블로그의 글·단락을 찾아 읽고 초안을 남기게 한다")))
+                        tag("17. AI 비서 연결 (MCP)", "개인 열쇠를 만들어 Claude 같은 AI 비서가 MCP로 내 블로그의 글·단락을 찾아 읽고 초안을 남기게 한다"),
+                        tag("18. 방명록", "블로그에 들른 회원이 우표 붙인 엽서를 남기고, 블로그 주인이 답장한다. 비밀 엽서는 쓴 사람과 주인만 읽는다")))
                 .components(new Components()
                         .addSecuritySchemes(SESSION, new SecurityScheme().type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.COOKIE).name("SESSION")
