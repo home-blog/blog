@@ -31,7 +31,7 @@ public class PostFeedRepository {
     static final String COLUMNS = """
             select p.post_id, c.blog_id, b.name as blog_name, u.nickname, p.title, t.topic_name,
                    p.category_id, c.name as category_name, p.created_at, p.content,
-                   (select count(*) from comment m where m.post_id = p.post_id and m.deleted_at is null) as comment_count,
+                   (select count(*) from comment m where m.post_id = p.post_id and m.deleted_at is null and m.hidden_at is null) as comment_count,
                    (select count(*) from post_like l where l.post_id = p.post_id) as like_count
             """;
 

@@ -29,13 +29,28 @@ const messages = {
   failed: '※ 잠시 뒤 다시 시도해 주세요',
 } as const
 
-interface Props {
-  postId: number
-  /** 보내는 곳. 없으면 블로그 글 신고. 글마당 글은 글마당 신고 주소로 보낸다 (specs/018 US2) */
-  send?: (reason: ReportReason, detail: string) => Promise<{ message: string }>
+interface Props<R extends { message: string }> {
+  postId?: number
+  /** 보내는 곳. 없으면 블로그 글 신고. 글마당 글은 글마당 신고 주소로, 댓글은 댓글 신고 주소로 보낸다 (specs/018, 022) */
+  send?: (reason: ReportReason, detail: string) => Promise<R>
+  /** 창 제목 (기본 "글 신고") */
+  title?: string
+  /** 접수된 뒤 (댓글이 저절로 가려졌는지 같은 결과를 부른 쪽이 쓴다) */
+  onReported?: (result: R) => void
+  /** 보내다 실패했을 때 (그사이 사라진 댓글이면 목록을 다시 읽는다) */
+  onFailed?: (error: unknown) => void
+  /** 접수·이미 신고 안내를 부른 쪽이 보여 준다 (주면 단추 옆에 안내를 그리지 않는다) */
+  onDone?: (message: string) => void
 }
 
-export default function ReportDialog({ postId, send }: Props) {
+export default function ReportDialog<R extends { message: string } = { message: string }>({
+  postId,
+  send,
+  title = '글 신고',
+  onReported,
+  onFailed,
+  onDone,
+}: Props<R>) {
   const { member } = useAuth()
   const { open: openLogin } = useLoginPrompt()
   const location = useLocation()
@@ -57,6 +72,12 @@ export default function ReportDialog({ postId, send }: Props) {
 
   const detailLength = countChars(detail.trim())
 
+  function finish(message: string) {
+    setOpen(false)
+    if (onDone) onDone(message)
+    else setDone(message)
+  }
+
   function start() {
     if (!member) {
       openLogin(location.pathname)
@@ -76,14 +97,14 @@ export default function ReportDialog({ postId, send }: Props) {
     setBusy(true)
     setError(null)
     try {
-      const res = send ? await send(reason, detail) : await reportPost(postId, reason, detail)
-      setOpen(false)
-      setDone(res.message)
+      const res = send ? await send(reason, detail) : ((await reportPost(postId ?? 0, reason, detail)) as R)
+      finish(res.message)
+      onReported?.(res)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'ALREADY_REPORTED') {
-        setOpen(false)
-        setDone(err.message)
+        finish(err.message)
       } else {
+        onFailed?.(err)
         setError(err instanceof ApiError ? (err.fieldErrors[0]?.message ?? err.message) : messages.failed)
       }
     } finally {
@@ -113,7 +134,7 @@ export default function ReportDialog({ postId, send }: Props) {
       >
         <form onSubmit={submit} noValidate>
           <h2 id={`${id}-title`} className="confirm-title">
-            글 신고
+            {title}
           </h2>
           <fieldset className="report-reasons" disabled={busy}>
             <legend className="hint">신고 사유를 골라 주세요</legend>

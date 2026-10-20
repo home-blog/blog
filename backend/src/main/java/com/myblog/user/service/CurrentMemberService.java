@@ -5,6 +5,8 @@ import com.myblog.common.error.ErrorCode;
 import com.myblog.user.domain.User;
 import com.myblog.user.repository.UserRepository;
 import com.myblog.user.security.MemberPrincipal;
+import java.time.Clock;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,17 +19,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class CurrentMemberService {
 
     private final UserRepository users;
+    private final Clock clock;
 
-    public CurrentMemberService(UserRepository users) {
+    public CurrentMemberService(UserRepository users, Clock clock) {
         this.users = users;
+        this.clock = clock;
     }
 
-    /** 로그인하지 않았거나 이미 탈퇴한 회원이면 401 UNAUTHENTICATED. */
+    /** 로그인하지 않았거나 이미 탈퇴했거나 지금 정지 중이면(specs/022 S2-3) 401 UNAUTHENTICATED. */
     @Transactional(readOnly = true)
     public User get(MemberPrincipal principal) {
         if (principal == null) {
             throw new ApiException(ErrorCode.UNAUTHENTICATED);
         }
-        return users.findActiveById(principal.getId()).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
+        return users.findLoggedInById(principal.getId(), Instant.now(clock))
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED));
     }
 }

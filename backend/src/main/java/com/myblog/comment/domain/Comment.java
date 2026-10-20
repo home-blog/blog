@@ -12,6 +12,7 @@ import java.time.Instant;
  * 댓글 (comment 표, specs/005 data-model 1). 고치는 방법은 없다 (FR-005).
  * 답글(parent_id)은 한 단계: 늘 원댓글을 가리킨다. 비밀 댓글(is_secret)은 쓴 사람·블로그 주인·원댓글 쓴 사람만 읽는다 (specs/019).
  * 답글이 남은 원댓글을 지우면 줄은 남고 내용이 빈 "지운 칸"(deleted_at)이 된다. 지운 칸은 저장소의 update 문으로만 만든다.
+ * 편집실이 가린 댓글(hidden_at, specs/022)도 줄은 남고 목록에서 내용·쓴 사람을 뺀다.
  * 작성 시각은 Clock으로 넣는다: 5초 간격을 같은 시계로 센다 (D-2).
  */
 @Entity
@@ -43,6 +44,14 @@ public class Comment {
 
     @Column(name = "deleted_at", insertable = false, updatable = false)
     private Instant deletedAt;
+
+    /** 편집실이 가린 시각 (specs/022). 가림·되돌리기는 저장소의 update 문으로만 한다. */
+    @Column(name = "hidden_at", insertable = false, updatable = false)
+    private Instant hiddenAt;
+
+    /** auto(신고가 모여 저절로) · editor(관리자). */
+    @Column(name = "hidden_by", insertable = false, updatable = false)
+    private String hiddenBy;
 
     protected Comment() {
     }
@@ -99,6 +108,15 @@ public class Comment {
 
     public boolean isReply() {
         return parentId != null;
+    }
+
+    /** 편집실이 가린 댓글 (specs/022 D-3). 누구에게나 내용·쓴 사람 없이 보인다. */
+    public boolean isHidden() {
+        return hiddenAt != null;
+    }
+
+    public String getHiddenBy() {
+        return hiddenBy;
     }
 
     /** 지운 칸 (답글이 남아 줄만 남은 원댓글). */

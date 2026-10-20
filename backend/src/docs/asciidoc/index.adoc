@@ -167,6 +167,12 @@ operation::comment-list[snippets='path-parameters,http-request,http-response,res
 
 operation::comment-delete[snippets='request-headers,path-parameters,http-request,http-response']
 
+[[comment-report]]
+=== 댓글 신고
+서로 다른 회원의 대기 신고가 3건 모이면 댓글은 저절로 가려지고(`hidden`), 편집실이 가리기·반려를 정합니다.
+
+operation::comment-report[snippets='request-headers,path-parameters,http-request,request-fields,http-response,response-fields']
+
 [[post-like]]
 === 좋아요
 취소는 같은 주소에 `DELETE` 입니다.
@@ -181,6 +187,17 @@ operation::post-like[snippets='request-headers,path-parameters,http-request,http
 로그인한 회원의 블로그 숫자입니다. 블로그 번호는 주소로 받지 않고 세션의 회원으로 정합니다.
 
 operation::manage-dashboard[snippets='http-request,http-response,response-fields']
+
+[[editorial]]
+== 편집실 (관리자)
+모든 주소가 관리자만 부릅니다(로그인하지 않았으면 401, 관리자가 아니면 403).
+
+[[editorial-member-suspend]]
+=== 회원 정지
+정지된 회원은 비밀번호가 맞아도 `403 ACCOUNT_SUSPENDED`(언제까지·사유)로 로그인이 막힙니다. 비밀번호가 틀리면 지금처럼 401입니다.
+풀기는 `POST /api/v1/editorial/members/{memberId}/unsuspend`입니다.
+
+operation::editorial-member-suspend[snippets='request-headers,path-parameters,http-request,request-fields,http-response,response-fields']
 
 [[notice]]
 == 공지사항

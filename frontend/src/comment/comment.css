@@ -205,3 +205,82 @@
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+
+/* 편집실이 가린 댓글 (specs/022): 원고지 칸 셋에 먹줄을 굵게 그어 지운 자리. 줄이 왼쪽에서 오른쪽으로 그어진다 */
+.comment.is-inked {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.comment-inked {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink-soft);
+  font-family: var(--font-letter);
+}
+
+.comment-ink-cells {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1.4rem);
+  border: 1px solid var(--grid-strong);
+}
+
+.comment-ink-cells > span {
+  height: 1.4rem;
+  border-right: 1px solid var(--grid);
+}
+
+.comment-ink-cells > span:last-child {
+  border-right: 0;
+}
+
+.comment-ink-cells::after {
+  content: '';
+  position: absolute;
+  left: -0.2rem;
+  right: -0.2rem;
+  top: 50%;
+  height: 0.55rem;
+  margin-top: -0.28rem;
+  border-radius: 0.3rem 0.1rem 0.4rem 0.15rem;
+  background: var(--ink);
+  opacity: 0.82;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: ink-stroke 520ms var(--ease-out) 80ms forwards;
+}
+
+.comment-inked-delete {
+  margin-left: auto;
+}
+
+@keyframes ink-stroke {
+  to {
+    transform: scaleX(1) rotate(-2deg);
+  }
+}
+
+/* 댓글 줄의 신고 단추: 단추만 한 줄에 (안내는 댓글 영역 위에 나온다) */
+.comment-actions .report {
+  display: contents;
+}
+
+.comment-report-notice {
+  margin: 0 0 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comment-ink-cells::after {
+    animation: none;
+    transform: scaleX(1) rotate(-2deg);
+  }
+}
+
+.comment-tag.is-inked {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}

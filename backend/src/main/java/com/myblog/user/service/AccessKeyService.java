@@ -104,7 +104,7 @@ public class AccessKeyService {
         Instant now = Instant.now(clock);
         return keys.findByTokenHash(sha256(token))
                 .filter(key -> !key.isExpiredAt(now))
-                .flatMap(key -> users.findActiveById(key.getMemberId()).map(user -> {
+                .flatMap(key -> users.findLoggedInById(key.getMemberId(), now).map(user -> {
                     keys.touch(key.getId(), now, now.minus(properties.touchInterval()));
                     return new Verified(user, new AccessKeyGrant(key.getId(), key.getScope()));
                 }));

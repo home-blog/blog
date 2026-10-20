@@ -195,7 +195,13 @@ public enum ErrorCode {
     GUESTBOOK_STAMP_INVALID(HttpStatus.BAD_REQUEST, "※ 우표를 하나 골라 붙여 주세요"),
     GUESTBOOK_OWN_BLOG(HttpStatus.FORBIDDEN, "※ 내 방명록에는 엽서 대신 답장을 남길 수 있어요"),
     GUESTBOOK_TOO_FREQUENT(HttpStatus.TOO_MANY_REQUESTS, "※ 엽서는 잠시 쉬었다가 다시 보내 주세요"),
-    GUESTBOOK_DAILY_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "※ 이 방명록에는 오늘 엽서를 %d장까지 남길 수 있어요. 내일 또 들러 주세요");
+    GUESTBOOK_DAILY_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "※ 이 방명록에는 오늘 엽서를 %d장까지 남길 수 있어요. 내일 또 들러 주세요"),
+
+    // 운영 강화 (specs/022)
+    ACCOUNT_SUSPENDED(HttpStatus.FORBIDDEN, "※ %s까지 이용이 정지된 계정입니다. 사유: %s"),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 회원입니다"),
+    MEMBER_NOT_SUSPENDABLE(HttpStatus.CONFLICT, "※ 관리자는 정지할 수 없습니다"),
+    SUSPEND_DAYS_INVALID(HttpStatus.BAD_REQUEST, "※ 정지 기간을 골라 주세요");
 
     private final HttpStatus status;
     private final String message;

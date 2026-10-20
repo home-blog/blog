@@ -69,6 +69,8 @@ export interface ManageComment {
   secret: boolean
   /** 다른 댓글에 단 답글 */
   reply: boolean
+  /** 편집실이 가린 댓글 (specs/022). 미리보기가 비어 있고, 주인은 그래도 지울 수 있다 */
+  hidden: boolean
 }
 
 export interface ManageCommentPage {

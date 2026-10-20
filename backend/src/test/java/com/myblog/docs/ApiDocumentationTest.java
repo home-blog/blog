@@ -405,6 +405,30 @@ class ApiDocumentationTest {
     }
 
     @Test
+    void 댓글_신고() throws Exception {
+        Member writer = members.register("docs");
+        Long postId = writePost(writer, "제주 올레 7코스 걷기");
+        MockHttpSession commenter = login(members.register("read"));
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/posts/{postId}/comments", postId), commenter)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("body", "싸게 파는 곳 알려 드려요")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Number commentId = JsonPath.read(created, "$.id");
+        MockHttpSession reporter = login(members.register("rept"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/comments/{commentId}/reports", commentId), reporter)
+                        .contentType(MediaType.APPLICATION_JSON).content(json("reason", "SPAM", "detail", "")))
+                .andExpect(status().isCreated())
+                .andDo(document("comment-report",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("commentId").description("댓글 번호. 읽을 수 있는 남의 댓글만 (아니면 404, 내 댓글은 403)")),
+                        requestFields(
+                                fieldWithPath("reason").description("SPAM · ABUSE · ADULT · OTHER"),
+                                fieldWithPath("detail").description("기타일 때만 남기는 설명 (200자까지)").optional()),
+                        responseFields(
+                                fieldWithPath("message").description("접수 안내"),
+                                fieldWithPath("hidden").description("이 신고로 대기 신고가 기준(3건)에 닿아 저절로 가려졌는지"))));
+    }
+
+    @Test
     void 좋아요() throws Exception {
         Member writer = members.register("docs");
         Long postId = writePost(writer, "제주 올레 7코스 걷기");
@@ -743,7 +767,9 @@ class ApiDocumentationTest {
             fieldWithPath("secret").description("비밀 댓글(봉한 쪽지)인지"),
             fieldWithPath("sealed").description("보는 사람이 읽을 수 없는 비밀 댓글인지. 참이면 body는 빈 글자, author는 빈 값"),
             fieldWithPath("deleted").description("답글이 남아 줄만 남은 지운 칸인지. 참이면 body는 빈 글자, author는 빈 값"),
-            fieldWithPath("canReply").description("보는 사람이 이 댓글(답글이면 그 원댓글)에 답글을 달 수 있는지")};
+            fieldWithPath("canReply").description("보는 사람이 이 댓글(답글이면 그 원댓글)에 답글을 달 수 있는지"),
+            fieldWithPath("hidden").description("편집실이 가린 댓글인지 (specs/022). 참이면 body는 빈 글자, author는 빈 값, 답글을 달 수 없다"),
+            fieldWithPath("canReport").description("보는 사람이 신고할 수 있는지 (로그인했고, 내 댓글이 아니고, 보이는 댓글)")};
     }
 
     private static FieldDescriptor[] errorFields() {
@@ -790,6 +816,27 @@ class ApiDocumentationTest {
     }
 
     /** 글을 표에 바로 넣는다 (문서에 나오지 않는 준비). */
+    // ── 편집실 회원 정지 (specs/022) ──
+
+    @Test
+    void 회원_정지() throws Exception {
+        Member admin = members.register("adm");
+        jdbc.update("update users set role = 'admin' where users_id = ?", admin.id());
+        MockHttpSession adminSession = login(admin);
+        Member target = members.register("spam");
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/editorial/members/{memberId}/suspend",
+                                target.id()), adminSession)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"days\":7,\"reason\":\"광고 댓글을 되풀이해 남김\"}"))
+                .andExpect(status().isOk())
+                .andDo(document("editorial-member-suspend",
+                        requestHeaders(csrfHeader()),
+                        pathParameters(parameterWithName("memberId").description("회원 번호. 관리자는 정지할 수 없다 (409)")),
+                        requestFields(
+                                fieldWithPath("days").description("정지 기간(일). `moderation.member.suspend-days` 가운데 하나 (기본 1·3·7·30·365)"),
+                                fieldWithPath("reason").description("사유 (1~200자). 로그인 창에 그대로 보인다")),
+                        responseFields(fieldWithPath("suspendedUntil").description("이 시각 전까지 로그인할 수 없다. 세션은 모두 끝나고 AI 비서 열쇠는 끊긴다"))));
+    }
+
     // ── 9. AI (specs/014) ──
 
     @Test
