@@ -11,7 +11,7 @@
 |---|---|
 | `data/*.json` | 블로거 한 명씩: 닉네임, 블로그, 분류, 글(마크다운), 댓글 |
 | `photos.json` | 사진을 넣을 글과 Lorem Picsum 사진 번호, 설명 |
-| `build_seed.py` | JSON → `demo-content.sql`, `demo-photos.sql` (같은 JSON이면 늘 같은 SQL) |
+| `build_seed.py` | JSON → `demo-content.sql`, `demo-photos.sql`, `demo-board.sql`, `demo-guestbook.sql` (같은 JSON이면 늘 같은 SQL) |
 | `demo-content.sql` | 넣기 (자동 생성, 손으로 고치지 않는다) |
 | `demo-photos.sql` | 예시 글에 사진 넣기 (자동 생성. 글이 처음 모양 그대로일 때만 바꾼다) |
 | `board.json` | 글마당 예시 글 10개(물음·이야기, 댓글, 채택). 시각은 넣는 순간 기준 몇 시간 전 |
@@ -52,4 +52,4 @@ docker compose exec -T postgres psql -q -U myblog -d myblog < deploy/seed/demo-r
 
 ## 글을 고치거나 더하려면
 
-`data/*.json`·`photos.json`을 고친 뒤 `python3 deploy/seed/build_seed.py`로 SQL을 다시 만든다. 이미 넣었다면 지우고 다시 넣는다.
+`data/*.json`·`photos.json`·`board.json`·`guestbook.json`을 고친 뒤 `python3 deploy/seed/build_seed.py`로 SQL을 다시 만든다. 이미 넣었다면 지우고 다시 넣는다. 글마당 글은 (쓴 사람, 제목)으로 같은 글을 찾으므로, `board.json`의 제목만 바꿔 `board`를 다시 돌리면 옛 글이 남은 채 새 글이 더해진다.
