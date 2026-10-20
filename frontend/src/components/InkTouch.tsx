@@ -9,8 +9,10 @@ const LIFETIME_MS = 900
 
 export default function InkTouch() {
   useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')
     function onDown(event: PointerEvent) {
+      // 페이지를 연 뒤 설정을 바꿔도 따르도록 누를 때마다 본다
+      if (reduce?.matches) return
       if (event.button !== 0 || !(event.target instanceof Element) || !event.target.closest(TARGET)) return
       const drop = document.createElement('span')
       drop.className = 'ink-touch'
