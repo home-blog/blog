@@ -202,4 +202,18 @@ class AccessKeyTest {
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("ACCESS_KEY_NOT_FOUND"));
         mvc.perform(get("/api/v1/me/access-keys")).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void S1_5_비밀번호를_바꾸면_열쇠가_모두_끊긴다() throws Exception {
+        String token = createToken("바꾸기 전", "draft");
+        mcp(token, PING).andExpect(status().isOk());
+        mvc.perform(post("/api/v1/account/password").with(csrf()).session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(TestJson.of("currentPassword", TestMembers.PASSWORD, "newPassword", "efgh5678!",
+                                "newPasswordConfirm", "efgh5678!")))
+                .andExpect(status().isOk());
+        mcp(token, PING).andExpect(status().isUnauthorized());
+        assertThat(jdbc.queryForObject("select count(*) from access_key where users_id = ?", Integer.class, owner.id()))
+                .isZero();
+    }
 }

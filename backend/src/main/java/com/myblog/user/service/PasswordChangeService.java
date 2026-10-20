@@ -26,14 +26,16 @@ public class PasswordChangeService {
     private final PasswordEncoder passwordEncoder;
     private final MemberSessions memberSessions;
     private final TransactionTemplate transaction;
+    private final AccessKeyService accessKeys;
 
     public PasswordChangeService(UserRepository users, CurrentPasswordChecker currentPassword, PasswordEncoder passwordEncoder,
-            MemberSessions memberSessions, TransactionTemplate transaction) {
+            MemberSessions memberSessions, TransactionTemplate transaction, AccessKeyService accessKeys) {
         this.users = users;
         this.currentPassword = currentPassword;
         this.passwordEncoder = passwordEncoder;
         this.memberSessions = memberSessions;
         this.transaction = transaction;
+        this.accessKeys = accessKeys;
     }
 
     /** keepSessionId: 지금 기기의 세션. 이 세션만 로그인이 유지된다 (FR-020). */
@@ -60,6 +62,8 @@ public class PasswordChangeService {
                 throw mismatch();
             }
             locked.changePasswordHash(hash);
+            // 다른 기기 로그아웃처럼 AI 비서 열쇠도 모두 끊는다 (specs/020)
+            accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
     }
@@ -77,6 +81,8 @@ public class PasswordChangeService {
                 throw required();
             }
             locked.changePasswordHash(hash);
+            // 다른 기기 로그아웃처럼 AI 비서 열쇠도 모두 끊는다 (specs/020)
+            accessKeys.revokeAll(locked.getId());
         });
         memberSessions.expireOthers(member.getId(), keepSessionId);
     }

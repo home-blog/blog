@@ -65,11 +65,13 @@ public class McpController {
         return json(server.handle(message, new Caller(memberId, grant, baseUrl)));
     }
 
+    @Operation(summary = "서버가 먼저 보내는 흐름 (쓰지 않음, 405)")
     @GetMapping("/api/{version}/mcp")
     public ResponseEntity<Void> stream() {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, "POST").build();
     }
 
+    @Operation(summary = "MCP 세션 끝내기 (상태가 없어 쓰지 않음, 405)")
     @DeleteMapping("/api/{version}/mcp")
     public ResponseEntity<Void> endSession() {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, "POST").build();

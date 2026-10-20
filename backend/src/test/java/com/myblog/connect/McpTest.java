@@ -54,6 +54,12 @@ class McpTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private com.myblog.connect.service.McpRateLimiter rateLimiter;
+
+    @Autowired
+    private org.springframework.data.redis.core.StringRedisTemplate redis;
+
     private MockMvc mvc;
     private final List<Member> created = new ArrayList<>();
     private Member me;
@@ -148,6 +154,14 @@ class McpTest {
         assertThat((Integer) JsonPath.read(broken.getResponse().getContentAsString(), "$.error.code")).isEqualTo(-32700);
         MvcResult notRpc = send(token, "{\"jsonrpc\":\"1.0\",\"id\":3,\"method\":\"ping\"}");
         assertThat((Integer) JsonPath.read(notRpc.getResponse().getContentAsString(), "$.error.code")).isEqualTo(-32600);
+        // 요청 id는 글자나 정수만 (null·참거짓·소수는 잘못된 요청)
+        for (String badId : List.of("null", "true", "1.5")) {
+            MvcResult bad = send(token, "{\"jsonrpc\":\"2.0\",\"id\":" + badId + ",\"method\":\"tools/list\"}");
+            assertThat(bad.getResponse().getStatus()).as("id %s", badId).isEqualTo(400);
+            assertThat((Integer) JsonPath.read(bad.getResponse().getContentAsString(), "$.error.code")).isEqualTo(-32600);
+        }
+        assertThat((String) JsonPath.read(send(token, "{\"jsonrpc\":\"2.0\",\"id\":\"abc\",\"method\":\"ping\"}")
+                .getResponse().getContentAsString(), "$.id")).isEqualTo("abc");
 
         int getStatus = mvc.perform(get("/api/v1/mcp").header("Authorization", "Bearer " + token)).andReturn()
                 .getResponse().getStatus();
@@ -232,7 +246,8 @@ class McpTest {
         assertThat(((Number) best.get("postId")).longValue()).isEqualTo(postId);
         assertThat((String) best.get("text")).contains(bird + "가 지나갔다");
         assertThat((String) best.get("url")).endsWith("/posts/" + postId);
-        assertThat(((Number) best.get("paragraph")).intValue()).isEqualTo(3);
+        // "# 들어가며"는 다음 단락에 붙어 1번째, 맞은 단락은 2번째
+        assertThat(((Number) best.get("paragraph")).intValue()).isEqualTo(2);
         assertThat((String) best.get("title")).isEqualTo("호수 산책 기록");
         assertThat(result).doesNotContain("숨긴").doesNotContain("/api/images/x.png");
         // 사람이 읽는 글에도 출처가 붙는다
@@ -291,5 +306,27 @@ class McpTest {
         String another = key("read");
         assertThat(send(another, "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}").getResponse().getStatus())
                 .isEqualTo(200);
+    }
+
+    @Test
+    void 요청_수_키에_만료가_빠져_있어도_다시_걸어_영원히_막히지_않는다() {
+        long keyId = -System.nanoTime();   // 실제 열쇠와 겹치지 않는 번호
+        String key = "myblog:mcp:rate:" + keyId;
+        try {
+            // 예전처럼 INCR만 되고 EXPIRE가 빠진 상태
+            redis.opsForValue().set(key, "100");
+            assertThat(redis.getExpire(key)).isEqualTo(-1L);
+            assertThat(rateLimiter.allow(keyId)).isFalse();
+            assertThat(redis.getExpire(key)).isBetween(1L, 60L);
+        } finally {
+            redis.delete(key);
+        }
+        // 새 키는 첫 요청에서 1분 창이 열린다
+        try {
+            assertThat(rateLimiter.allow(keyId)).isTrue();
+            assertThat(redis.getExpire(key)).isBetween(1L, 60L);
+        } finally {
+            redis.delete(key);
+        }
     }
 }

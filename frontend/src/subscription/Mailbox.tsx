@@ -82,6 +82,8 @@ export default function Mailbox() {
   const [stamped, setStamped] = useState<ReadonlySet<number>>(new Set())
   const panelId = useId()
   const wrapRef = useRef<HTMLDivElement>(null)
+  // "안 읽음"에서 편지를 읽으면 그 단추가 목록에서 빠진다: 키보드 자리를 이 단추로 돌려준다
+  const unreadFilterRef = useRef<HTMLButtonElement>(null)
   const navigate = useNavigate()
 
   const refreshCount = useCallback((signal?: AbortSignal) => {
@@ -166,6 +168,8 @@ export default function Mailbox() {
     if (notice.available && target) {
       setOpen(false)
       navigate(target)
+    } else if (onlyUnread && !notice.read) {
+      unreadFilterRef.current?.focus()
     }
   }
 
@@ -226,7 +230,7 @@ export default function Mailbox() {
               <button type="button" aria-pressed={!onlyUnread} onClick={() => setOnlyUnread(false)}>
                 전체
               </button>
-              <button type="button" aria-pressed={onlyUnread} onClick={() => setOnlyUnread(true)}>
+              <button type="button" ref={unreadFilterRef} aria-pressed={onlyUnread} onClick={() => setOnlyUnread(true)}>
                 안 읽음
               </button>
             </div>
@@ -259,7 +263,7 @@ export default function Mailbox() {
               <span className="postmark-done" aria-hidden="true">
                 다 읽음
               </span>
-              <p className="hint">안 읽은 편지가 없어요.</p>
+              <p className="hint">최근 편지 중에는 안 읽은 편지가 없어요.</p>
             </div>
           ) : (
             <ul className="mailbox-list">

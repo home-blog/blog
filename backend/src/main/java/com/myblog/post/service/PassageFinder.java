@@ -14,7 +14,8 @@ import java.util.regex.Pattern;
 /**
  * 단락 찾기 (RAG의 "찾기", specs/020 research D-3). 서버는 맞는 단락을 출처와 함께 고르기만 하고, 답은 사용자의 AI가 쓴다.
  * <ul>
- *   <li>단락: 마크다운을 빈 줄로 나눈 덩어리. 코드 블록(```, ~~~)은 한 덩어리, 이미지만 있는 줄은 뺀다.</li>
+ *   <li>단락: 마크다운을 빈 줄로 나눈 덩어리. 코드 블록(```, ~~~)은 한 덩어리, 이미지만 있는 줄은 뺀다.
+ *       제목 줄(#)만 있는 덩어리는 다음 단락 앞에 붙인다: 제목만 단락으로 나오면 AI가 인용할 내용이 없다.</li>
  *   <li>점수: 낱말마다 그 단락에 나온 횟수(최대 3) × 드문 정도(후보 글 중 몇 개에 나오나의 역수 로그),
  *       제목에 있는 낱말이면 그 글의 단락마다 조금 더한다.</li>
  *   <li>글마다 perPost개, 전체 limit개. 길면 처음 맞은 곳 둘레로 maxLength자만 자른다.</li>
@@ -23,6 +24,7 @@ import java.util.regex.Pattern;
  */
 final class PassageFinder {
 
+    private static final Pattern HEADING_LINE = Pattern.compile("^\\s{0,3}#{1,6}(\\s.*)?$");
     private static final Pattern IMAGE_LINE = Pattern.compile("^\\s*!\\[[^\\]]*]\\([^)]*\\)\\s*$");
     private static final int MAX_COUNT = 3;
     private static final double TITLE_BONUS = 0.5;
@@ -73,14 +75,14 @@ final class PassageFinder {
         return picked;
     }
 
-    /** 낱말마다 드문 정도: ln(1 + (n + 1) / (df + 0.5)). 모든 후보에 나오는 낱말도 0보다 크다. */
+    /** 낱말마다 드문 정도: ln(1 + (n + 1) / (df + 0.5)). 모든 후보에 나오는 낱말도 0보다 크다. 글은 한 번만 소문자로 바꾼다. */
     private static Map<String, Double> idf(List<Found> candidates, List<String> words) {
+        List<String> documents = candidates.stream()
+                .map(post -> (post.title() + "\n" + post.content()).toLowerCase(Locale.ROOT)).toList();
         Map<String, Double> idf = new HashMap<>();
         int n = candidates.size();
         for (String word : words) {
-            long df = candidates.stream()
-                    .filter(post -> (post.title() + "\n" + post.content()).toLowerCase(Locale.ROOT).contains(word))
-                    .count();
+            long df = documents.stream().filter(document -> document.contains(word)).count();
             idf.put(word, Math.log(1 + (n + 1) / (df + 0.5)));
         }
         return idf;
@@ -90,6 +92,7 @@ final class PassageFinder {
     static List<Block> blocks(String markdown) {
         List<Block> blocks = new ArrayList<>();
         StringBuilder current = new StringBuilder();
+        StringBuilder heading = new StringBuilder();
         String fence = null;
         for (String line : markdown.replace("\r\n", "\n").replace('\r', '\n').split("\n", -1)) {
             String trimmed = line.strip();
@@ -97,32 +100,43 @@ final class PassageFinder {
                 current.append(line).append('\n');
                 if (trimmed.startsWith(fence)) {
                     fence = null;
-                    flush(blocks, current);
+                    flush(blocks, current, heading);
                 }
                 continue;
             }
             if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-                flush(blocks, current);
+                flush(blocks, current, heading);
                 fence = trimmed.substring(0, 3);
                 current.append(line).append('\n');
                 continue;
             }
             if (trimmed.isEmpty()) {
-                flush(blocks, current);
+                flush(blocks, current, heading);
             } else if (!IMAGE_LINE.matcher(line).matches()) {
                 current.append(line).append('\n');
             }
         }
-        flush(blocks, current);
+        flush(blocks, current, heading);
+        // 끝에 제목만 남았으면 그것도 한 단락
+        if (!heading.isEmpty()) {
+            blocks.add(new Block(blocks.size() + 1, heading.toString().strip()));
+        }
         return blocks;
     }
 
-    private static void flush(List<Block> blocks, StringBuilder current) {
+    /** 모은 줄을 단락으로 낸다. 제목 줄만 있으면 내지 않고 남겨 두었다가 다음 단락 앞에 붙인다. */
+    private static void flush(List<Block> blocks, StringBuilder current, StringBuilder heading) {
         String text = current.toString().strip();
         current.setLength(0);
-        if (!text.isEmpty()) {
-            blocks.add(new Block(blocks.size() + 1, text));
+        if (text.isEmpty()) {
+            return;
         }
+        if (text.lines().allMatch(line -> HEADING_LINE.matcher(line).matches())) {
+            heading.append(text).append('\n');
+            return;
+        }
+        blocks.add(new Block(blocks.size() + 1, heading.isEmpty() ? text : heading + text));
+        heading.setLength(0);
     }
 
     private static int count(String text, String word) {
@@ -139,13 +153,25 @@ final class PassageFinder {
         if (length <= maxLength) {
             return text;
         }
-        String lower = text.toLowerCase(Locale.ROOT);
-        int hit = lowered.stream().mapToInt(lower::indexOf).filter(at -> at >= 0).min().orElse(0);
-        int hitPoint = text.codePointCount(0, Math.min(hit, text.length()));
+        int hit = lowered.stream().mapToInt(word -> indexOfIgnoreCase(text, word)).filter(at -> at >= 0).min().orElse(0);
+        int hitPoint = text.codePointCount(0, hit);
         int startPoint = Math.max(0, Math.min(hitPoint - maxLength / 3, length - maxLength));
         int start = text.offsetByCodePoints(0, startPoint);
         int end = text.offsetByCodePoints(start, maxLength);
         return (start > 0 ? ELLIPSIS : "") + text.substring(start, end).strip() + (end < text.length() ? ELLIPSIS : "");
+    }
+
+    /**
+     * 원문에서 낱말이 처음 나오는 자리 (대소문자 무시). 소문자로 바꾼 글에서 찾으면 길이가 바뀌는 글자(İ 등)가 있을 때
+     * 자리가 어긋나므로 원문 위에서 찾는다.
+     */
+    private static int indexOfIgnoreCase(String text, String word) {
+        for (int at = 0; at + word.length() <= text.length(); at++) {
+            if (text.regionMatches(true, at, word, 0, word.length())) {
+                return at;
+            }
+        }
+        return -1;
     }
 
     record Block(int index, String text) {

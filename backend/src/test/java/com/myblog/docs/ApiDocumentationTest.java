@@ -5,7 +5,10 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.requestHe
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.modifyHeaders;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.replacePattern;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
@@ -1051,6 +1054,72 @@ class ApiDocumentationTest {
                         pathParameters(parameterWithName("postId").description("내릴 글 번호")),
                         requestHeaders(csrfHeader()),
                         requestFields(fieldWithPath("reason").description("사유 1~200자 (글 주인에게 보인다)"))));
+    }
+
+    // ── 14. AI 비서 연결 (specs/020) ──
+
+    /** 문서에는 실제 열쇠 대신 자리 표시만 남긴다 */
+    private static final java.util.regex.Pattern TOKEN = java.util.regex.Pattern.compile("gk_[A-Za-z0-9_-]{20,}");
+
+    @Test
+    void 개인_열쇠_만들기() throws Exception {
+        MockHttpSession session = login(members.register("docs"));
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/access-keys"), session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"노트북 Claude Code\",\"scope\":\"draft\",\"days\":90}"))
+                .andExpect(status().isCreated())
+                .andDo(document("access-key-create",
+                        preprocessResponse(replacePattern(TOKEN, "gk_(만들 때 한 번만 보이는 열쇠)")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("name").description("알아볼 이름 1~40자"),
+                                fieldWithPath("scope").description("`read`(찾기·읽기·내 글·통계) 또는 `draft`(+ 임시 저장)"),
+                                fieldWithPath("days").description("기한 (`access-key.allowed-days`: 30·90·365)")),
+                        responseFields(
+                                fieldWithPath("keyId").description("열쇠 번호 (끊을 때 `DELETE /api/v1/me/access-keys/{keyId}`)"),
+                                fieldWithPath("name").description("이름"),
+                                fieldWithPath("hint").description("원문 앞 8글자 (목록에서 알아보는 용도)"),
+                                fieldWithPath("scope").description("할 수 있는 일"),
+                                fieldWithPath("createdAt").description("만든 시각"),
+                                fieldWithPath("expiresAt").description("기한"),
+                                fieldWithPath("token").description("열쇠 원문. **이 응답에서만** 보이고 서버에는 SHA-256만 남는다"))));
+    }
+
+    @Test
+    void MCP_단락_찾기() throws Exception {
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        jdbc.update("insert into post (category_id, topic_id, title, content, visibility, created_at)"
+                + " values (?, (select min(topic_id) from topic), ?, ?, 'public', now())", member.defaultCategoryId(),
+                "새벽 호수 산책", "## 출발\n\n다섯 시에 나섰다.\n\n호숫가에는 물안개가 피어올랐고, 물안개 사이로 왜가리가 지나갔다.");
+        String created = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/me/access-keys"), session)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"문서\",\"scope\":\"read\",\"days\":30}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String token = JsonPath.read(created, "$.token");
+        mvc.perform(RestDocumentationRequestBuilders.post("/api/v1/mcp")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).accept("application/json, text/event-stream")
+                        .content("{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search_passages\","
+                                + "\"arguments\":{\"query\":\"물안개 왜가리\",\"mineOnly\":true}}}"))
+                .andExpect(status().isOk())
+                .andDo(document("mcp-search-passages",
+                        preprocessRequest(modifyHeaders().set("Authorization", "Bearer gk_(개인 열쇠)")),
+                        requestHeaders(headerWithName("Authorization").description("`Bearer` + 개인 열쇠. 세션 쿠키·CSRF는 쓰지 않는다")),
+                        requestFields(
+                                fieldWithPath("jsonrpc").description("`2.0`"),
+                                fieldWithPath("id").description("요청 번호 (응답에 그대로)"),
+                                fieldWithPath("method").description("`initialize` · `ping` · `tools/list` · `tools/call`"),
+                                fieldWithPath("params.name").description("도구 이름"),
+                                subsectionWithPath("params.arguments").description("도구 입력 (`tools/list`의 `inputSchema`대로)")),
+                        responseFields(
+                                fieldWithPath("jsonrpc").description("`2.0`"),
+                                fieldWithPath("id").description("요청 번호"),
+                                fieldWithPath("result.content[]").description("AI가 읽는 글자 결과 (출처 주소 포함)"),
+                                fieldWithPath("result.content[].type").description("`text`"),
+                                fieldWithPath("result.content[].text").description("결과 글"),
+                                subsectionWithPath("result.structuredContent").description("같은 결과의 자료 모양: 단락마다 "
+                                        + "`postId`, `title`, `blogName`, `url`, `paragraph`(몇 번째 단락), `text`, `score`"),
+                                fieldWithPath("result.isError").description("도구가 일을 못 했으면 참 (예: 없는 글, 읽기 열쇠로 초안)"))));
     }
 
     private Long writePost(Member member, String title) {

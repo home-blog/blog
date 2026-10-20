@@ -34,6 +34,21 @@ class PassageFinderTest {
     }
 
     @Test
+    void 제목_줄만_있는_덩어리는_다음_단락에_붙이고_끝에_남은_제목은_혼자_단락이_된다() {
+        String markdown = "# 들어가며\n\n## 첫날\n\n오늘은 비가 왔다.\n\n#해시태그 같은 줄\n\n### 맺으며";
+        List<PassageFinder.Block> blocks = PassageFinder.blocks(markdown);
+        assertThat(blocks).extracting(PassageFinder.Block::text)
+                .containsExactly("# 들어가며\n## 첫날\n오늘은 비가 왔다.", "#해시태그 같은 줄", "### 맺으며");
+        // 제목과 본문이 한 덩어리면 그대로
+        assertThat(PassageFinder.blocks("## 제목\n본문")).extracting(PassageFinder.Block::text)
+                .containsExactly("## 제목\n본문");
+        // 제목에서만 맞아도 본문과 같이 나온다 (AI가 인용할 내용이 있게)
+        List<Passage> found = PassageFinder.find(List.of(post(1, "기록", "## 리액트 라우터\n\n로더를 써 봤다.")),
+                List.of("리액트"), OPTIONS);
+        assertThat(found).singleElement().extracting(Passage::text).isEqualTo("## 리액트 라우터\n로더를 써 봤다.");
+    }
+
+    @Test
     void 드문_낱말이_많이_나온_단락이_먼저이고_대소문자를_가리지_않는다() {
         Found lake = post(1, "산책", "호수 둘레를 걸었다.\n\n물안개가 피는 호수. 물안개 사이로 해가 떴다.\n\n점심은 국수.");
         Found city = post(2, "도시", "도시의 아침에도 물안개가 낀다.\n\n지하철은 붐볐다.");
@@ -100,6 +115,8 @@ class PassageFinderTest {
         // 맨 끝에서 맞아도 길이를 채워 자르고 뒤에는 붙이지 않는다
         String tail = PassageFinder.clip("라".repeat(50) + "단서", List.of("단서"), 10);
         assertThat(tail).startsWith("…").endsWith("단서");
+        // 소문자로 바꾸면 길어지는 글자(İ → i̇)가 앞에 있어도 맞은 곳을 놓치지 않는다
+        assertThat(PassageFinder.clip("İ".repeat(100) + "단서" + "가".repeat(100), List.of("단서"), 30)).contains("단서");
         // 이모지(서로게이트 쌍)를 반으로 자르지 않는다
         String emoji = PassageFinder.clip("😀".repeat(40) + "단서", List.of("단서"), 10);
         // 홀로 남은 서로게이트는 codePoints에 그 값 그대로 나온다

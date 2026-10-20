@@ -17,7 +17,7 @@
 - 설정값(글자 수, 시간, 횟수)은 `application.yml`(`auth.*`, `account.*` 등) 한곳에서 읽는다. 비밀 값은 환경 변수로만. 로컬 접속 정보(DB, Redis, MinIO, 메일)는 루트 `.env` 하나(git 제외, 견본 `.env.example`)를 docker compose와 서버(dev)가 같이 읽는다.
 - **테스트 먼저** (2026-10-15 사용자, 강의 "테스트 전략과 품질 관리"): 기능마다 정상값·경계값·예외값 테스트를 같이 쓴다. 서버는 JUnit 5(+MockMvc), 화면은 Vitest + Testing Library + MSW(가짜 서버). 테스트가 실패하면 **테스트가 아니라 구현을 고친다**(테스트가 틀린 경우만 예외, 이유를 커밋에 적는다). 운영에서 버그가 나면 그 상황을 재현하는 테스트부터 더한다. 기준은 문서 저장소 `docs/3-설계/테스트-전략.md`.
 - 표는 Flyway(`backend/src/main/resources/db/migration`)로만 만든다. JPA는 `ddl-auto: validate`.
-- 모듈 방향(Spring Modulith, `ModularityTest`): `user ← blog ← post ← comment/community/image/board`, 맨 위에 `stats`·`subscription`·`editorial`. 아래 모듈은 위 모듈을 직접 부르지 않고 이벤트나 질문 틀(인터페이스)을 쓴다. `stats`는 다른 모듈의 표를 직접 쓰지 않는다: 방문자 판단만 하고 조회 수는 그 표를 가진 모듈의 입구(`PostViewCounter`·`BoardViewCounter`)로 올린다. `editorial`(편집실)도 신고·글 잠금을 각 모듈의 입구(`PostReports`·`BoardReports`·`PostModeration`)로만 바꾼다.
+- 모듈 방향(Spring Modulith, `ModularityTest`): `user ← blog ← post ← comment/community/image/board`, 맨 위에 `stats`·`subscription`·`editorial`·`connect`. 아래 모듈은 위 모듈을 직접 부르지 않고 이벤트나 질문 틀(인터페이스)을 쓴다. `stats`는 다른 모듈의 표를 직접 쓰지 않는다: 방문자 판단만 하고 조회 수는 그 표를 가진 모듈의 입구(`PostViewCounter`·`BoardViewCounter`)로 올린다. `editorial`(편집실)도 신고·글 잠금을 각 모듈의 입구(`PostReports`·`BoardReports`·`PostModeration`)로만 바꾼다. `connect`(AI 비서 MCP)는 `PostLibrary`·`BlogStatsReader`로만 묻고, 개인 열쇠와 MCP 보안 사슬은 `user` 모듈에 있다.
 - 화면 디자인은 **"원고지" 방향**으로 한다 (2026-10-12 사용자: Cohere 방향보다 원고지가 낫다고 해서 PR #40의 화면 변경을 되돌림). 토큰은 `frontend/src/index.css` 한곳: 종이 `--paper`, 먹색 글자 `--ink`, 원고지 칸 선 `--grid`, 강조 `--accent`. `docs/DESIGN.md`(Cohere 스타일)는 쓰지 않는다. Spring 기능은 문서 저장소 `docs/3-설계/기술스택-아키텍처.md` 2.2 표대로 적극적으로 쓴다.
 - 이 저장소는 **공개(public)** 다. 비밀번호, 키, 계정 정보, 실습 서버 주소는 넣지 않는다.
 

@@ -116,6 +116,15 @@ public class AccessKeyService {
         keys.deleteByMemberId(event.memberId());
     }
 
+    /**
+     * 그 회원의 열쇠를 모두 끊는다. 비밀번호를 바꾸면 부른다: 잠깐 세션을 얻은 사람이 만들어 둔 열쇠가
+     * 비밀번호를 바꾼 뒤에도 남아 있으면 안 된다(다른 기기 로그아웃과 같은 뜻).
+     */
+    @Transactional
+    public void revokeAll(Long memberId) {
+        keys.deleteByMemberId(memberId);
+    }
+
     static String sha256(String value) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

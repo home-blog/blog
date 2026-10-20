@@ -23,8 +23,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * MCP 주소 전용: {@code Authorization: Bearer gk_…} 열쇠를 확인해 그 회원으로 로그인시킨다 (specs/020 D-2).
  * <ul>
  *   <li>세션을 만들지도 읽지도 않는다(이 요청 동안만의 로그인).</li>
- *   <li>Origin 머리글이 있고 이 사이트와 다르면 403: 다른 사이트의 브라우저 요청을 막는다(MCP 권고, DNS 리바인딩).
- *       AI 앱(MCP 클라이언트)은 Origin을 보내지 않는다.</li>
+ *   <li>Origin 머리글이 있고 요청이 들어온 호스트와 다르면 403: 다른 사이트의 웹 페이지가 부르는 요청을 막는다(MCP 권고).
+ *       AI 앱(MCP 클라이언트)은 Origin을 보내지 않는다. DNS 리바인딩은 Origin과 Host가 같은 공격자 이름이라 이 검사로는
+ *       못 막는다: 그쪽은 브라우저가 모르는 열쇠(Bearer)가 있어야 한다는 점이 막는다.</li>
  *   <li>열쇠가 틀리면 로그인시키지 않고 넘긴다: 보안 사슬이 401과 {@code WWW-Authenticate: Bearer}로 답한다.</li>
  * </ul>
  */

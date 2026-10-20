@@ -1,6 +1,7 @@
 package com.myblog.connect.service;
 
 import com.myblog.connect.service.McpTools.Caller;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,11 +65,15 @@ public class McpServer {
             return rpc.containsKey("result") || rpc.containsKey("error") ? new Outcome(202, null)
                     : new Outcome(400, error(id, INVALID_REQUEST, "method가 없습니다"));
         }
-        if (!(method instanceof String name) || id instanceof Map || id instanceof List) {
-            return new Outcome(400, error(null, INVALID_REQUEST, "method·id 모양이 틀렸습니다"));
+        if (!(method instanceof String name)) {
+            return new Outcome(400, error(null, INVALID_REQUEST, "method 모양이 틀렸습니다"));
         }
         if (!rpc.containsKey("id")) {
             return new Outcome(202, null);  // 알림 (notifications/initialized 등)
+        }
+        // MCP: 요청 id는 글자나 정수여야 하고 null이면 안 된다
+        if (!(id instanceof String || id instanceof Integer || id instanceof Long || id instanceof BigInteger)) {
+            return new Outcome(400, error(null, INVALID_REQUEST, "id는 글자나 정수여야 합니다"));
         }
         Map<String, Object> params = rpc.get("params") instanceof Map<?, ?> p ? cast(p) : Map.of();
         return switch (name) {

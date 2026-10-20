@@ -1,0 +1,420 @@
+/* 마이페이지 "AI 비서 연결" (specs/020): 원고지 칸 도구 이름, 구멍 뚫린 열쇠 꼬리표, "한 번만" 도장이 찍힌 새 열쇠 쪽지 */
+.ai-connect {
+  display: grid;
+  gap: 1rem;
+}
+
+.ai-connect .mypage-card-title {
+  margin-bottom: 0;
+}
+
+.ai-connect-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-mcp-tag {
+  padding: 0.05rem 0.45rem;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+}
+
+.ai-connect-lead {
+  margin: 0;
+  line-height: 1.7;
+  max-width: 62ch;
+}
+
+.ai-connect-lead em {
+  font-style: normal;
+  background: linear-gradient(transparent 62%, var(--highlight) 62%);
+}
+
+/* 할 수 있는 일: 원고지 칸 한 줄 */
+.ai-tools {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--grid);
+  border-top: 1px solid var(--grid);
+}
+
+.ai-tools li {
+  padding: 0.4rem 0.7rem;
+  font-size: var(--step--1);
+  border-right: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  background: var(--paper);
+  margin: 0;
+}
+
+.ai-example {
+  margin: 0;
+  font-family: var(--font-letter);
+}
+
+/* 새 열쇠 쪽지: 점선 테두리, 오른쪽 위에 붉은 도장 */
+.ai-key-issued {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem 1.1rem 1rem;
+  background:
+    repeating-linear-gradient(transparent 0 1.9rem, color-mix(in srgb, var(--grid) 45%, transparent) 1.9rem 1.95rem),
+    var(--paper);
+  border: 1.5px dashed var(--grid-strong);
+  border-radius: var(--radius-field);
+  animation: issued-in 0.5s var(--ease-out) both;
+}
+
+.ai-key-issued .hint {
+  margin: 0;
+}
+
+.ai-issued-title {
+  margin: 0;
+  padding-right: 4.5rem;
+  font-family: var(--font-letter);
+  font-weight: 700;
+}
+
+.ai-once-seal {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  display: grid;
+  place-items: center;
+  width: 3.3rem;
+  height: 3.3rem;
+  font-family: var(--font-letter);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--seal);
+  border: 2px solid var(--seal);
+  border-radius: 50%;
+  transform: rotate(-14deg);
+  opacity: 0.85;
+  animation: seal-stamp 0.45s var(--ease-out) 0.3s both;
+}
+
+.ai-token {
+  display: block;
+  padding: 0.7rem 0.8rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid-strong);
+  border-radius: 4px;
+  user-select: all;
+}
+
+.ai-issued-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 만들기 */
+.ai-key-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.ai-key-form > .field:first-child,
+.ai-scope,
+.ai-full {
+  grid-column: 1 / -1;
+}
+
+.ai-key-form .field {
+  margin: 0;
+}
+
+.ai-days select {
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+}
+
+.ai-key-form > .btn {
+  justify-self: start;
+}
+
+.ai-full {
+  margin: 0;
+}
+
+.ai-scope {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ai-scope legend {
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: var(--step--1);
+}
+
+.ai-scope-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.8rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-field);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.ai-scope-option.is-on {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.ai-scope-option input {
+  margin-top: 0.2rem;
+  accent-color: var(--accent);
+}
+
+.ai-scope-option span {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ai-scope-option small {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+/* 열쇠 꼬리표: 왼쪽에 끈 구멍 */
+.ai-keys {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-key {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 0.9rem 0.75rem 2.4rem;
+  background: var(--paper);
+  border: 1px solid var(--grid);
+  border-radius: 4px 14px 14px 4px;
+  animation: rise-in 0.4s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.ai-key::before {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-top: -0.325rem;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--grid-strong);
+}
+
+.ai-key.is-expired {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.ai-key-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ai-key-name {
+  font-family: var(--font-letter);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ai-key-scope,
+.ai-key-expired {
+  padding: 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+
+.ai-key-scope.scope-read {
+  color: var(--ink-soft);
+}
+
+.ai-key-scope.scope-draft {
+  color: var(--accent);
+}
+
+.ai-key-expired {
+  color: var(--seal);
+}
+
+.ai-key-hint {
+  grid-column: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.ai-key-meta {
+  grid-column: 1;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.ai-key-revoke {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+}
+
+.ai-key-confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--grid);
+  font-size: var(--step--1);
+}
+
+/* 붙이는 법 */
+.ai-setup {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--grid);
+}
+
+.ai-setup-title {
+  margin: 0;
+  font-size: var(--step-0);
+  font-family: var(--font-letter);
+}
+
+.ai-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.ai-tabs [role='tab'] {
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.ai-tabs [role='tab'][aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+.ai-panel {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.ai-panel .hint {
+  margin: 0;
+}
+
+.ai-snippet {
+  justify-self: stretch;
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--grid);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+
+@keyframes issued-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes seal-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.6);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-14deg) scale(0.92);
+  }
+}
+
+@media (max-width: 30rem) {
+  .ai-key-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ai-key {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ai-key-revoke {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-key-issued,
+  .ai-once-seal,
+  .ai-key {
+    animation: none;
+  }
+}
