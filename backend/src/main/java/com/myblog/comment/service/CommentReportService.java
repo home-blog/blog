@@ -74,7 +74,7 @@ public class CommentReportService {
                 + " values (?, ?, ?, ?, ?) on conflict (users_id, comment_id) do nothing", memberId, commentId, reason,
                 stored, Timestamp.from(now));
         if (inserted == 0) {
-            throw new ApiException(ErrorCode.ALREADY_REPORTED, "이미 신고한 댓글입니다");
+            throw new ApiException(ErrorCode.ALREADY_REPORTED, "※ 이미 신고한 댓글입니다");
         }
         Long pending = jdbc.queryForObject(
                 "select count(*) from comment_report where comment_id = ? and resolved_at is null", Long.class,
