@@ -77,7 +77,9 @@ public class ManageCommentQueryService {
                 comment.getCreatedAt(),
                 comment.isHidden() ? "" : preview(comment.getBody()),
                 new PostRef(comment.getPostId(), titles.get(comment.getPostId())),
-                newSince.isNew(comment, blog.ownerId()), comment.isSecret(), comment.isReply(), comment.isHidden()))
+                // 가린 댓글은 새 댓글 수에서 빠지므로 NEW도 붙이지 않는다
+                !comment.isHidden() && newSince.isNew(comment, blog.ownerId()), comment.isSecret(), comment.isReply(),
+                comment.isHidden()))
                 .toList();
         return new ManageCommentPage(items, page, pageSize, totalCount);
     }

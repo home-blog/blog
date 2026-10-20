@@ -135,7 +135,8 @@ class CommentReportTest {
                 .andExpect(jsonPath("$.message").value("신고가 접수되었습니다"))
                 .andExpect(jsonPath("$.hidden").value(false));
         report(reporter, commentId, "ABUSE", null).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ALREADY_REPORTED"));
+                .andExpect(jsonPath("$.code").value("ALREADY_REPORTED"))
+                .andExpect(jsonPath("$.message").value("※ 이미 신고한 댓글입니다"));
         // 기타 설명은 기타일 때만 남는다
         report(reporter(), commentId, "OTHER", "  광고 링크  ").andExpect(status().isCreated());
         assertThat(jdbc.queryForList("select detail from comment_report where comment_id = ? order by comment_report_id",
@@ -318,7 +319,8 @@ class CommentReportTest {
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].hidden").value(true))
                 .andExpect(jsonPath("$.items[0].preview").value(""))
-                .andExpect(jsonPath("$.items[0].author.nickname").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.items[0].author.nickname").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.items[0].isNew").value(false));
     }
 
     @Test
