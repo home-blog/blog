@@ -24,6 +24,9 @@ export default defineConfig({
       // http://localhost:5173/login/oauth2/code/{회사}로 만든다 (회사 앱에 등록한 주소). /login 자체는 화면 주소라 넘기지 않는다
       '/oauth2/': { target: 'http://localhost:8080', changeOrigin: false },
       '/login/oauth2/': { target: 'http://localhost:8080', changeOrigin: false },
+      // Claude 앱 커스텀 커넥터 (specs/023): OAuth 메타데이터와 등록·인가·토큰·폐기. 위임장(/connect/authorize)은 화면 주소
+      '^/\\.well-known/oauth-': { target: 'http://localhost:8080', changeOrigin: false },
+      '/oauth/': { target: 'http://localhost:8080', changeOrigin: false },
     },
   },
 })

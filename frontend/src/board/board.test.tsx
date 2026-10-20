@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthContext'
 import { useAuth } from '../auth/useAuth'
 import { server } from '../test/server'
@@ -117,11 +117,16 @@ describe('글마당 목록', () => {
         HttpResponse.json(page([row(), row({ boardPostId: 2, topic: '개발' })], { totalCount: 27 })),
       ),
     )
-    renderAt([{ path: '/board', element: <BoardListPage /> }])
-    expect(await screen.findByRole('heading', { level: 1, name: '글마당' })).toBeInTheDocument()
-    await waitFor(() => expect(document.querySelector('.board-total')).toHaveTextContent('모든 주제에 글 27편'), {
-      timeout: 3000,
-    })
+    // 세어 올리기는 실제 시간(1.2초, requestAnimationFrame)을 쓴다. 바쁜 CI에서 기다림이 흔들리지 않게
+    // 움직임 줄이기로 마지막 숫자를 바로 본다 (세는 모양은 useCountUp이 따로 다룬다)
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
+    try {
+      renderAt([{ path: '/board', element: <BoardListPage /> }])
+      expect(await screen.findByRole('heading', { level: 1, name: '글마당' })).toBeInTheDocument()
+      await waitFor(() => expect(document.querySelector('.board-total')).toHaveTextContent('모든 주제에 글 27편'))
+    } finally {
+      vi.unstubAllGlobals()
+    }
     const chips = [...document.querySelectorAll<HTMLElement>('.board-topic-chip')]
     expect(chips.map((chip) => chip.textContent)).toEqual(['여행', '개발'])
     expect(chips[0].style.getPropertyValue('--topic')).toBe('var(--category-2)')

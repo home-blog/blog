@@ -128,6 +128,8 @@ public class SecurityConfig {
                                 "/robots.txt").permitAll()
                         // 원고 편지 그만 받기 (016 contracts 3). 메일의 서명된 값으로 로그인 없이
                         .requestMatchers(HttpMethod.POST, "/api/*/newsletter/unsubscribe").permitAll()
+                        // 위임장 전에 난 인가 오류 (specs/023 S1-3): 로그인 전에 앱이 보낸 브라우저도 본다
+                        .requestMatchers(HttpMethod.GET, "/api/*/oauth/errors/*").permitAll()
                         // 그 밖은 모두 로그인 필요
                         .anyRequest().authenticated());
         return http.build();

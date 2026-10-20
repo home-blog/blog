@@ -38,3 +38,8 @@ server:
 subscription:
   newsletter:
     site-url: ${SITE_URL:https://geulgyeol.java21.net}
+
+# Claude 앱 커스텀 커넥터(specs/023)의 OAuth 발급자 주소. 원고 편지와 같은 사이트 주소를 쓴다
+mcp:
+  oauth:
+    issuer: ${MCP_OAUTH_ISSUER:${SITE_URL:https://geulgyeol.java21.net}}

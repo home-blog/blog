@@ -1252,4 +1252,151 @@ class ApiDocumentationTest {
     private static String quote(String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
     }
+
+    // ── 19. AI 앱 연결(OAuth) (specs/023) ──
+
+    @Test
+    void AI_앱_OAuth_메타데이터() throws Exception {
+        mvc.perform(RestDocumentationRequestBuilders.get("/.well-known/oauth-protected-resource/api/v1/mcp"))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-protected-resource", responseFields(
+                        fieldWithPath("resource").description("보호 자원: 글결 MCP 주소"),
+                        fieldWithPath("authorization_servers").description("인가 서버(글결) 주소"),
+                        fieldWithPath("scopes_supported").description("`read`(찾기·읽기·내 글·통계) · `draft`(+ 임시 저장)"),
+                        fieldWithPath("bearer_methods_supported").description("`header`(Authorization: Bearer)"),
+                        fieldWithPath("resource_name").description("이름"))));
+        mvc.perform(RestDocumentationRequestBuilders.get("/.well-known/oauth-authorization-server"))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-authorization-server", responseFields(
+                        fieldWithPath("issuer").description("발급자 (설정 `mcp.oauth.issuer`, 없으면 요청 주소)"),
+                        fieldWithPath("authorization_endpoint").description("인가 → 글결 위임장"),
+                        fieldWithPath("token_endpoint").description("토큰"),
+                        fieldWithPath("registration_endpoint").description("동적 등록 (RFC 7591)"),
+                        fieldWithPath("revocation_endpoint").description("폐기 (RFC 7009)"),
+                        fieldWithPath("response_types_supported").description("`code`"),
+                        fieldWithPath("grant_types_supported").description("`authorization_code` · `refresh_token`"),
+                        fieldWithPath("code_challenge_methods_supported").description("PKCE `S256`만"),
+                        fieldWithPath("token_endpoint_auth_methods_supported").description("`none` (공개 클라이언트)"),
+                        fieldWithPath("revocation_endpoint_auth_methods_supported").description("`none`"),
+                        fieldWithPath("scopes_supported").description("`read` · `draft`"),
+                        fieldWithPath("authorization_response_iss_parameter_supported")
+                                .description("돌아갈 주소에 `iss`를 붙인다 (RFC 9207)"))));
+    }
+
+    /** 문서에는 실제 토큰·코드 대신 자리 표시만 남긴다 */
+    private static final java.util.regex.Pattern OAUTH_ACCESS = java.util.regex.Pattern.compile("go_[A-Za-z0-9_-]{20,}");
+    private static final java.util.regex.Pattern OAUTH_REFRESH = java.util.regex.Pattern.compile("gr_[A-Za-z0-9_-]{20,}");
+    private static final java.util.regex.Pattern OAUTH_CODE = java.util.regex.Pattern.compile("code=[A-Za-z0-9_-]{20,}");
+
+    @Test
+    void AI_앱_OAuth_연결() throws Exception {
+        String ip = "10.9." + (int) (Math.random() * 250) + "." + (int) (Math.random() * 250);
+        String registered = mvc.perform(RestDocumentationRequestBuilders.post("/oauth/register")
+                        .with(r -> {
+                            r.setRemoteAddr(ip);
+                            return r;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"client_name\":\"Claude\",\"redirect_uris\":[\"https://claude.ai/api/mcp/auth_callback\"],"
+                                + "\"token_endpoint_auth_method\":\"none\",\"grant_types\":[\"authorization_code\",\"refresh_token\"]}"))
+                .andExpect(status().isCreated())
+                .andDo(document("oauth-register",
+                        requestFields(
+                                fieldWithPath("client_name").description("앱 이름 (1~100자, 없으면 \"이름 없는 앱\")"),
+                                fieldWithPath("redirect_uris").description("돌아갈 주소 1~5개: https 또는 `http://localhost`·`127.0.0.1`"),
+                                fieldWithPath("token_endpoint_auth_method").description("`none`만 (다른 값이 와도 `none`으로 등록)").optional(),
+                                fieldWithPath("grant_types").description("`authorization_code`가 있어야 한다").optional()),
+                        responseFields(
+                                fieldWithPath("client_id").description("앱 번호 (`gc_…`)"),
+                                fieldWithPath("client_id_issued_at").description("등록 시각 (유닉스 초)"),
+                                fieldWithPath("client_name").description("이름"),
+                                fieldWithPath("redirect_uris").description("돌아갈 주소"),
+                                fieldWithPath("grant_types").description("`authorization_code` · `refresh_token`"),
+                                fieldWithPath("response_types").description("`code`"),
+                                fieldWithPath("token_endpoint_auth_method").description("`none`"))))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String clientId = JsonPath.read(registered, "$.client_id");
+        String verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk-docs-verifier";
+        String challenge = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII)));
+
+        String location = mvc.perform(RestDocumentationRequestBuilders.get("/oauth/authorize")
+                        .param("response_type", "code").param("client_id", clientId)
+                        .param("redirect_uri", "https://claude.ai/api/mcp/auth_callback")
+                        .param("code_challenge", challenge).param("code_challenge_method", "S256")
+                        .param("state", "xyz").param("scope", "read draft")
+                        .param("resource", "https://geulgyeol.java21.net/api/v1/mcp"))
+                .andExpect(status().isFound())
+                .andDo(document("oauth-authorize", queryParameters(
+                        parameterWithName("response_type").description("`code`"),
+                        parameterWithName("client_id").description("등록한 앱 번호"),
+                        parameterWithName("redirect_uri").description("등록한 돌아갈 주소 (루프백은 포트가 달라도 된다)"),
+                        parameterWithName("code_challenge").description("PKCE: BASE64URL(SHA256(code_verifier))"),
+                        parameterWithName("code_challenge_method").description("`S256`"),
+                        parameterWithName("state").description("앱이 정한 값 (돌아갈 때 그대로)"),
+                        parameterWithName("scope").description("`read` · `draft` (공백으로 나눈다, 없으면 위임장에서 고른다)").optional(),
+                        parameterWithName("resource").description("글결 MCP 주소 (RFC 8707)").optional())))
+                .andReturn().getResponse().getHeader("Location");
+        String requestId = location.substring(location.indexOf("request=") + "request=".length());
+
+        Member member = members.register("docs");
+        MockHttpSession session = login(member);
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/oauth/requests/{requestId}", requestId).session(session))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-request",
+                        pathParameters(parameterWithName("requestId").description("인가가 위임장 주소에 붙인 요청 번호")),
+                        responseFields(
+                                fieldWithPath("clientName").description("앱 이름"),
+                                fieldWithPath("redirectHost").description("허락하면 돌아갈 곳의 호스트"),
+                                fieldWithPath("scope").description("앱이 요청한 범위 (`read` · `draft`, 없으면 null)").optional(),
+                                fieldWithPath("expiresAt").description("요청이 사라지는 시각 (10분)"))));
+        String approved = mvc.perform(withCsrf(RestDocumentationRequestBuilders.post(
+                                "/api/v1/oauth/requests/{requestId}/approve", requestId), session)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"scope\":\"read\"}"))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-approve",
+                        preprocessResponse(replacePattern(OAUTH_CODE, "code=(허락 코드)")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(fieldWithPath("scope").description("회원이 고른 범위. 앱이 `read`만 요청했으면 `draft`는 안 된다")),
+                        responseFields(fieldWithPath("redirectTo")
+                                .description("앱으로 돌아갈 주소: `code`(5분, 한 번만) · `state` · `iss`. 화면이 이 주소로 옮긴다"))))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String redirectTo = JsonPath.read(approved, "$.redirectTo");
+        String code = redirectTo.replaceAll(".*[?&]code=([^&]+).*", "$1");
+
+        String issued = mvc.perform(RestDocumentationRequestBuilders.post("/oauth/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code").param("code", code).param("client_id", clientId)
+                        .param("redirect_uri", "https://claude.ai/api/mcp/auth_callback").param("code_verifier", verifier))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-token",
+                        preprocessRequest(replacePattern(java.util.regex.Pattern.compile("code=[A-Za-z0-9_-]{20,}"), "code=(허락 코드)")),
+                        preprocessResponse(replacePattern(OAUTH_ACCESS, "go_(출입증)"),
+                                replacePattern(OAUTH_REFRESH, "gr_(갱신 토큰)")),
+                        responseFields(
+                                fieldWithPath("access_token").description("출입증 (`go_…`, 1시간). MCP에 `Authorization: Bearer`로"),
+                                fieldWithPath("token_type").description("`Bearer`"),
+                                fieldWithPath("expires_in").description("출입증 수명 (초)"),
+                                fieldWithPath("refresh_token").description("갱신 토큰 (`gr_…`, 30일, 쓸 때마다 바뀐다)"),
+                                fieldWithPath("scope").description("허락받은 범위"))))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String refresh = JsonPath.read(issued, "$.refresh_token");
+        mvc.perform(RestDocumentationRequestBuilders.post("/oauth/token").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "refresh_token").param("refresh_token", refresh).param("client_id", clientId))
+                .andExpect(status().isOk())
+                .andDo(document("oauth-refresh",
+                        preprocessRequest(replacePattern(OAUTH_REFRESH, "gr_(갱신 토큰)")),
+                        preprocessResponse(replacePattern(OAUTH_ACCESS, "go_(출입증)"),
+                                replacePattern(OAUTH_REFRESH, "gr_(새 갱신 토큰)"))));
+
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/me/connected-apps").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("connected-apps", responseFields(
+                        fieldWithPath("items[].grantId").description("연결 번호 (끊을 때 `DELETE /api/v1/me/connected-apps/{grantId}`)"),
+                        fieldWithPath("items[].clientName").description("앱 이름"),
+                        fieldWithPath("items[].scope").description("`read` · `draft`"),
+                        fieldWithPath("items[].createdAt").description("허락한 시각"),
+                        fieldWithPath("items[].lastUsedAt").description("마지막으로 쓴 시각").optional(),
+                        fieldWithPath("max").description("한 사람의 연결 한도 (넘으면 가장 오래 쓰지 않은 연결을 끊는다)"))));
+    }
 }
