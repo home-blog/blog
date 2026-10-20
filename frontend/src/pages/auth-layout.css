@@ -191,6 +191,15 @@
   border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    transform 0.15s var(--ease-out),
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+/* 모든 단추: 누르면 꾹 눌린다 (2026-10-20 사용자: 누를 때마다 재미를). 움직임 줄이기면 index.css가 끈다 */
+.btn:not(:disabled):active {
+  transform: scale(0.96);
 }
 
 .btn:disabled {

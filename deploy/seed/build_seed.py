@@ -22,6 +22,8 @@ DATA = HERE / "data"
 OUT = HERE / "demo-content.sql"
 PHOTOS = HERE / "photos.json"
 PHOTOS_OUT = HERE / "demo-photos.sql"
+BOARD = HERE / "board.json"
+BOARD_OUT = HERE / "demo-board.sql"
 KST = timezone(timedelta(hours=9))
 # 데이터를 만든 기준 시각. 글·댓글 시각이 이보다 늦지 않게 한다
 NOW = datetime(2026, 10, 11, 23, 0, tzinfo=KST)
@@ -212,6 +214,7 @@ def main():
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{OUT.relative_to(HERE.parent.parent)}: 블로거 {len(bloggers)}명, 글 {len(all_posts)}개")
     write_photos(bloggers, emails)
+    write_board(emails)
 
 
 def with_photo(content, photo):
@@ -253,6 +256,65 @@ def write_photos(bloggers, emails):
     PHOTOS_OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{PHOTOS_OUT.relative_to(HERE.parent.parent)}: 사진 {len(photos)}장")
 
+
+
+def write_board(emails):
+    """글마당 예시 글 (2026-10-20 사용자: 글마당이 비어 보이지 않게). 넣는 순간 기준 몇 시간 전 글이라 늘 최근 글처럼 보인다.
+    같은 (쓴 사람, 제목) 글·같은 댓글이 이미 있으면 넣지 않으므로 몇 번 실행해도 같다. 예시 회원을 지우면 함께 지워진다(외래 키 연쇄)."""
+    posts = json.loads(BOARD.read_text(encoding="utf-8"))["posts"]
+    lines = []
+    out = lines.append
+    out("-- 글마당 예시 글 (자동 생성: deploy/seed/build_seed.py, 원본 deploy/seed/board.json). 손으로 고치지 않는다")
+    out("-- demo-content.sql 다음에 실행한다. 몇 번 실행해도 같다 (이미 있는 글·댓글은 넣지 않는다)")
+    out("\\set ON_ERROR_STOP on")
+    out("\\if :{?schema}")
+    out("\\else")
+    out("\\set schema public")
+    out("\\endif")
+    out("set search_path = :\"schema\";")
+    out("begin;")
+    out("do $$ begin")
+    out(f"  if not exists (select 1 from users where password = {q(NOT_A_HASH)} and email like 'demo.%@example.com') then")
+    out("    raise exception '예시 데이터가 없습니다. 먼저 demo-content.sql을 실행하세요';")
+    out("  end if;")
+    out("end $$;")
+    for post in posts:
+        assert post["by"] in emails, post["by"]
+        assert post["topic"] in TOPICS, post["topic"]
+        assert post["kind"] in ("talk", "question"), post["kind"]
+        assert len(post["title"]) <= 100, post["title"]
+        author = emails[post["by"]]
+        when = f"now() - interval '{int(post['hoursAgo'])} hours'"
+        ref = (f"(select bp.board_post_id from board_post bp join users a on a.users_id = bp.users_id"
+               f" where a.email = {q(author)} and bp.title = {q(post['title'])})")
+        out("")
+        out(f"-- {post['title']}")
+        out("insert into board_post (users_id, topic_id, kind, title, content, views, comment_count, created_at, updated_at) "
+            f"select u.users_id, t.topic_id, {q(post['kind'])}, {q(post['title'])}, {q(post['content'])}, {int(post['views'])}, 0, "
+            f"{when}, {when} from users u, topic t where u.email = {q(author)} and t.topic_name = {q(post['topic'])} "
+            f"and not exists (select 1 from board_post bp where bp.users_id = u.users_id and bp.title = {q(post['title'])});")
+        for comment in post.get("comments", []):
+            assert comment["by"] in emails, comment["by"]
+            assert len(comment["content"]) <= 1000
+            assert comment["minutesAfter"] < post["hoursAgo"] * 60, comment
+            out("insert into board_comment (board_post_id, users_id, content, created_at) "
+                f"select bp.board_post_id, u.users_id, {q(comment['content'])}, bp.created_at + interval '{int(comment['minutesAfter'])} minutes' "
+                f"from board_post bp join users a on a.users_id = bp.users_id, users u "
+                f"where a.email = {q(author)} and bp.title = {q(post['title'])} and u.email = {q(emails[comment['by']])} "
+                f"and not exists (select 1 from board_comment c where c.board_post_id = bp.board_post_id "
+                f"and c.users_id = u.users_id and c.content = {q(comment['content'])});")
+        out(f"update board_post set comment_count = (select count(*) from board_comment c where c.board_post_id = board_post.board_post_id) "
+            f"where board_post_id = {ref};")
+        if "accepted" in post:
+            chosen = post["comments"][post["accepted"]]
+            out("update board_post set accepted_comment_id = (select c.board_comment_id from board_comment c join users u on u.users_id = c.users_id "
+                f"where c.board_post_id = board_post.board_post_id and u.email = {q(emails[chosen['by']])} and c.content = {q(chosen['content'])}) "
+                f"where board_post_id = {ref} and accepted_comment_id is null;")
+    out("")
+    out("commit;")
+    out(f"\\echo 글마당 예시 글을 맞췄습니다: {len(posts)}개")
+    BOARD_OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"{BOARD_OUT.relative_to(HERE.parent.parent)}: 글마당 글 {len(posts)}개")
 
 if __name__ == "__main__":
     main()

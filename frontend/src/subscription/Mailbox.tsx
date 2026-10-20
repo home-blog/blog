@@ -64,6 +64,27 @@ function fromLine(notice: Notice) {
   }
 }
 
+/** 빈 우편함의 봉투: 올리면 덮개가 열리고 안에서 원고지 쪽지가 올라온다 (2026-10-20 사용자: 재미를) */
+function EmptyEnvelope() {
+  return (
+    <svg className="empty-envelope" viewBox="0 -14 88 78" aria-hidden="true" focusable="false">
+      {/* 열린 덮개 (처음엔 접혀 있다) */}
+      <polygon className="env-flap-open" points="3,18 85,18 44,-10" />
+      {/* 봉투 뒷면 */}
+      <rect className="env-back" x="3" y="18" width="82" height="44" rx="3" />
+      {/* 원고지 쪽지 */}
+      <g className="env-letter">
+        <rect x="14" y="22" width="60" height="36" rx="1.5" />
+        <path d="M14 31h60M14 40h60M14 49h60M26 22v36M38 22v36M50 22v36M62 22v36" />
+      </g>
+      {/* 앞 주머니 */}
+      <polygon className="env-front" points="3,62 3,26 44,46 85,26 85,62" />
+      {/* 닫힌 덮개 */}
+      <polygon className="env-flap" points="3,18 85,18 44,44" />
+    </svg>
+  )
+}
+
 /** 소인 날짜: 10.19 */
 function postmarkDate(iso: string) {
   const date = new Date(iso)
@@ -252,7 +273,7 @@ export default function Mailbox() {
             !error && <p className="hint mailbox-loading">편지를 꺼내는 중</p>
           ) : items.length === 0 ? (
             <div className="mailbox-empty">
-              <span className="empty-envelope" aria-hidden="true" />
+              <EmptyEnvelope />
               <p className="hint">
                 아직 온 소식이 없어요. 마음에 드는 블로그를 <Link to="/subscriptions">받아 보면</Link> 새 원고가 여기로
                 옵니다.
