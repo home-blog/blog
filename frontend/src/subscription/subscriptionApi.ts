@@ -43,14 +43,17 @@ export function getSubscribedFeed(page: number, signal?: AbortSignal): Promise<S
 
 /**
  * kind: post(받아 보는 블로그의 새 원고) · comment(내 글에 달린 댓글) · board(내 글마당 글에 달린 댓글)
- * · accepted(내 글마당 댓글이 채택됨, specs/017) · editorial(편집실, specs/018) · reply(내 댓글에 답글, specs/019). available: 지금 그 글을 볼 수 있는가 (아니면 글 번호·제목은 null)
- * 블로그 글 소식은 postId, 글마당 소식은 boardPostId
+ * · accepted(내 글마당 댓글이 채택됨, specs/017) · editorial(편집실, specs/018) · reply(내 댓글에 답글, specs/019)
+ * · guestbook(내 방명록에 새 엽서) · gb_reply(내 엽서에 답장, specs/021). available: 지금 그 글을 볼 수 있는가 (아니면 글 번호·제목은 null)
+ * 블로그 글 소식은 postId, 글마당 소식은 boardPostId, 방명록 소식은 blogId(제목 칸에 블로그 이름)
  */
 export interface Notice {
   notificationId: number
-  kind: 'post' | 'comment' | 'board' | 'accepted' | 'editorial' | 'reply'
+  kind: 'post' | 'comment' | 'board' | 'accepted' | 'editorial' | 'reply' | 'guestbook' | 'gb_reply'
   postId: number | null
   boardPostId: number | null
+  /** 방명록 소식의 블로그 (specs/021). 다른 소식은 null이거나 없다 */
+  blogId?: number | null
   postTitle: string | null
   actorName: string
   /** 편집실 소식의 사유 (specs/018). 다른 소식은 null */

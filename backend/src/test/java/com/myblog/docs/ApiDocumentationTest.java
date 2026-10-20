@@ -933,10 +933,12 @@ class ApiDocumentationTest {
                                 fieldWithPath("items[].notificationId").description("소식 번호"),
                                 fieldWithPath("items[].kind").description("`post`(받아 보는 블로그의 새 원고) · `comment`(내 글에 달린 댓글)"
                                         + " · `board`(내 글마당 글에 달린 댓글) · `accepted`(내 글마당 댓글이 채택됨)"
-                                        + " · `editorial`(편집실이 내 글을 내리거나 지움) · `reply`(내 댓글에 답글)"),
+                                        + " · `editorial`(편집실이 내 글을 내리거나 지움) · `reply`(내 댓글에 답글)"
+                                        + " · `guestbook`(내 방명록에 새 엽서) · `gb_reply`(내 엽서에 답장)"),
                                 fieldWithPath("items[].postId").description("블로그 글 번호 (글마당 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].boardPostId").description("글마당 글 번호 (블로그 글 소식이거나 지금 볼 수 없는 글이면 null)").optional(),
-                                fieldWithPath("items[].postTitle").description("그때의 글 제목 (지금 볼 수 없는 글이면 null)").optional(),
+                                fieldWithPath("items[].blogId").description("방명록 소식(`guestbook` · `gb_reply`)의 블로그 번호 (다른 소식은 null)").optional(),
+                                fieldWithPath("items[].postTitle").description("그때의 글 제목, 방명록 소식이면 블로그 이름 (지금 볼 수 없는 글이면 null)").optional(),
                                 fieldWithPath("items[].actorName").description("새 원고면 블로그 이름, 댓글이면 쓴 사람 닉네임, 편집실 소식이면 \"편집실\""),
                                 fieldWithPath("items[].note").description("편집실 소식의 사유 (다른 소식은 null)").optional(),
                                 fieldWithPath("items[].available").description("지금 그 글을 볼 수 있는가"),
@@ -1120,6 +1122,63 @@ class ApiDocumentationTest {
                                 subsectionWithPath("result.structuredContent").description("같은 결과의 자료 모양: 단락마다 "
                                         + "`postId`, `title`, `blogName`, `url`, `paragraph`(몇 번째 단락), `text`, `score`"),
                                 fieldWithPath("result.isError").description("도구가 일을 못 했으면 참 (예: 없는 글, 읽기 열쇠로 초안)"))));
+    }
+
+    // ── 15. 방명록 (specs/021) ──
+
+    @Test
+    void 방명록_엽서_남기기와_목록() throws Exception {
+        Member owner = members.register("docs");
+        Member guest = members.register("docs");
+        MockHttpSession session = login(guest);
+        mvc.perform(withCsrf(RestDocumentationRequestBuilders.post("/api/v1/blogs/{blogId}/guestbook", owner.blogId()),
+                        session).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"사진 잘 보고 갑니다.\\n다음 여행기도 기다릴게요!\",\"stamp\":\"wave\",\"secret\":false}"))
+                .andExpect(status().isCreated())
+                .andDo(document("guestbook-write",
+                        pathParameters(parameterWithName("blogId").description("방명록의 블로그 번호")),
+                        requestHeaders(csrfHeader()),
+                        requestFields(
+                                fieldWithPath("body").description("엽서 내용 1~300자 (`guestbook.body-max-length`, 줄바꿈 됨, 앞뒤 공백은 지운다)"),
+                                fieldWithPath("stamp").description("우표: `pine`(소나무) · `wave`(파도) · `moon`(달) · `plum`(매화) · `crane`(학)"),
+                                fieldWithPath("secret").description("비밀 엽서(쓴 사람과 블로그 주인만 읽음). 없으면 false").optional()),
+                        responseFields(entryFields(""))));
+        mvc.perform(RestDocumentationRequestBuilders.get("/api/v1/blogs/{blogId}/guestbook", owner.blogId())
+                        .param("page", "1").session(session))
+                .andExpect(status().isOk())
+                .andDo(document("guestbook-list",
+                        pathParameters(parameterWithName("blogId").description("블로그 번호 (없으면 404 `BLOG_NOT_FOUND`)")),
+                        queryParameters(parameterWithName("page").description("쪽 번호 (1부터, 넘으면 마지막 쪽)").optional()),
+                        responseFields(concat(List.of(
+                                fieldWithPath("totalCount").description("엽서 수"),
+                                fieldWithPath("page").description("쪽 번호"),
+                                fieldWithPath("totalPages").description("모든 쪽 수"),
+                                fieldWithPath("pageSize").description("한 쪽 엽서 수 (`guestbook.page-size`)"),
+                                fieldWithPath("canWrite").description("엽서를 남길 수 있나 (로그인했고 블로그 주인이 아니다)"),
+                                fieldWithPath("bodyMaxLength").description("엽서·답장 글자 수 한도"),
+                                fieldWithPath("stamps[]").description("고를 수 있는 우표 이름"),
+                                fieldWithPath("items[]").description("엽서, 최근 순")), entryFields("items[].")))));
+    }
+
+    private static List<FieldDescriptor> entryFields(String prefix) {
+        return List.of(
+                fieldWithPath(prefix + "entryId").description("엽서 번호"),
+                subsectionWithPath(prefix + "author").description("쓴 사람 `{ id, nickname, withdrawn }` (탈퇴했거나 봉한 엽서면 id·nickname이 null)"),
+                fieldWithPath(prefix + "body").description("내용 (봉한 엽서면 빈 글자)"),
+                fieldWithPath(prefix + "stamp").description("우표 이름"),
+                fieldWithPath(prefix + "secret").description("비밀 엽서인가"),
+                fieldWithPath(prefix + "sealed").description("읽을 수 없는 남의 비밀 엽서인가 (내용·쓴 사람·답장을 뺐다)"),
+                fieldWithPath(prefix + "createdAt").description("남긴 시각"),
+                fieldWithPath(prefix + "reply").description("블로그 주인의 답장 (없거나 봉한 엽서면 null)").optional(),
+                fieldWithPath(prefix + "repliedAt").description("답장을 처음 쓴 시각 (없으면 null)").optional(),
+                fieldWithPath(prefix + "canDelete").description("지울 수 있나 (쓴 사람·블로그 주인)"),
+                fieldWithPath(prefix + "canReply").description("답장할 수 있나 (블로그 주인)"));
+    }
+
+    private static List<FieldDescriptor> concat(List<FieldDescriptor> first, List<FieldDescriptor> second) {
+        List<FieldDescriptor> all = new java.util.ArrayList<>(first);
+        all.addAll(second);
+        return all;
     }
 
     private Long writePost(Member member, String title) {

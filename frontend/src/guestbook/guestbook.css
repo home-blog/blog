@@ -1,0 +1,805 @@
+/* 방명록 = 엽서함 (specs/021 research D-7): 원고지 줄 엽서, 톱니 우표, 소인, 밀랍 봉인, 뒤집어 보는 답장.
+   엽서는 조금씩 기울어 꽂혀 있고, 새 엽서는 떨어지며 소인이 찍힌다. 색은 공통 토큰(index.css)만 쓴다 */
+.guestbook {
+  /* 우표 그림의 별·달·꽃술: 우표 바탕(분류 색) 위에서 두 화면 모두 잘 보이는 노랑 */
+  --gb-glow: #f2cf63;
+  --gb-line: 2rem;
+}
+
+.guestbook-head {
+  position: relative;
+}
+
+.guestbook-kicker {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.guestbook-title {
+  margin: 0.15rem 0 0.6rem;
+  font-family: var(--font-letter);
+  font-size: var(--step-2);
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.guestbook-title a {
+  color: var(--ink);
+  text-decoration: none;
+  background-image: linear-gradient(transparent 62%, var(--highlight) 62%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition: background-size 0.4s var(--ease-out);
+}
+
+.guestbook-title a:hover,
+.guestbook-title a:focus-visible {
+  background-size: 100% 100%;
+}
+
+.guestbook-title-tail {
+  color: var(--ink-soft);
+  font-size: var(--step-1);
+}
+
+.guestbook-total {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.guestbook-total strong {
+  color: var(--accent);
+  font-size: var(--step-1);
+}
+
+.guestbook-write {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 42rem;
+  margin-bottom: 2rem;
+}
+
+.guestbook-login,
+.guestbook-owner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  border: 1px dashed var(--grid-strong);
+  border-radius: 10px;
+  background: var(--paper-raised);
+}
+
+.guestbook-notice {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── 엽서 쓰기: 항공우편 테두리 엽서 ── */
+.postcard-form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.postcard-form-sheet {
+  position: relative;
+  padding: 1rem 1rem 0.6rem;
+  border-radius: 8px;
+  background: var(--paper-raised);
+  /* 항공우편 띠: 붉은·푸른 사선 테두리 */
+  border: 6px solid transparent;
+  background-image:
+    linear-gradient(var(--paper-raised), var(--paper-raised)),
+    repeating-linear-gradient(
+      -45deg,
+      var(--seal) 0 10px,
+      transparent 10px 18px,
+      var(--category-2) 18px 28px,
+      transparent 28px 36px
+    );
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: var(--shadow);
+}
+
+.postcard-form-corner {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+}
+
+.postcard-form-corner .gb-stamp {
+  width: 2.8rem;
+}
+
+.postcard-form-corner .is-stuck {
+  animation: gb-stamp-stick 0.45s var(--ease-out);
+}
+
+.postcard-form-body {
+  display: block;
+  width: 100%;
+  min-height: calc(var(--gb-line) * 4);
+  padding: 0 3.8rem 0 0.2rem;
+  border: 0;
+  resize: vertical;
+  background: transparent;
+  background-image: linear-gradient(transparent calc(var(--gb-line) - 1px), var(--grid) calc(var(--gb-line) - 1px));
+  background-size: 100% var(--gb-line);
+  background-attachment: local;
+  color: var(--ink);
+  font-family: var(--font-letter);
+  font-size: 1.05rem;
+  line-height: var(--gb-line);
+}
+
+.postcard-form-body:focus {
+  outline: none;
+}
+
+.postcard-form-sheet:focus-within {
+  box-shadow: var(--shadow-raised);
+}
+
+.postcard-form-body[aria-invalid='true'] {
+  background-image: linear-gradient(transparent calc(var(--gb-line) - 1px), var(--error) calc(var(--gb-line) - 1px));
+}
+
+.postcard-count {
+  display: block;
+  text-align: right;
+  font-size: 0.8rem;
+}
+
+.stamp-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.stamp-picker legend {
+  margin-bottom: 0.35rem;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.stamp-choice {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.45rem 0.25rem;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  transition:
+    transform 0.25s var(--ease-out),
+    border-color 0.2s,
+    background-color 0.2s;
+}
+
+.stamp-choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.stamp-choice .gb-stamp {
+  width: 2.3rem;
+  transition: transform 0.3s var(--ease-out);
+}
+
+.stamp-choice:hover {
+  transform: translateY(-3px);
+}
+
+.stamp-choice:hover .gb-stamp {
+  transform: rotate(-6deg);
+}
+
+.stamp-choice:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.stamp-choice.is-picked {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--highlight) 55%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stamp-choice.is-picked .gb-stamp {
+  transform: rotate(-4deg) scale(1.06);
+  animation: gb-stamp-stick 0.4s var(--ease-out);
+}
+
+.postcard-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.postcard-secret-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+/* ── 우표 그림 ── */
+.gb-stamp {
+  display: block;
+  width: 2.6rem;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.15));
+}
+
+.gb-stamp .stamp-paper {
+  fill: var(--paper-raised);
+  stroke: var(--grid-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 1.6;
+}
+
+.gb-stamp .stamp-field {
+  fill: var(--gb-stamp-color, var(--accent));
+}
+
+.gb-stamp-pine {
+  --gb-stamp-color: var(--category-1);
+}
+
+.gb-stamp-wave {
+  --gb-stamp-color: var(--category-2);
+}
+
+.gb-stamp-moon {
+  --gb-stamp-color: var(--category-5);
+}
+
+.gb-stamp-plum {
+  --gb-stamp-color: var(--category-6);
+}
+
+.gb-stamp-crane {
+  --gb-stamp-color: var(--category-3);
+}
+
+.gb-stamp .art-fill,
+.gb-stamp .art-line,
+.gb-stamp .art-flower circle {
+  fill: var(--paper-raised);
+}
+
+.gb-stamp .art-stroke,
+.gb-stamp .art-line-stroke {
+  fill: none;
+  stroke: var(--paper-raised);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gb-stamp .art-glow,
+.gb-stamp .art-dot {
+  fill: var(--gb-glow);
+}
+
+.gb-stamp .art-flower .art-glow {
+  fill: var(--gb-glow);
+}
+
+.gb-stamp .art-crown {
+  fill: var(--seal);
+}
+
+.gb-stamp .stamp-mark {
+  fill: var(--paper-raised);
+  font-family: var(--font-ui);
+  font-size: 5px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+/* ── 엽서 꽂이 ── */
+.postcard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+  gap: 1.75rem 1.5rem;
+  margin: 0;
+  padding: 0.75rem 0 1.5rem;
+  list-style: none;
+}
+
+.postcard {
+  position: relative;
+  min-width: 0;
+  transform: rotate(var(--tilt, 0deg));
+  transition:
+    transform 0.35s var(--ease-out),
+    filter 0.35s var(--ease-out);
+  animation: gb-rise 0.55s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 55ms);
+}
+
+/* 엽서를 꽂은 종이테이프 (우표 색) */
+.postcard::before {
+  content: '';
+  position: absolute;
+  top: -0.6rem;
+  left: 50%;
+  z-index: 1;
+  width: 4.2rem;
+  height: 1.2rem;
+  transform: translateX(-50%) rotate(calc(var(--tilt, 0deg) * -2));
+  background: color-mix(in srgb, var(--postcard-tape, var(--grid)) 45%, transparent);
+  border-left: 2px dotted color-mix(in srgb, var(--paper-raised) 60%, transparent);
+  border-right: 2px dotted color-mix(in srgb, var(--paper-raised) 60%, transparent);
+  pointer-events: none;
+}
+
+.postcard-pine {
+  --postcard-tape: var(--category-1);
+}
+
+.postcard-wave {
+  --postcard-tape: var(--category-2);
+}
+
+.postcard-moon {
+  --postcard-tape: var(--category-5);
+}
+
+.postcard-plum {
+  --postcard-tape: var(--category-6);
+}
+
+.postcard-crane {
+  --postcard-tape: var(--category-3);
+}
+
+.postcard:is(:hover, :focus-within) {
+  z-index: 2;
+  transform: rotate(0deg) translateY(-5px);
+}
+
+.postcard-face {
+  display: flex;
+  flex-direction: column;
+  min-height: 15rem;
+  height: 100%;
+  padding: 1rem 1.1rem 0.75rem;
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.35s var(--ease-out);
+  animation: gb-turn 0.45s var(--ease-out);
+  transform-origin: center;
+}
+
+.postcard:is(:hover, :focus-within) .postcard-face {
+  box-shadow: var(--shadow-raised);
+}
+
+/* 뒷면: 원고지 칸 바탕에 주인의 답장 */
+.postcard-back {
+  background-color: var(--paper-raised);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 1.4rem 1.4rem;
+  background-position: -1px -1px;
+}
+
+.postcard-back .postcard-reply {
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--paper-raised) 92%, transparent);
+}
+
+.postcard-corner {
+  position: relative;
+  align-self: flex-end;
+  margin: -0.2rem -0.2rem 0.4rem 0;
+}
+
+/* 소인: 우표 왼쪽 아래에 겹쳐 찍힌 동그란 날짜 도장 + 물결 줄 */
+.postcard-postmark {
+  position: absolute;
+  bottom: -0.55rem;
+  left: -2.3rem;
+  display: grid;
+  place-content: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 75%, transparent);
+  border-radius: 50%;
+  color: color-mix(in srgb, var(--ink-soft) 85%, transparent);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+
+.postcard-postmark small {
+  font-size: 0.55rem;
+  font-weight: 600;
+}
+
+.postcard-postmark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 85%;
+  width: 2.4rem;
+  height: 0.9rem;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ink-soft) 55%, transparent) 0 1.5px,
+    transparent 1.5px 4.5px
+  );
+  border-radius: 40%;
+  opacity: 0.8;
+}
+
+.postcard-secret {
+  align-self: flex-start;
+  margin-bottom: 0.4rem;
+  padding: 0.05rem 0.5rem;
+  border: 1.5px solid var(--seal);
+  border-radius: 4px;
+  color: var(--seal);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transform: rotate(-3deg);
+}
+
+.postcard-body {
+  flex: 1;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-letter);
+  font-size: 1.02rem;
+  line-height: var(--gb-line);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background-image: linear-gradient(transparent calc(var(--gb-line) - 1px), var(--grid) calc(var(--gb-line) - 1px));
+  background-size: 100% var(--gb-line);
+}
+
+.postcard-from {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  font-family: var(--font-letter);
+  text-align: right;
+}
+
+.postcard-reply-label {
+  margin: 0 0 0.3rem;
+  color: var(--seal);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.postcard-reply-body {
+  min-height: calc(var(--gb-line) * 2);
+}
+
+.postcard-reply-form {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.postcard-reply-form textarea {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--grid-strong);
+  border-radius: var(--radius-field);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: var(--font-letter);
+  font-size: 0.98rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.postcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+/* 봉한 엽서: 봉투 덮개 그림자와 밀랍 봉인 */
+.postcard-sealed {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.25rem;
+  margin: 0 -0.3rem;
+  padding: 2.4rem 0.5rem 1rem;
+  border-radius: 4px;
+  text-align: center;
+  background:
+    linear-gradient(160deg, transparent 49.5%, color-mix(in srgb, var(--grid) 70%, transparent) 50%, transparent 51%),
+    linear-gradient(20deg, transparent 49.5%, color-mix(in srgb, var(--grid) 70%, transparent) 50%, transparent 51%),
+    color-mix(in srgb, var(--paper) 70%, var(--paper-raised));
+}
+
+.postcard-sealed p {
+  margin: 0;
+}
+
+.postcard-sealed-title {
+  font-family: var(--font-letter);
+  font-weight: 700;
+}
+
+.wax-seal {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: 0.3rem;
+  border-radius: 46% 54% 50% 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--seal) 60%, var(--paper-raised)),
+    var(--seal) 60%
+  );
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--seal) 40%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.25);
+  color: var(--seal-ink);
+  font-family: var(--font-letter);
+  font-weight: 700;
+  transform: rotate(-8deg);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.postcard:hover .wax-seal {
+  animation: gb-wobble 0.6s var(--ease-out);
+}
+
+.postcard-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 0.6rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--grid);
+  font-size: 0.8rem;
+}
+
+.postcard-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+}
+
+.postcard-flip,
+.postcard-delete {
+  position: relative;
+  padding: 0.1rem 0.15rem;
+  border: 0;
+  background: none;
+  background-image: linear-gradient(transparent 60%, var(--highlight) 60%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-size 0.3s var(--ease-out);
+}
+
+.postcard-delete {
+  color: var(--ink-soft);
+}
+
+.postcard-flip:hover,
+.postcard-flip:focus-visible,
+.postcard-delete:hover,
+.postcard-delete:focus-visible {
+  background-size: 100% 100%;
+}
+
+.postcard-flip:active,
+.postcard-delete:active {
+  transform: scale(0.95);
+}
+
+/* 답장이 있는 엽서: 붉은 점 하나 */
+.postcard-replied {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: 0.3rem;
+  border-radius: 50%;
+  background: var(--seal);
+  vertical-align: middle;
+  animation: gb-pulse 2.4s ease-in-out infinite;
+}
+
+/* 새로 꽂힌 엽서: 위에서 떨어져 흔들리다 멈추고, 소인이 쾅 */
+.postcard.is-new {
+  animation: gb-drop 0.8s var(--ease-out) both;
+}
+
+.postcard.is-new .postcard-postmark {
+  animation: gb-thud 0.5s 0.55s var(--ease-out) both;
+}
+
+.postcard.is-new .postcard-face {
+  animation: none;
+}
+
+.guestbook-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+/* 빈 엽서 꽂이: 줄 하나에 집게 셋 */
+.guestbook-empty-rack {
+  position: relative;
+  width: min(18rem, 80%);
+  height: 2rem;
+  border-top: 2px solid var(--grid-strong);
+  border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+  background:
+    radial-gradient(circle at 20% 0.25rem, var(--category-3) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 50% 0.4rem, var(--category-2) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 80% 0.25rem, var(--category-6) 0 0.3rem, transparent 0.32rem);
+}
+
+@keyframes gb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(var(--tilt, 0deg));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+}
+
+@keyframes gb-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-48px) rotate(-9deg) scale(1.04);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(4px) rotate(3deg);
+  }
+  78% {
+    transform: translateY(-2px) rotate(calc(var(--tilt, 0deg) - 1deg));
+  }
+  100% {
+    transform: translateY(0) rotate(var(--tilt, 0deg));
+  }
+}
+
+@keyframes gb-thud {
+  0% {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.9);
+  }
+  70% {
+    opacity: 1;
+    transform: rotate(-14deg) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-14deg) scale(1);
+  }
+}
+
+@keyframes gb-turn {
+  from {
+    opacity: 0.4;
+    transform: perspective(700px) rotateY(80deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(700px) rotateY(0);
+  }
+}
+
+@keyframes gb-stamp-stick {
+  0% {
+    transform: rotate(-18deg) scale(1.35);
+  }
+  60% {
+    transform: rotate(2deg) scale(0.95);
+  }
+  100% {
+    transform: rotate(-4deg) scale(1.06);
+  }
+}
+
+@keyframes gb-wobble {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  30% {
+    transform: rotate(6deg) scale(1.06);
+  }
+  60% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes gb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.6;
+  }
+}
+
+/* 움직임 줄이기: 기울기는 그대로 두고 떠오르기·뒤집기·흔들기는 끈다 (애니메이션은 index.css가 모두 끈다) */
+@media (prefers-reduced-motion: reduce) {
+  .postcard:is(:hover, :focus-within) {
+    transform: rotate(var(--tilt, 0deg));
+  }
+
+  .stamp-choice:hover,
+  .stamp-choice:hover .gb-stamp,
+  .postcard-flip:active,
+  .postcard-delete:active {
+    transform: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .postcard {
+    transform: rotate(calc(var(--tilt, 0deg) / 2));
+  }
+
+  .postcard-face {
+    min-height: 0;
+  }
+
+  .postcard-form-body {
+    padding-right: 3.2rem;
+  }
+
+  .guestbook-title {
+    font-size: var(--step-1);
+  }
+}

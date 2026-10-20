@@ -41,9 +41,10 @@ public class NotificationService {
      * available: 지금 그 글을 볼 수 있는가 (지워졌거나 비공개가 되면 false, 그때 postId·boardPostId·postTitle은 null).
      * 블로그 글 소식은 postId, 글마당 소식(board·accepted)은 boardPostId가 차 있다.
      * 편집실 소식(editorial)은 내 글 이야기라 볼 수 없어도 제목을 주고, note에 사유가 있다 (specs/018).
+     * 방명록 소식(guestbook·gb_reply)은 blogId와 블로그 이름(postTitle). 엽서를 지우면 소식도 함께 지워진다 (specs/021).
      */
-    public record NotificationView(Long notificationId, String kind, Long postId, Long boardPostId, String postTitle,
-            String actorName, String note, boolean available, boolean read, Instant createdAt) {
+    public record NotificationView(Long notificationId, String kind, Long postId, Long boardPostId, Long blogId,
+            String postTitle, String actorName, String note, boolean available, boolean read, Instant createdAt) {
     }
 
     public record NotificationPage(List<NotificationView> items, int page, int totalPages, long unreadCount) {
@@ -59,7 +60,8 @@ public class NotificationService {
         Set<Long> boardOpen = boardPosts.existing(found.stream().filter(Notification::isBoard)
                 .map(Notification::getBoardPostId).filter(id -> id != null).distinct().toList());
         List<NotificationView> items = found.stream()
-                .map(n -> view(n, n.isBoard() ? n.getBoardPostId() != null && boardOpen.contains(n.getBoardPostId())
+                .map(n -> view(n, n.isGuestbook() ? n.getBlogId() != null
+                        : n.isBoard() ? n.getBoardPostId() != null && boardOpen.contains(n.getBoardPostId())
                         : n.getPostId() != null && postLookup.findVisible(n.getPostId(), memberId).isPresent()))
                 .toList();
         return new NotificationPage(items, slice.page(), slice.totalPages(), unreadCount(memberId));
@@ -85,7 +87,8 @@ public class NotificationService {
     private static NotificationView view(Notification n, boolean available) {
         // 볼 수 없게 된 글은 번호·제목도 주지 않는다 (비공개로 돌린 글의 제목이 우편함에 남지 않게)
         return new NotificationView(n.getId(), n.getKind(), available ? n.getPostId() : null,
-                available ? n.getBoardPostId() : null, available || n.isEditorial() ? n.getPostTitle() : null,
+                available ? n.getBoardPostId() : null, available ? n.getBlogId() : null,
+                available || n.isEditorial() ? n.getPostTitle() : null,
                 n.getActorName(), n.getNote(), available, n.getReadAt() != null, n.getCreatedAt());
     }
 }

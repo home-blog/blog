@@ -1,5 +1,5 @@
 // 머리글 우편함 (specs/016 US2, D-9): 안 읽은 소식 수를 우표 모양 점으로(9개 넘으면 9+), 누르면 최근 소식 목록.
-// 소식마다 톱니 우표 한 장: 새 원고는 "원고", 댓글은 "답장". 읽은 소식에는 소인이 찍힌다.
+// 소식마다 톱니 우표 한 장: 새 원고는 "원고", 댓글은 "답장", 방명록 엽서는 "엽서"·"회신". 읽은 소식에는 소인이 찍힌다.
 // 안 읽은 수는 창이 보일 때만 1분마다 다시 묻는다 (S2-5). 소식을 누르면 읽음으로 바꾸고 그 글로 간다
 // 모양 (0.15.0): 항공우편 띠와 편지봉투 덮개 머리, 오늘 날짜 소인, 안 읽은 편지는 형광펜 제목과 봉랍 점,
 // 읽는 순간 우표 위에 소인이 찍힌다("모두 읽음"이면 차례로). 전체·안 읽음으로 나눠 본다
@@ -25,6 +25,8 @@ const STAMP: Record<Notice['kind'], string> = {
   accepted: '채택',
   editorial: '편집실',
   reply: '답글',
+  guestbook: '엽서',
+  gb_reply: '회신',
 }
 
 /** 소식마다 보낸 곳 한 줄 (편지 겉봉의 "보낸 사람") */
@@ -46,6 +48,18 @@ function fromLine(notice: Notice) {
       return (
         <>
           <strong>{notice.actorName}</strong>님이 내 댓글에 답글을 달았어요
+        </>
+      )
+    case 'guestbook':
+      return (
+        <>
+          <strong>{notice.actorName}</strong>님이 방명록에 엽서를 남겼어요
+        </>
+      )
+    case 'gb_reply':
+      return (
+        <>
+          <strong>{notice.actorName}</strong>님이 내 엽서에 답장했어요
         </>
       )
     case 'accepted':
@@ -181,11 +195,13 @@ export default function Mailbox() {
       }
     }
     const target =
-      notice.boardPostId !== null
-        ? `/board/${notice.boardPostId}`
-        : notice.postId !== null
-          ? `/posts/${notice.postId}${notice.kind === 'reply' ? '#comments' : ''}`
-          : null
+      notice.blogId != null && (notice.kind === 'guestbook' || notice.kind === 'gb_reply')
+        ? `/blog/${notice.blogId}/guestbook`
+        : notice.boardPostId !== null
+          ? `/board/${notice.boardPostId}`
+          : notice.postId !== null
+            ? `/posts/${notice.postId}${notice.kind === 'reply' ? '#comments' : ''}`
+            : null
     if (notice.available && target) {
       setOpen(false)
       navigate(target)
@@ -318,7 +334,11 @@ export default function Mailbox() {
                         </span>
                         <span className="letter-subject">
                           <span className="letter-subject-ink">
-                            {notice.available || notice.kind === 'editorial' ? notice.postTitle : '볼 수 없는 글'}
+                            {notice.kind === 'guestbook' || notice.kind === 'gb_reply'
+                              ? `${notice.postTitle ?? ''} 방명록`
+                              : notice.available || notice.kind === 'editorial'
+                                ? notice.postTitle
+                                : '볼 수 없는 글'}
                           </span>
                         </span>
                         {notice.note && <span className="letter-note">사유: {notice.note}</span>}

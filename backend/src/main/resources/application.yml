@@ -362,3 +362,11 @@ myblog:
 # 무중단 배포 (specs/011): 배포에서는 앱 두 벌(a, b)을 같이 띄운다. 이름이 있으면 응답에 X-Instance로 붙인다. 로컬은 비워 둔다
 instance:
   name: ${INSTANCE_NAME:}
+
+# 방명록 (엽서함, specs/021 research D-4)
+guestbook:
+  page-size: 12            # 한 쪽에 꽂히는 엽서
+  body-max-length: 300     # 엽서·답장 글자 수 (guestbook_entry.body·reply 칸 300자보다 길게 정하면 서버가 켜지지 않는다)
+  min-interval: 30s        # 같은 회원의 엽서 사이 최소 간격 (S1-4)
+  daily-per-blog: 3        # 한 회원이 한 블로그에 하루 남길 수 있는 엽서 (S1-4)
+  day-zone: ${stats.day-zone}   # "하루"를 나누는 시간대

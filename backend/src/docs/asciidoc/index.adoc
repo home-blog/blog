@@ -355,6 +355,23 @@ operation::access-key-create[snippets='request-headers,request-fields,http-reque
 
 operation::mcp-search-passages[snippets='request-headers,request-fields,http-request,http-response,response-fields']
 
+== 방명록
+블로그에 들른 회원이 우표를 붙인 엽서를 남기고, 블로그 주인이 답장합니다. 비밀 엽서는 쓴 사람과 주인만 읽고, 남에게는 우표와 날짜만 보이는 봉한 엽서(`sealed`)로 갑니다 (0.16.0).
+
+[[guestbook-write]]
+=== 엽서 남기기
+로그인이 필요합니다. 블로그 주인은 자기 방명록에 쓰지 못합니다(403 `GUESTBOOK_OWN_BLOG`). 같은 회원은 30초 간격으로만(429 `GUESTBOOK_TOO_FREQUENT`), 한 블로그에 하루 3장까지(429 `GUESTBOOK_DAILY_LIMIT`) 남깁니다.
+엽서를 남기면 주인의 우편함에 `guestbook` 소식이 갑니다. 지우기는 쓴 사람과 주인이 `DELETE /api/v1/guestbook/{entryId}`(204)입니다.
+답장은 주인만 `PUT /api/v1/guestbook/{entryId}/reply` `{ "body" }`(쓰기·고치기, 처음 쓸 때만 쓴 사람에게 `gb_reply` 소식), 지우기는 `DELETE` 같은 주소입니다. 주인이 아니면 404 `GUESTBOOK_ENTRY_NOT_FOUND`.
+
+operation::guestbook-write[snippets='path-parameters,request-headers,request-fields,http-request,http-response,response-fields']
+
+[[guestbook-list]]
+=== 엽서 목록
+로그인 없이 봅니다. 최근 순, 한 쪽 12장입니다.
+
+operation::guestbook-list[snippets='path-parameters,query-parameters,http-request,http-response,response-fields']
+
 [[errors]]
 == 오류 예시
 

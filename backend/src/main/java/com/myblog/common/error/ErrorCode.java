@@ -186,7 +186,16 @@ public enum ErrorCode {
     // 편집실 (specs/018)
     POST_LOCKED_BY_EDITOR(HttpStatus.BAD_REQUEST, "※ 편집실이 내린 글이라 공개로 바꿀 수 없습니다. 비공개로 두고 고칠 수 있어요"),
     REPORT_ALREADY_RESOLVED(HttpStatus.CONFLICT, "※ 이미 처리한 신고입니다"),
-    EDITORIAL_REASON_INVALID(HttpStatus.BAD_REQUEST, "※ 사유를 1~%d자로 적어 주세요");
+    EDITORIAL_REASON_INVALID(HttpStatus.BAD_REQUEST, "※ 사유를 1~%d자로 적어 주세요"),
+
+    // 방명록 (specs/021)
+    GUESTBOOK_ENTRY_NOT_FOUND(HttpStatus.NOT_FOUND, "※ 존재하지 않는 엽서입니다"),
+    GUESTBOOK_BODY_EMPTY(HttpStatus.BAD_REQUEST, "※ 엽서에 몇 자 적어 주세요"),
+    GUESTBOOK_BODY_TOO_LONG(HttpStatus.BAD_REQUEST, "※ 엽서는 %d자 이하로 적어 주세요"),
+    GUESTBOOK_STAMP_INVALID(HttpStatus.BAD_REQUEST, "※ 우표를 하나 골라 붙여 주세요"),
+    GUESTBOOK_OWN_BLOG(HttpStatus.FORBIDDEN, "※ 내 방명록에는 엽서 대신 답장을 남길 수 있어요"),
+    GUESTBOOK_TOO_FREQUENT(HttpStatus.TOO_MANY_REQUESTS, "※ 엽서는 잠시 쉬었다가 다시 보내 주세요"),
+    GUESTBOOK_DAILY_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "※ 이 방명록에는 오늘 엽서를 %d장까지 남길 수 있어요. 내일 또 들러 주세요");
 
     private final HttpStatus status;
     private final String message;

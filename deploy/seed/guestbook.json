@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {"blog": "woodwork", "by": "bakery", "hoursAgo": 3, "stamp": "pine", "secret": false,
+     "body": "도마 만드신 글 보고 저도 주말에 공방 체험 예약했어요!\n대패밥 냄새가 여기까지 나는 것 같아요 :)",
+     "reply": "체험 가시면 꼭 후기 남겨 주세요. 첫 대패질은 손목에 힘을 빼는 게 반이에요.", "replyMinutesAfter": 40},
+    {"blog": "woodwork", "by": "plant", "hoursAgo": 20, "stamp": "plum", "secret": false,
+     "body": "베란다에 둘 화분 받침대를 원목으로 짜 보고 싶은데, 물에 강한 나무가 따로 있을까요?",
+     "reply": "편백이나 오크가 물에 강한 편이에요. 오일 마감을 두 번 해 주면 오래갑니다.", "replyMinutesAfter": 95},
+    {"blog": "woodwork", "by": "film", "hoursAgo": 30, "stamp": "moon", "secret": true,
+     "body": "다음 달 공방 사진 작업 같이 해 보실래요? 자세한 건 메일로 드릴게요."},
+    {"blog": "frontnote", "by": "codecup", "hoursAgo": 6, "stamp": "crane", "secret": false,
+     "body": "useEffect 정리 글 덕분에 회사 코드에서 메모리 누수 하나 잡았습니다. 고마워요!",
+     "reply": "도움이 됐다니 기뻐요. 다음 글은 Suspense 이야기로 찾아갈게요.", "replyMinutesAfter": 25},
+    {"blog": "frontnote", "by": "runner", "hoursAgo": 50, "stamp": "wave", "secret": false,
+     "body": "개발은 잘 모르지만 글이 차분해서 출근길에 하나씩 읽고 있어요."},
+    {"blog": "halfday", "by": "sea", "hoursAgo": 12, "stamp": "wave", "secret": false,
+     "body": "강릉 반나절 코스 그대로 다녀왔어요. 안목 해변 커피 거리에서 노을까지 완벽했습니다.",
+     "reply": "노을까지 보셨다니 제가 다 뿌듯하네요. 다음엔 겨울 바다 코스도 올려 볼게요!", "replyMinutesAfter": 60}
+  ]
+}

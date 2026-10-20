@@ -24,6 +24,9 @@ PHOTOS = HERE / "photos.json"
 PHOTOS_OUT = HERE / "demo-photos.sql"
 BOARD = HERE / "board.json"
 BOARD_OUT = HERE / "demo-board.sql"
+GUESTBOOK = HERE / "guestbook.json"
+GUESTBOOK_OUT = HERE / "demo-guestbook.sql"
+STAMPS = {"pine", "wave", "moon", "plum", "crane"}
 KST = timezone(timedelta(hours=9))
 # 데이터를 만든 기준 시각. 글·댓글 시각이 이보다 늦지 않게 한다
 NOW = datetime(2026, 10, 11, 23, 0, tzinfo=KST)
@@ -215,6 +218,7 @@ def main():
     print(f"{OUT.relative_to(HERE.parent.parent)}: 블로거 {len(bloggers)}명, 글 {len(all_posts)}개")
     write_photos(bloggers, emails)
     write_board(emails)
+    write_guestbook(emails)
 
 
 def with_photo(content, photo):
@@ -315,6 +319,50 @@ def write_board(emails):
     out(f"\\echo 글마당 예시 글을 맞췄습니다: {len(posts)}개")
     BOARD_OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{BOARD_OUT.relative_to(HERE.parent.parent)}: 글마당 글 {len(posts)}개")
+
+def write_guestbook(emails):
+    """방명록 예시 엽서 (specs/021, 2026-10-20 사용자 "끝까지 다 해"). 넣는 순간 기준 몇 시간 전 엽서라 늘 최근 엽서처럼 보인다.
+    같은 (블로그, 쓴 사람, 내용) 엽서가 이미 있으면 넣지 않으므로 몇 번 실행해도 같다. 예시 회원을 지우면 함께 지워진다(외래 키 연쇄)."""
+    entries = json.loads(GUESTBOOK.read_text(encoding="utf-8"))["entries"]
+    lines = []
+    out = lines.append
+    out("-- 방명록 예시 엽서 (자동 생성: deploy/seed/build_seed.py, 원본 deploy/seed/guestbook.json). 손으로 고치지 않는다")
+    out("-- demo-content.sql 다음에 실행한다. 몇 번 실행해도 같다 (이미 있는 엽서는 넣지 않는다)")
+    out("\\set ON_ERROR_STOP on")
+    out("\\if :{?schema}")
+    out("\\else")
+    out("\\set schema public")
+    out("\\endif")
+    out("set search_path = :\"schema\";")
+    out("begin;")
+    out("do $$ begin")
+    out(f"  if not exists (select 1 from users where password = {q(NOT_A_HASH)} and email like 'demo.%@example.com') then")
+    out("    raise exception '예시 데이터가 없습니다. 먼저 demo-content.sql을 실행하세요';")
+    out("  end if;")
+    out("end $$;")
+    for entry in entries:
+        assert entry["blog"] in emails and entry["by"] in emails and entry["blog"] != entry["by"], entry
+        assert entry["stamp"] in STAMPS, entry["stamp"]
+        assert 1 <= len(entry["body"]) <= 300 and len(entry.get("reply") or "") <= 300, entry
+        when = f"now() - interval '{int(entry['hoursAgo'])} hours'"
+        reply = entry.get("reply")
+        replied = (f"{when} + interval '{int(entry['replyMinutesAfter'])} minutes'" if reply else "null")
+        if reply:
+            assert entry["replyMinutesAfter"] < entry["hoursAgo"] * 60, entry
+        out("")
+        out("insert into guestbook_entry (blog_id, users_id, body, stamp, is_secret, reply, replied_at, created_at) "
+            f"select b.blog_id, u.users_id, {q(entry['body'])}, {q(entry['stamp'])}, {'true' if entry.get('secret') else 'false'}, "
+            f"{q(reply)}, {replied}, {when} "
+            f"from blog b join users o on o.users_id = b.users_id, users u "
+            f"where o.email = {q(emails[entry['blog']])} and u.email = {q(emails[entry['by']])} "
+            f"and not exists (select 1 from guestbook_entry e where e.blog_id = b.blog_id and e.users_id = u.users_id "
+            f"and e.body = {q(entry['body'])});")
+    out("")
+    out("commit;")
+    out(f"\\echo 방명록 예시 엽서를 맞췄습니다: {len(entries)}장")
+    GUESTBOOK_OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"{GUESTBOOK_OUT.relative_to(HERE.parent.parent)}: 방명록 엽서 {len(entries)}장")
+
 
 if __name__ == "__main__":
     main()

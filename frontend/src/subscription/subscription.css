@@ -84,6 +84,8 @@
   --stamp-board: var(--category-2);
   --stamp-accepted: var(--category-4);
   --stamp-editorial: var(--category-5);
+  --stamp-guestbook: var(--category-3);
+  --stamp-gb-reply: var(--category-6);
 }
 
 .mailbox-button {
@@ -370,6 +372,14 @@
 
 .stamp-accepted {
   --stamp: var(--stamp-accepted);
+}
+
+.stamp-guestbook {
+  --stamp: var(--stamp-guestbook);
+}
+
+.stamp-gb_reply {
+  --stamp: var(--stamp-gb-reply);
 }
 
 .stamp-editorial {
