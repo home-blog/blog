@@ -21,7 +21,7 @@
     <properties>
         <java.version>21</java.version>
         <spring-modulith.version>2.1.1</spring-modulith.version>
-        <aws-sdk.version>2.55.0</aws-sdk.version>
+        <aws-sdk.version>2.56.0</aws-sdk.version>
         <springdoc.version>3.1.1</springdoc.version>
     </properties>
 
@@ -126,7 +126,7 @@
         <dependency>
             <groupId>com.anthropic</groupId>
             <artifactId>anthropic-java</artifactId>
-            <version>2.34.0</version>
+            <version>2.73.0</version>
         </dependency>
 
         <!-- 서버 상태 확인 (헬스 체크) -->
