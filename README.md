@@ -8,6 +8,41 @@
 - 바뀐 것(릴리스마다): [CHANGELOG.md](CHANGELOG.md)
 - 처음 개발 환경을 꾸린다면: [docs/개발-환경.md](docs/개발-환경.md)
 
+<p align="center"><img src="docs/images/home.webp" alt="글결 첫 화면 — 원고지 표지, 주제 탭, 이번 주 눈여겨볼 글" width="860" /></p>
+
+## 화면 (v0.17.0)
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/post.webp" alt="글 읽기 — 목차, 원고지 매수·읽는 시간" /><br/><b>글 읽기</b> — 목차, 원고지 매수·읽는 시간</td>
+<td width="50%"><img src="docs/images/write.webp" alt="글쓰기와 빨간 펜 — 원고지 위 교정부호" /><br/><b>글쓰기 + 빨간 펜</b> — 띄어쓰기·맞춤법을 교정부호로 짚고 하나씩 받아들인다</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/blog.webp" alt="블로그 홈 — 원고지 매수, 글쓰기 잔디, 분류" /><br/><b>블로그</b> — 쓴 원고지 매수, 지난 1년의 글쓰기 잔디, 원고 받아 보기·방명록</td>
+<td width="50%"><img src="docs/images/dashboard.webp" alt="블로그 관리 대시보드" /><br/><b>대시보드</b> — 조회수·방문자, 최근 30일 그래프, 새 댓글</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/board.webp" alt="글마당 — 주제별 이야기·물음, 채택 도장" /><br/><b>글마당</b> — 주제별 이야기·물음, 물음에는 붉은 채택 도장</td>
+<td width="50%"><img src="docs/images/guestbook.webp" alt="방명록 엽서함 — 우표, 비밀 엽서" /><br/><b>방명록</b> — 우표를 붙인 엽서, 밀랍으로 봉한 비밀 엽서, 주인의 답장</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/mailbox.webp" alt="우편함 — 엽서·답장 소식" /><br/><b>우편함</b> — 새 원고·댓글·답글·엽서 소식을 우표 색으로, 읽으면 소인</td>
+<td width="50%"><img src="docs/images/editorial.webp" alt="편집실 — 운영 현황과 처리 기록" /><br/><b>편집실</b> — 신고 검토·내림·반려, 댓글 가림, 회원 정지, 처리 기록</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/ai-connect.webp" alt="마이페이지 AI 비서 연결" /><br/><b>AI 비서 연결</b> — 개인 열쇠 또는 Claude 앱 커넥터로 MCP에 붙인다</td>
+<td width="50%"><img src="docs/images/consent.webp" alt="위임장 — OAuth 허락 화면" /><br/><b>위임장</b> — Claude 앱이 무엇을 언제까지 할 수 있는지 보고 인장을 찍어 허락</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/drafts.webp" alt="글 관리 — 임시 저장·예약" /><br/><b>글 관리</b> — 공개 범위, 임시 저장·예약 발행</td>
+<td width="50%"><img src="docs/images/home-dark.webp" alt="다크 모드 첫 화면" /><br/><b>다크 모드</b> — 원고지 색을 그대로 어둡게</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/images/notices.webp" alt="공지사항 — 업데이트·공지 탭" /><br/><b>공지사항</b> — 업데이트·공지 탭, 릴리스마다 바뀐 것을 글로</td>
+<td width="50%"></td>
+</tr>
+</table>
+
 ## 할 수 있는 것
 
 | 묶음 | 기능 |
@@ -24,7 +59,27 @@
 | AI 비서 연결 (MCP) | 마이페이지에서 만든 개인 열쇠로 Claude 같은 AI 비서가 `/api/v1/mcp`에 붙어 글·단락을 출처와 함께 찾아 읽고(RAG의 찾기), 내 글 목록·통계를 보고, 초안을 남긴다(발행은 하지 않음). 답은 사용자의 AI가 써서 서버에 유료 AI 열쇠가 필요 없다 |
 | 공유 | RSS, 사이트 지도, 링크 미리보기 카드(OG) |
 | 공지사항 | 업데이트·공지 탭, 새 글 알림 점, 관리자만 쓰기 |
-| AI | 빨간 펜 교정(원고지 위 교정부호로 짚고 받아들일지 고름. 기본은 서버 안의 무료 맞춤법 규칙, 열쇠가 있으면 Claude), 이 글과 비슷한 글(Voyage 또는 내 서버의 무료 Ollama 임베딩, 둘 다 없으면 태그·주제로 대신) |
+| AI | 빨간 펜 교정(원고지 위 교정부호로 짚고 받아들일지 고름. 배포에서는 Claude가 교정하고, 열쇠가 없는 개발 환경에서는 서버 안의 무료 맞춤법 규칙), 이 글과 비슷한 글(배포에서는 내 서버의 무료 Ollama + bge-m3 임베딩으로 뜻이 가까운 글, Voyage 열쇠가 있으면 Voyage, 둘 다 없으면 태그·주제로 대신) |
+
+## 지금까지의 릴리스
+
+| 버전 | 날짜 | 무엇이 생겼나 |
+|---|---|---|
+| 0.17.0 | 2026-10-20 | Claude 앱 커넥터: MCP 주소 하나로 붙는 OAuth 2.1 인가 서버와 위임장 |
+| 0.16.0 | 2026-10-20 | 방명록 엽서함, 댓글 신고·자동 가림, 회원 정지 |
+| 0.15.0 | 2026-10-20 | 글결 MCP: AI 비서가 내 글·단락을 출처와 함께 찾고 초안을 남김, 우편함 다시 그리기 |
+| 0.14.0 | 2026-10-19 | 답글과 봉한 쪽지(비밀 댓글) |
+| 0.13.0 | 2026-10-19 | 편집실: 신고 검토·내림·반려 |
+| 0.12.0 | 2026-10-19 | 글마당: 주제별 이야기·물음, 채택 도장 |
+| 0.11.0 | 2026-10-19 | 원고 받아 보기(구독), 우편함, 원고 편지(메일) |
+| 0.10.0 | 2026-10-19 | 필사 노트, 오늘의 이슈, 지금 많이 찾는 말 |
+| 0.8.0 · 0.9.0 | 2026-10-19 | 빨간 펜 교정과 이 글과 비슷한 글 |
+| 0.7.0 | 2026-10-16 | 임시 저장, 예약 발행, 연재, 글쓰기 잔디 |
+| 0.6.0 | 2026-10-15 | 공지사항, API 문서 |
+| 0.5.x | 2026-10-13 ~ 14 | 소셜 로그인, 원고지 손길, 무중단 배포 |
+| 0.1.0 ~ 0.4.0 | 2026-10-12 | 첫 배포, 다크 모드·목차·원고지 매수, 카드 썸네일, `/api/v1` |
+
+자세한 변경(화면·API·운영)은 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
 
 ## 기술
 
@@ -76,7 +131,7 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 | 문서 | 보는 법 |
 |---|---|
-| Swagger (API 88개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 13개 묶음, 로그인·CSRF가 필요한 API에 표시 |
+| Swagger (API 160개 전체) | 서버를 개발 설정으로 켜고 http://localhost:8080/swagger-ui.html. 20개 묶음, 로그인·CSRF가 필요한 API에 표시 |
 | Spring REST Docs (주요 흐름 32개, 실제 요청·응답) | `cd backend && mvn -Pdocs verify` → `backend/target/generated-docs/index.html` |
 
 모든 주소는 `/api/v1/…`입니다. 로그인은 서버 세션(쿠키 `SESSION`)이고, GET이 아닌 요청은 쿠키 `XSRF-TOKEN`의 값을 머리글 `X-XSRF-TOKEN`에 실어 보냅니다.
@@ -85,7 +140,7 @@ IntelliJ에서는 오른쪽 위 실행 목록에서 `1. DB·Redis·MinIO 켜기`
 
 ```bash
 # 저장소 맨 위에서. 괄호는 그 폴더에 들어갔다가 돌아온다
-(cd backend && mvn verify)                  # 서버 테스트 810여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
+(cd backend && mvn verify)                  # 서버 테스트 960여 개 + JaCoCo 커버리지 (DB·Redis가 떠 있어야 한다)
 (cd frontend && npm test)                   # 화면 테스트 (Vitest)
 (cd frontend && npm run test:coverage)      # 화면 커버리지 (coverage/lcov.info)
 ```
