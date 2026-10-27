@@ -37,6 +37,10 @@
 <td width="50%"><img src="docs/images/drafts.webp" alt="글 관리 — 임시 저장·예약" /><br/><b>글 관리</b> — 공개 범위, 임시 저장·예약 발행</td>
 <td width="50%"><img src="docs/images/home-dark.webp" alt="다크 모드 첫 화면" /><br/><b>다크 모드</b> — 원고지 색을 그대로 어둡게</td>
 </tr>
+<tr>
+<td width="50%"><img src="docs/images/notices.webp" alt="공지사항 — 업데이트·공지 탭" /><br/><b>공지사항</b> — 업데이트·공지 탭, 릴리스마다 바뀐 것을 글로</td>
+<td width="50%"></td>
+</tr>
 </table>
 
 ## 할 수 있는 것
