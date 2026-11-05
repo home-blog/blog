@@ -6,8 +6,8 @@
 2. SSH로 실습 서버에 접속해 이미지와 배포 파일을 `~/geulgyeol/`에 올린다. 접속 정보는 GitHub Secrets에서 읽는다.
 3. 서버에서 `deploy/remote-deploy.sh`를 실행해 앱 두 벌을 **한 벌씩** 새 이미지로 바꾼다 (무중단 롤링 배포, 아래 "무중단 배포").
 
-구성: 인터넷 → 실습 서버 Nginx(도메인 → `upstream`: `127.0.0.1:8410` a 벌, `127.0.0.1:8411` b 벌) → 벌마다 **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 같은 벌의 서버로 넘김) → **서버 컨테이너**(Spring) → 두 벌이 같이 쓰는 실습 DB(PostgreSQL, 내 스키마) · Redis · MinIO 컨테이너.
-여는 포트는 화면 입구 8410·8411뿐이고, 그것도 서버 안(`127.0.0.1`)에서만 받는다. Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
+구성: 인터넷 → 학원 Nginx(nginx-manager, 도메인 → `upstream`: `<서버 내부 주소>:8410` a 벌, `<서버 내부 주소>:8411` b 벌) → 벌마다 **화면 컨테이너**(nginx: 화면 파일을 주고 `/api/`는 같은 벌의 서버로 넘김) → **서버 컨테이너**(Spring) → 두 벌이 같이 쓰는 실습 DB(PostgreSQL, 내 스키마) · Redis · MinIO 컨테이너.
+여는 포트는 화면 입구 8410·8411뿐이다. 학원 Nginx가 컨테이너로 바뀐 뒤(2026-10-30)로는 서버의 내부 주소로 들어오므로 `0.0.0.0`(또는 저장소 Variables `WEB_BIND`의 내부 주소)에 묶는다(0.17.1). 예전처럼 `127.0.0.1`에만 묶으면 학원 Nginx가 닿지 못해 502가 난다. Redis·MinIO는 컨테이너끼리만 쓴다(여럿이 쓰는 서버라서).
 
 > 이 저장소는 공개다. 서버 주소·비밀번호는 GitHub Secrets에만 둔다.
 
@@ -114,6 +114,36 @@ done
 ```
 
 ## 학원 Nginx 고치기
+
+### nginx-manager (2026-10-30부터)
+
+학원 Nginx가 **nginx-manager**(웹 폼으로 사이트를 만드는 컨테이너)로 바뀌었다. 컨테이너 안에서 `127.0.0.1`은 그 컨테이너 자신이라, `proxy_pass`는 **서버의 내부 주소**(`hostname -I`의 첫 주소)로 써야 한다. 내 사이트를 **원문 편집**으로 열어 `location /` 부분을 아래처럼 바꾼다. 인증서 줄(`ssl_certificate…`)과 로그 줄은 nginx-manager가 만든 그대로 둔다.
+
+```nginx
+upstream geulgyeol {
+    server <서버 내부 주소>:8410 max_fails=1 fail_timeout=10s;
+    server <서버 내부 주소>:8411 max_fails=1 fail_timeout=10s;
+}
+
+# server { listen 443 ssl; … } 안의 location /
+location / {
+    proxy_pass http://geulgyeol;
+    proxy_next_upstream error timeout http_502 http_503;
+    add_header X-Upstream $upstream_addr always;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 60s;
+    client_max_body_size 20M;
+}
+```
+
+확인: 바깥에서 `curl -sI https://<내 도메인>/ | grep -iE 'HTTP/|x-upstream'`에 `200`과 `x-upstream: <서버 내부 주소>:841x`가 나오면 된다.
+
+### 예전 방식 (`~/nginx/<내 도메인>.conf`, 2026-10-30 전)
+
 
 이미 있는 `~/nginx/<내 도메인>.conf`는 통째로 덮어쓰지 않는다(강사님이 HTTPS를 덧붙여 두었다). 백업하고 필요한 줄만 고친 뒤 `diff`로 확인한다.
 

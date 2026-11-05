@@ -46,6 +46,9 @@ env:
   DEPLOY_NAME: geulgyeol   # 서버 폴더·컨테이너·이미지 이름
   WEB_PORT: "8410"         # 앱 a 벌의 화면 입구. 내 포트 범위(8410~8419)의 맨 처음
   WEB_PORT_B: "8411"       # 앱 b 벌의 화면 입구 (무중단 배포, specs/011). 학원 Nginx upstream에 둘 다 있다
+  # 화면 입구를 묶는 주소. 학원 Nginx(nginx-manager)가 컨테이너라 서버의 내부 주소로 들어온다(0.17.1).
+  # 저장소 Variables WEB_BIND에 서버 내부 주소를 넣으면 그 주소에만 묶는다 (공개 저장소라 주소는 여기 적지 않는다)
+  WEB_BIND: ${{ vars.WEB_BIND || '0.0.0.0' }}
 
 jobs:
   check:
@@ -183,7 +186,7 @@ jobs:
           tar czf - docker-compose.deploy.yml deploy | remote "mkdir -p $dir && tar xzf - -C $dir"
 
           # 2) 접속 정보: 파일을 거치지 않고 바로 서버의 .env.deploy(나만 읽기)로 쓴다. 값은 셸 따옴표로 감싼다
-          for k in DEPLOY_NAME WEB_PORT WEB_PORT_B IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
+          for k in DEPLOY_NAME WEB_PORT WEB_PORT_B WEB_BIND IMAGE_TAG DB_ADDRESS DB_PORT DB_NAME DB_SCHEMA DB_USERNAME DB_PASSWORD \
                    MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD SESSION_COOKIE_SECURE \
                    SOCIAL_GITHUB_CLIENT_ID SOCIAL_GITHUB_CLIENT_SECRET SOCIAL_GOOGLE_CLIENT_ID SOCIAL_GOOGLE_CLIENT_SECRET \
                    SOCIAL_KAKAO_CLIENT_ID SOCIAL_KAKAO_CLIENT_SECRET SOCIAL_NAVER_CLIENT_ID SOCIAL_NAVER_CLIENT_SECRET \

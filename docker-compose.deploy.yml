@@ -4,7 +4,8 @@
 #   번갈아 보내고, 한쪽이 꺼져 있으면 다른 쪽으로 다시 보낸다. 배포는 한 벌씩 차례로 바꾼다(롤링). 어느 벌이 어느 이미지인지는
 #   서버의 .slots.env(IMAGE_TAG_A, IMAGE_TAG_B)에 남는다 (remote-deploy.sh가 쓴다)
 # - DB는 실습 DB(PostgreSQL)를 쓴다. 표는 DB_SCHEMA 스키마 안에 Flyway가 만든다. 두 벌이 같은 DB·Redis·이미지 저장소를 쓴다
-# - 여는 포트는 화면 입구 두 개뿐이고, 그것도 이 서버 안(127.0.0.1)에서만 받는다. 밖에서는 실습 서버 Nginx를 거친다
+# - 여는 포트는 화면 입구 두 개뿐이다. 묶는 주소는 WEB_BIND(기본 127.0.0.1, 배포는 0.0.0.0). 학원 Nginx가 컨테이너(nginx-manager)로
+#   바뀐 뒤로는 서버의 내부 주소로 들어와서 127.0.0.1에만 묶으면 닿지 않는다 (2026-11-05, 0.17.1). 밖에서는 학원 Nginx를 거친다
 # - Redis·이미지 저장소(MinIO)는 컨테이너끼리만 통한다 (같은 서버를 여러 사람이 쓰므로)
 # - 이름(DEPLOY_NAME)은 같은 서버의 다른 사람 컨테이너·데이터와 섞이지 않게 나만 쓰는 이름
 name: ${DEPLOY_NAME:?DEPLOY_NAME이 없습니다}
@@ -72,7 +73,7 @@ services:
     <<: *web
     image: ${DEPLOY_NAME}-web:${IMAGE_TAG_A:?IMAGE_TAG_A가 없습니다}
     ports:
-      - "127.0.0.1:${WEB_PORT:?WEB_PORT가 없습니다}:80"
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:?WEB_PORT가 없습니다}:80"
     networks: [slot-a]
     depends_on:
       server-a:
@@ -95,7 +96,7 @@ services:
     <<: *web
     image: ${DEPLOY_NAME}-web:${IMAGE_TAG_B:?IMAGE_TAG_B가 없습니다}
     ports:
-      - "127.0.0.1:${WEB_PORT_B:?WEB_PORT_B가 없습니다}:80"
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT_B:?WEB_PORT_B가 없습니다}:80"
     networks: [slot-b]
     depends_on:
       server-b:

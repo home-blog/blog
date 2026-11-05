@@ -57,6 +57,9 @@ esac
 target="${1:-${IMAGE_TAG:?IMAGE_TAG가 없습니다}}"
 [[ "$target" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "이미지 태그 모양이 아닙니다: $target" >&2; exit 1; }
 export WEB_PORT_B="${WEB_PORT_B:-8411}"
+# 화면 입구를 묶는 주소. 확인은 그 주소로 한다(0.0.0.0이면 모든 주소에서 받으니 127.0.0.1로 확인)
+export WEB_BIND="${WEB_BIND:-127.0.0.1}"
+check_host="$WEB_BIND"; [ "$check_host" = 0.0.0.0 ] && check_host=127.0.0.1
 # 한 벌을 켠 뒤 다음 벌을 끄기까지 기다리는 시간. 학원 Nginx의 fail_timeout(10s)보다 길어야
 # Nginx가 방금 켠 벌을 다시 쓰기 시작한 뒤에 다른 벌을 끈다 (둘 다 쉬는 중으로 보이면 502가 난다)
 settle="${SLOT_SETTLE_SECONDS:-15}"
@@ -93,14 +96,14 @@ exists() { docker container inspect "$1" >/dev/null 2>&1; }
 check_slot() {
   local slot="$1" port headers code
   port="$(port_of "$slot")"
-  headers="$(curl -s -o /dev/null -D - --max-time 10 "http://127.0.0.1:$port/api/v1/auth/csrf" || true)"
+  headers="$(curl -s -o /dev/null -D - --max-time 10 "http://$check_host:$port/api/v1/auth/csrf" || true)"
   if ! grep -qE '^HTTP/[0-9.]+ 200' <<<"$headers"; then
-    echo "확인 실패: $slot 벌(127.0.0.1:$port) API가 200으로 답하지 않습니다" >&2; return 1
+    echo "확인 실패: $slot 벌($check_host:$port) API가 200으로 답하지 않습니다" >&2; return 1
   fi
   if ! grep -qiE "^x-instance: $slot"$'\r'"?$" <<<"$headers"; then
-    echo "확인 실패: 127.0.0.1:$port 가 $slot 벌의 서버로 이어지지 않습니다" >&2; return 1
+    echo "확인 실패: $check_host:$port 가 $slot 벌의 서버로 이어지지 않습니다" >&2; return 1
   fi
-  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://127.0.0.1:$port/" || true)"
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$check_host:$port/" || true)"
   [ "$code" = 200 ] || { echo "확인 실패: $slot 벌 첫 화면이 ${code}로 답했습니다" >&2; return 1; }
 }
 
@@ -156,7 +159,7 @@ for i in "${!order[@]}"; do
   var="IMAGE_TAG_${slot^^}" first="first_$slot"
   old="$(image_tag_of "${DEPLOY_NAME}-server-$slot-1")"   # 이 벌이 지금 쓰는 이미지 (처음이면 비어 있다)
   [ -n "$old" ] || old="${!first}"
-  echo "── $slot 벌: ${old:-처음} → ${target} (127.0.0.1:$(port_of "$slot"))"
+  echo "── $slot 벌: ${old:-처음} → ${target} (${WEB_BIND}:$(port_of "$slot"))"
 
   if [ "$slot" = a ] && { exists "$legacy_web" || exists "$legacy_server"; }; then
     echo "두 벌 이전의 컨테이너를 끕니다 (손님은 b 벌이 받는다)"
@@ -200,7 +203,7 @@ for i in "${!order[@]}"; do
 done
 
 "${compose[@]}" ps
-echo "켜졌습니다: a 127.0.0.1:${WEB_PORT}, b 127.0.0.1:${WEB_PORT_B} (${target})"
+echo "켜졌습니다: a ${WEB_BIND}:${WEB_PORT}, b ${WEB_BIND}:${WEB_PORT_B} (${target})"
 
 # 지금 두 벌이 쓰는 이미지와 바로 전 이미지(되돌리기용)만 남기고 내 옛 이미지를 지운다 (여럿이 쓰는 Docker라 다른 사람 이미지는 건드리지 않는다)
 for repo in "${DEPLOY_NAME}-server" "${DEPLOY_NAME}-web"; do
